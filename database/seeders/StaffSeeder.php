@@ -9,6 +9,12 @@ class StaffSeeder
 {
     public function run(): void
     {
+        if (StaffProfile::where('email', 'superadmin@azamventures.com')->exists()) {
+            echo "  [StaffSeeder] Skipped: superadmin already exists.\n";
+
+            return;
+        }
+
         $staff = [
             [
                 'name' => 'Super Admin',
@@ -17,7 +23,6 @@ class StaffSeeder
                 'phone' => '012-3456793',
                 'identification_no' => '920701-14-4422',
                 'employee_id' => 'AD-001',
-                'role' => 'super_admin',
                 'job_title' => 'Admin & Finance Officer',
                 'is_active' => true,
                 'hire_date' => '2023-01-01',
@@ -62,31 +67,21 @@ class StaffSeeder
             ],
         ];
 
-        $users = [];
         foreach ($staff as $s) {
             StaffProfile::create($s);
-            $users[] = ['email' => $s['email'], 'name' => $s['name'], 'role' => $s['role']];
         }
 
-        // Add users for each role type
-        $roleAccounts = [
+        // Create user accounts with roles
+        $userAccounts = [
             ['name' => 'Super Admin', 'email' => 'superadmin@azamventures.com', 'password' => 'password123', 'roles' => ['super_admin']],
         ];
 
-        foreach (array_merge($users, $roleAccounts) as $u) {
-            $roles = $u['roles'] ?? [$u['role'] ?? 'staff'];
-            // Map legacy staff_profile roles to JWT roles
-            $roles = array_map(fn ($r) => in_array($r, ['foreman', 'finance']) ? 'staff' : ($r === 'hr' || $r === 'owner' ? 'admin' : $r), $roles);
-
-            $user = User::where('email', $u['email'])->first();
-            if (! $user) {
-                $user = User::create([
-                    'name' => $u['name'],
-                    'email' => $u['email'],
-                    'password' => password_hash($u['password'] ?? 'password123', PASSWORD_BCRYPT),
-                ]);
-            }
-            $user->syncRoles($roles);
+        foreach ($userAccounts as $u) {
+            $user = User::firstOrCreate(
+                ['email' => $u['email']],
+                ['name' => $u['name'], 'password' => password_hash($u['password'] ?? 'password123', PASSWORD_BCRYPT)]
+            );
+            $user->syncRoles($u['roles']);
         }
     }
 }

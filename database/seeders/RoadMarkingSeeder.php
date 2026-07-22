@@ -55,7 +55,6 @@ class RoadMarkingSeeder
                 [
                     'company_name' => $clientName,
                     'client_code' => (new NumberingService)->generate('client'),
-                    'status' => 'active',
                 ]
             );
 

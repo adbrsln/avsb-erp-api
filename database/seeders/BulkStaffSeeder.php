@@ -73,7 +73,6 @@ class BulkStaffSeeder
             [
                 'name' => 'Super Admin',
                 'employee_id' => 'AD-001',
-                'role' => 'super_admin',
                 'job_title' => 'System Administrator',
                 'is_active' => true,
                 'basic_salary' => 0,

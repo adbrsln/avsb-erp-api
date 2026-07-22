@@ -36,9 +36,14 @@ class ClientSeeder
         foreach ($clients as $c) {
             $pics = $c['pics'] ?? [];
             unset($c['pics']);
-            $client = Client::create($c);
-            foreach ($pics as $pic) {
-                ClientPIC::create(array_merge($pic, ['client_id' => $client->id]));
+            $client = Client::firstOrCreate(
+                ['client_code' => $c['client_code']],
+                $c
+            );
+            if ($client->wasRecentlyCreated) {
+                foreach ($pics as $pic) {
+                    ClientPIC::create(array_merge($pic, ['client_id' => $client->id]));
+                }
             }
         }
     }
