@@ -390,6 +390,8 @@ Route::prefix('v1')->group(function () {
         Route::post('payroll/items/{itemId}/adjustments', [PayrollController::class, 'createItemAdjustment']);
         Route::delete('payroll/adjustments/{id}', [PayrollController::class, 'deleteItemAdjustment']);
         Route::post('payroll/items/{itemId}/recalculate', [PayrollController::class, 'recalculateItem']);
+        Route::get('payroll/me/payslips', [PayrollController::class, 'myPayslips']);
+        Route::get('payroll/payslips/{itemId}/download', [PayrollController::class, 'downloadPayslip']);
         Route::get('my-payslips', [PayrollController::class, 'myPayslips']);
 
         // ── Part Time ──

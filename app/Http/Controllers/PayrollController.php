@@ -549,9 +549,11 @@ class PayrollController extends Controller
         ]);
     }
 
-    public function downloadPayslip(Request $request, int $id, int $itemId): JsonResponse
+    public function downloadPayslip(Request $request, int $periodId = 0, int $itemId = 0): JsonResponse
     {
-        $item = PayrollRunItem::with('period')->find($itemId);
+        // Support both: /payroll/payslips/{itemId} and /payroll/periods/{id}/items/{itemId}
+        $actualItemId = $itemId ?: $periodId;
+        $item = PayrollRunItem::with('period')->find($actualItemId);
         if (! $item) {
             return response()->json(['error' => 'Payslip not found'], 404);
         }
