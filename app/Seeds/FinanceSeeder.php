@@ -11,13 +11,17 @@ class FinanceSeeder
 {
     public function run(): void
     {
-        if (Quotation::count() > 0) return;
+        if (Quotation::count() > 0) {
+            return;
+        }
 
         $projects = Project::all();
         $p1 = $projects->where('name', 'Jalan Tun Razak Resurfacing')->first() ?? $projects->first();
         $p2 = $projects->where('name', 'Federal Highway Patch Repair')->first() ?? ($projects->skip(1)->first() ?? $projects->first());
 
-        if (!$p1) return;
+        if (! $p1) {
+            return;
+        }
 
         $q1 = Quotation::create([
             'quote_number' => 'QTN-2024-001',
@@ -48,6 +52,7 @@ class FinanceSeeder
                 ['description' => 'Disposal', 'unit' => 'Trip', 'quantity' => 100, 'unit_rate' => 350, 'total' => 35000],
                 ['description' => 'Mobilization', 'unit' => 'Setup', 'quantity' => 1, 'unit_rate' => 5000, 'total' => 5000],
             ],
+        ]);
 
         $c1 = Contract::create([
             'contract_number' => 'CNT-2024-001',
