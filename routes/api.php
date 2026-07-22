@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccountingController;
 use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\AssetController;
 use App\Http\Controllers\AssetLicenseController;
 use App\Http\Controllers\AssetMovementController;
@@ -9,35 +10,57 @@ use App\Http\Controllers\AssetServiceController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BillController;
+use App\Http\Controllers\BillPaymentController;
+use App\Http\Controllers\BoardController;
 use App\Http\Controllers\ChartOfAccountController;
 use App\Http\Controllers\ClaimController;
 use App\Http\Controllers\ClientController;
+use App\Http\Controllers\ClientPICController;
 use App\Http\Controllers\CompanySettingController;
 use App\Http\Controllers\ContractController;
 use App\Http\Controllers\ContractVariationController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EInvoiceController;
+use App\Http\Controllers\EisController;
+use App\Http\Controllers\EPFController;
 use App\Http\Controllers\FiscalPeriodController;
+use App\Http\Controllers\GeocodeController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\LeaveGroupController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\NotificationPreferenceController;
 use App\Http\Controllers\PartTimeController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PayrollController;
+use App\Http\Controllers\PayRunController;
 use App\Http\Controllers\PhaseController;
+use App\Http\Controllers\PhaseStaffController;
 use App\Http\Controllers\PhaseTemplateController;
 use App\Http\Controllers\ProjectClaimController;
+use App\Http\Controllers\ProjectClaimDocumentController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectDocumentController;
+use App\Http\Controllers\ProjectGroupController;
+use App\Http\Controllers\ProjectMaterialController;
+use App\Http\Controllers\ProjectStaffPicController;
 use App\Http\Controllers\ProjectSubcontractorController;
 use App\Http\Controllers\ProjectTypeController;
 use App\Http\Controllers\PurchaseOrderController;
+use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\QuoteController;
+use App\Http\Controllers\ReceiptController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SelfBilledInvoiceController;
+use App\Http\Controllers\ServiceCatalogController;
+use App\Http\Controllers\ServiceTypeController;
+use App\Http\Controllers\SocsoController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\SubcontractorClaimController;
 use App\Http\Controllers\SubcontractorController;
 use App\Http\Controllers\SubcontractorPICController;
+use App\Http\Controllers\SystemController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TimecardController;
 use App\Http\Controllers\UserController;
@@ -52,9 +75,10 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
 
-    // ── Public Auth Routes ──
-    Route::post('auth/login', [AuthController::class, 'login']);
-    Route::post('auth/register', [AuthController::class, 'register']);
+    // ── Public Auth Routes (with rate limiting) ──
+    Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:10,60');
+    Route::post('auth/register', [AuthController::class, 'register'])->middleware('throttle:5,3600');
+    Route::post('auth/verify-password', [AuthController::class, 'verifyPassword'])->middleware('throttle:5,60');
 
     // ── Authenticated Routes ──
     Route::middleware('auth:sanctum')->group(function () {
@@ -442,5 +466,134 @@ Route::prefix('v1')->group(function () {
         Route::get('system/ping', function () {
             return response()->json(['pong' => true, 'time' => now()->toIso8601String()]);
         });
+
+        // ── Approvals ──
+        Route::get('approvals', [ApprovalController::class, 'index']);
+
+        // ── Dashboard ──
+        Route::get('dashboard/summary', [DashboardController::class, 'summary']);
+
+        // ── Board ──
+        Route::get('board/summary', [BoardController::class, 'summary']);
+        Route::get('board/projects', [BoardController::class, 'projects']);
+        Route::get('board/projects/{id}', [BoardController::class, 'project']);
+
+        // ── Search ──
+        Route::get('search', [SearchController::class, 'search']);
+
+        // ── Client PICs ──
+        Route::get('clients/{clientId}/pics', [ClientPICController::class, 'index']);
+        Route::post('clients/{clientId}/pics', [ClientPICController::class, 'store']);
+        Route::put('client-pics/{id}', [ClientPICController::class, 'update']);
+        Route::delete('client-pics/{id}', [ClientPICController::class, 'destroy']);
+
+        // ── Project Staff PICs ──
+        Route::get('projects/{projectId}/staff-pics', [ProjectStaffPicController::class, 'index']);
+        Route::post('projects/{projectId}/staff-pics', [ProjectStaffPicController::class, 'store']);
+        Route::delete('project-staff-pics/{id}', [ProjectStaffPicController::class, 'destroy']);
+
+        // ── Project Materials ──
+        Route::get('projects/{projectId}/materials', [ProjectMaterialController::class, 'index']);
+        Route::post('projects/{projectId}/materials', [ProjectMaterialController::class, 'store']);
+        Route::delete('project-materials/{id}', [ProjectMaterialController::class, 'destroy']);
+
+        // ── Project Groups ──
+        Route::get('project-groups', [ProjectGroupController::class, 'index']);
+        Route::post('project-groups', [ProjectGroupController::class, 'store']);
+        Route::get('project-groups/{id}', [ProjectGroupController::class, 'show']);
+        Route::put('project-groups/{id}', [ProjectGroupController::class, 'update']);
+        Route::delete('project-groups/{id}', [ProjectGroupController::class, 'destroy']);
+
+        // ── Phase Staff ──
+        Route::get('project-phases/{phaseId}/staff', [PhaseStaffController::class, 'index']);
+        Route::post('project-phases/{phaseId}/staff', [PhaseStaffController::class, 'sync']);
+
+        // ── Project Cost Summary ──
+        Route::get('projects/{id}/cost-summary', [ProjectController::class, 'costSummary']);
+
+        // ── Project Generate Invoice ──
+        Route::post('projects/{id}/generate-invoice', [ProjectController::class, 'generateInvoice']);
+
+        // ── Project Subcontractors ──
+        Route::put('project-subcontractors/{id}', [ProjectSubcontractorController::class, 'update']);
+        Route::post('project-subcontractors/{id}/release-retention', [ProjectSubcontractorController::class, 'releaseRetention']);
+
+        // ── Invoice Downloads ──
+        Route::get('invoices/{id}/download', [InvoiceController::class, 'download']);
+        Route::get('quotations/{id}/download', [QuoteController::class, 'download']);
+        Route::get('contracts/{id}/download', [ContractController::class, 'download']);
+        Route::get('self-billed-invoices/{id}/download', [SelfBilledInvoiceController::class, 'download']);
+
+        // ── Receipts ──
+        Route::get('invoices/{invoiceId}/receipts', [ReceiptController::class, 'index']);
+        Route::get('receipts/{id}/download', [ReceiptController::class, 'download']);
+
+        // ── Bill Payments ──
+        Route::get('bills/{billId}/payments', [BillPaymentController::class, 'index']);
+        Route::post('bills/{billId}/payments', [BillPaymentController::class, 'store']);
+
+        // ── E-Invoice ──
+        Route::get('einvoice/settings', [EInvoiceController::class, 'getSettings']);
+        Route::put('einvoice/settings', [EInvoiceController::class, 'updateSettings']);
+        Route::post('einvoice/test-connection', [EInvoiceController::class, 'testConnection']);
+        Route::get('einvoice/tax-codes', [EInvoiceController::class, 'getTaxCodes']);
+        Route::post('einvoice/tax-codes', [EInvoiceController::class, 'manageTaxCodes']);
+        Route::post('einvoice/upload-cert', [EInvoiceController::class, 'uploadCert']);
+        Route::post('einvoice/webhook', [EInvoiceController::class, 'webhook']);
+
+        // ── Self-Billed E-Invoice ──
+        Route::post('self-billed-invoices/{id}/submit-einvoice', [SelfBilledInvoiceController::class, 'submitEInvoice']);
+        Route::get('self-billed-invoices/{id}/einvoice-status', [SelfBilledInvoiceController::class, 'einvoiceStatus']);
+        Route::post('self-billed-invoices/{id}/cancel-einvoice', [SelfBilledInvoiceController::class, 'cancelEInvoice']);
+
+        // ── EPF / SOCSO / EIS Calculators ──
+        Route::get('epf/schedules', [EPFController::class, 'schedules']);
+        Route::post('epf/calculate', [EPFController::class, 'calculate']);
+        Route::post('socso/calculate', [SocsoController::class, 'calculate']);
+        Route::get('socso/tiers', [SocsoController::class, 'listTiers']);
+        Route::post('eis/calculate', [EisController::class, 'calculate']);
+        Route::get('eis/tiers', [EisController::class, 'listTiers']);
+
+        // ── Service Catalog ──
+        Route::get('service-items', [ServiceCatalogController::class, 'index']);
+        Route::post('service-items', [ServiceCatalogController::class, 'store']);
+        Route::get('service-items/{id}', [ServiceCatalogController::class, 'show']);
+        Route::put('service-items/{id}', [ServiceCatalogController::class, 'update']);
+        Route::delete('service-items/{id}', [ServiceCatalogController::class, 'destroy']);
+
+        // ── Service Types ──
+        Route::get('service-types', [ServiceTypeController::class, 'index']);
+        Route::get('service-types/{id}', [ServiceTypeController::class, 'show']);
+
+        // ── Notification Preferences ──
+        Route::get('notification-preferences', [NotificationPreferenceController::class, 'index']);
+        Route::put('notification-preferences', [NotificationPreferenceController::class, 'update']);
+        Route::put('notification-preferences/bulk', [NotificationPreferenceController::class, 'bulkUpdate']);
+
+        // ── Push Subscriptions ──
+        Route::post('push/subscribe', [PushSubscriptionController::class, 'subscribe']);
+        Route::post('push/unsubscribe', [PushSubscriptionController::class, 'unsubscribe']);
+
+        // ── Pay Runs ──
+        Route::get('pay-runs', [PayRunController::class, 'index']);
+        Route::post('pay-runs', [PayRunController::class, 'store']);
+        Route::get('pay-runs/{id}', [PayRunController::class, 'show']);
+        Route::put('pay-runs/{id}', [PayRunController::class, 'update']);
+        Route::delete('pay-runs/{id}', [PayRunController::class, 'destroy']);
+        Route::post('pay-runs/{id}/mark-paid', [PayRunController::class, 'markPaid']);
+
+        // ── Geocoding ──
+        Route::get('geocode/search', [GeocodeController::class, 'search']);
+        Route::get('geocode/reverse', [GeocodeController::class, 'reverse']);
+
+        // ── Leave Balance ──
+        Route::post('staff/{staffId}/seed-leave-balance', [LeaveGroupController::class, 'seedBalance']);
+        Route::post('staff/{staffId}/carry-forward', [LeaveGroupController::class, 'carryForward']);
+
+        // ── System ──
+        Route::get('system/health', [SystemController::class, 'health']);
+        Route::get('system/diagnostics', [SystemController::class, 'diagnostics']);
+        Route::post('system/test-mail', [SystemController::class, 'testMail']);
+        Route::post('system/test-push', [SystemController::class, 'testPush']);
     });
 });
