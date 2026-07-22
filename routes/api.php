@@ -246,6 +246,7 @@ Route::prefix('v1')->group(function () {
 
         // ── Project Subcontractors ──
         Route::get('project-subcontractors/{id}', [ProjectSubcontractorController::class, 'show']);
+        Route::get('projects/{projectId}/subcontractors', [ProjectSubcontractorController::class, 'index']);
         Route::post('projects/{projectId}/subcontractors', [ProjectSubcontractorController::class, 'store']);
         Route::delete('project-subcontractors/{id}', [ProjectSubcontractorController::class, 'destroy']);
 
