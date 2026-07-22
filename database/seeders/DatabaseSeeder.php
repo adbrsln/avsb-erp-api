@@ -8,8 +8,21 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        $dummy = $this->command?->option('dummy') ?? false;
-        $bulk = $this->command?->option('bulk') ?? false;
+        // Check for custom options safely (may not exist in artisan db:seed)
+        $dummy = false;
+        $bulk = false;
+        if ($this->command) {
+            try {
+                $dummy = (bool) $this->command->option('dummy');
+            } catch (\Throwable) {
+                // option doesn't exist on this command — ignore
+            }
+            try {
+                $bulk = (bool) $this->command->option('bulk');
+            } catch (\Throwable) {
+                // option doesn't exist on this command — ignore
+            }
+        }
 
         // Delegate to the original AVSB-ERP orchestrator
         $seeder = new \App\DatabaseSeeder;
