@@ -2,13 +2,15 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Laravel\Sanctum\HasApiTokens;
 use App\Models\UserRole;
 use App\Traits\Auditable;
 
-class User extends Model
+class User extends Authenticatable
 {
-    use Auditable;
+    use HasApiTokens, Auditable;
+
     protected $table = 'users';
 
     protected $fillable = [
