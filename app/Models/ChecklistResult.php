@@ -1,0 +1,22 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use App\Traits\Auditable;
+
+class ChecklistResult extends Model
+{
+    use Auditable;
+    protected $table = 'checklist_results';
+
+    protected $fillable = [
+        'phase_id', 'checklist_item_id', 'passed',
+        'remarks', 'checked_by', 'checked_at',
+    ];
+
+    protected $casts = [
+        'passed' => 'boolean',
+        'checked_at' => 'datetime',
+    ];
+}

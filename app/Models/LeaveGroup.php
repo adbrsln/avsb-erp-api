@@ -1,0 +1,25 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use App\Traits\Auditable;
+
+class LeaveGroup extends Model
+{
+    use Auditable;
+    protected $table = 'leave_groups';
+
+    protected $fillable = [
+        'name', 'description', 'is_active',
+    ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
+    ];
+
+    public function entitlements()
+    {
+        return $this->hasMany(LeaveGroupEntitlement::class, 'leave_group_id');
+    }
+}
