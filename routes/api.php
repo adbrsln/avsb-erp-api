@@ -422,13 +422,21 @@ Route::prefix('v1')->group(function () {
         Route::get('bills/{id}', [BillController::class, 'show']);
         Route::put('bills/{id}', [BillController::class, 'update']);
         Route::delete('bills/{id}', [BillController::class, 'destroy']);
+        // Inventory (aliased as /inventory-items for frontend compatibility)
         Route::get('inventory', [InventoryController::class, 'index']);
+        Route::get('inventory-items', [InventoryController::class, 'index']);
         Route::post('inventory', [InventoryController::class, 'store']);
+        Route::post('inventory-items', [InventoryController::class, 'store']);
         Route::get('inventory/{id}', [InventoryController::class, 'show']);
+        Route::get('inventory-items/{id}', [InventoryController::class, 'show']);
         Route::put('inventory/{id}', [InventoryController::class, 'update']);
+        Route::put('inventory-items/{id}', [InventoryController::class, 'update']);
         Route::delete('inventory/{id}', [InventoryController::class, 'destroy']);
+        Route::delete('inventory-items/{id}', [InventoryController::class, 'destroy']);
         Route::get('inventory/{id}/transactions', [InventoryController::class, 'transactions']);
+        Route::get('inventory-items/{id}/transactions', [InventoryController::class, 'transactions']);
         Route::post('inventory/{id}/adjust-stock', [InventoryController::class, 'adjustStock']);
+        Route::post('inventory-items/{id}/adjust', [InventoryController::class, 'adjustStock']);
 
         // ── Accounting ──
         Route::get('chart-of-accounts', [ChartOfAccountController::class, 'index']);
