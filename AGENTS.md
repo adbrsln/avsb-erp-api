@@ -201,5 +201,21 @@ Full migration from Slim 4 (avsb-erp/api/) to Laravel 13 (avsb-erp-api/).
 ### Remaining Gaps
 - 2 Slim endpoints not ported: `/audit-logs/export`, `/payroll/me/download-payslip`
 - 3 Pest tests skipped (edge cases needing specific DB records)
-- StaffSeeder has pre-existing schema mismatch (`role` column migrated to `business_staff`)
+- StaffSeeder had schema mismatch — fixed (removed `role` from staff_profiles data, column migrated to user_roles)
+
+### Post-Migration Fixes Applied
+- **Factories**: 28 Laravel factories created with Malaysian Faker data
+- **HasFactory**: added to all 79 models
+- **StaffSeeder**: removed `role` column reference (staff_profiles.role was dropped by migration 022200)
+- **ClientSeeder**: `create` → `firstOrCreate` for idempotent re-runs
+- **RoadMarkingSeeder**: removed `status` from client data (column doesn't exist on clients table)
+- **FileStorageService**: `validateUpload` PSR-7 UploadedFileInterface → Laravel UploadedFile
+- **ProjectAccess/StaffHelper traits**: PSR-7 ServerRequestInterface → Illuminate Request
+- **LogsErrors trait**: base Controller now has `logError()` + `errorResponse()` helpers
+- **Exception handler**: all API errors logged with context (url, method, user_id, ip)
+- **Route aliases**: added `/audit-logs`, `/settings/company`, `/payroll/me/payslips`, `/staff/me/*` for frontend compatibility
+- **DatabaseSeeder**: Laravel wrapper delegates to AvsbSeeder orchestrator
+- **Seeders**: namespace `App\Seeds\*` → `Database\Seeders\*`, moved to `database/seeders/`
+- **Migrations**: all 138 converted from `return new class` to `extends Migration` with Schema facade
+- **Capsule references**: zero remaining in codebase (all replaced with DB facade)
 
