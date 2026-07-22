@@ -11,7 +11,7 @@ trait NotifiesProjectParticipants
     {
         try {
             $recipients = NotificationRecipientResolver::getProjectParticipants($projectId);
-            if (!empty($recipients)) {
+            if (! empty($recipients)) {
                 NotificationService::queueToMany(
                     $eventType,
                     $recipients,
@@ -24,7 +24,7 @@ trait NotifiesProjectParticipants
                 );
             }
         } catch (\Throwable $e) {
-            writeErrorLog('Notification failed: ' . $eventType, ['project_id' => $projectId, 'error' => $e->getMessage()]);
+            writeErrorLog('Notification failed: '.$eventType, ['project_id' => $projectId, 'error' => $e->getMessage()]);
         }
     }
 }

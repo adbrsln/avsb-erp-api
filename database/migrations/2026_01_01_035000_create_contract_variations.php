@@ -1,9 +1,12 @@
 <?php
 
-return new class {
-    public function up(\Illuminate\Database\Schema\Builder $schema): void
+use Illuminate\Database\Schema\Builder;
+
+return new class
+{
+    public function up(Builder $schema): void
     {
-        if (!$schema->hasTable('contract_variations')) {
+        if (! $schema->hasTable('contract_variations')) {
             $schema->create('contract_variations', function ($table) {
                 $table->id();
                 $table->foreignId('contract_id')->constrained()->cascadeOnDelete();
@@ -19,7 +22,7 @@ return new class {
         }
     }
 
-    public function down(\Illuminate\Database\Schema\Builder $schema): void
+    public function down(Builder $schema): void
     {
         $schema->dropIfExists('contract_variations');
     }

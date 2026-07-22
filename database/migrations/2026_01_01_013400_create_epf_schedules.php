@@ -1,7 +1,11 @@
 <?php
 
-return new class {
-    public function up(\Illuminate\Database\Schema\Builder $schema)
+use Carbon\Carbon;
+use Illuminate\Database\Schema\Builder;
+
+return new class
+{
+    public function up(Builder $schema)
     {
         $schema->create('epf_schedules', function ($table) {
             $table->string('code', 10)->primary();
@@ -13,7 +17,7 @@ return new class {
             $table->timestamps();
         });
 
-        $now = \Carbon\Carbon::now();
+        $now = Carbon::now();
         $schema->getConnection()->table('epf_schedules')->insert([
             ['code' => 'A', 'name' => 'Standard (Citizen/PR < 60)', 'employer_rate' => 12.00, 'employee_rate' => 11.00, 'max_tier_wage' => 20000.00, 'description' => null, 'created_at' => $now, 'updated_at' => $now],
             ['code' => 'C', 'name' => 'Reduced (PR/Elected ≥ 60, Non-citizen)', 'employer_rate' => 6.00, 'employee_rate' => 5.50, 'max_tier_wage' => 20000.00, 'description' => null, 'created_at' => $now, 'updated_at' => $now],
@@ -22,7 +26,7 @@ return new class {
         ]);
     }
 
-    public function down(\Illuminate\Database\Schema\Builder $schema)
+    public function down(Builder $schema)
     {
         $schema->dropIfExists('epf_schedules');
     }

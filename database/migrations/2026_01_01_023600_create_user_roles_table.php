@@ -1,7 +1,10 @@
 <?php
 
-return new class {
-    public function up(\Illuminate\Database\Schema\Builder $schema): void
+use Illuminate\Database\Schema\Builder;
+
+return new class
+{
+    public function up(Builder $schema): void
     {
         $db = $schema->getConnection();
 
@@ -33,7 +36,7 @@ return new class {
         });
     }
 
-    public function down(\Illuminate\Database\Schema\Builder $schema): void
+    public function down(Builder $schema): void
     {
         $db = $schema->getConnection();
 
@@ -49,7 +52,7 @@ return new class {
 
         $grouped = [];
         foreach ($users as $row) {
-            if (!isset($grouped[$row->user_id])) {
+            if (! isset($grouped[$row->user_id])) {
                 $grouped[$row->user_id] = $row->role;
             }
         }

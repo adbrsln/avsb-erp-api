@@ -8,7 +8,9 @@ use Illuminate\Database\Schema\Builder as SchemaBuilder;
 class MigrationRunner
 {
     private SchemaBuilder $schema;
+
     private array $applied;
+
     private int $batch;
 
     public function __construct(SchemaBuilder $schema)
@@ -30,6 +32,7 @@ class MigrationRunner
             if (in_array($name, $this->applied)) {
                 echo "Skipped: {$name} (already applied)\n";
                 $results[] = ['file' => $name, 'status' => 'skipped'];
+
                 continue;
             }
 
@@ -49,6 +52,7 @@ class MigrationRunner
         $maxBatch = (int) Capsule::table('schema_migrations')->max('batch');
         if ($maxBatch === 0) {
             echo "Nothing to roll back.\n";
+
             return [];
         }
 
@@ -60,10 +64,11 @@ class MigrationRunner
 
         $results = [];
         foreach ($toRollback as $name) {
-            $file = __DIR__ . '/../../database/migrations/' . $name;
-            if (!file_exists($file)) {
+            $file = __DIR__.'/../../database/migrations/'.$name;
+            if (! file_exists($file)) {
                 echo "Skip: {$name} — file not found\n";
                 Capsule::table('schema_migrations')->where('migration', $name)->delete();
+
                 continue;
             }
 
@@ -92,15 +97,17 @@ class MigrationRunner
 
         if (empty($all)) {
             echo "Nothing to roll back.\n";
+
             return [];
         }
 
         $results = [];
         foreach ($all as $name) {
-            $file = __DIR__ . '/../../database/migrations/' . $name;
-            if (!file_exists($file)) {
+            $file = __DIR__.'/../../database/migrations/'.$name;
+            if (! file_exists($file)) {
                 echo "Skip: {$name} — file not found\n";
                 Capsule::table('schema_migrations')->where('migration', $name)->delete();
+
                 continue;
             }
 
@@ -123,8 +130,9 @@ class MigrationRunner
     {
         $migration = require $file;
 
-        if (!$migration || !method_exists($migration, 'up')) {
+        if (! $migration || ! method_exists($migration, 'up')) {
             echo "Error: {$name} — invalid migration class\n";
+
             return 'error';
         }
 
@@ -135,6 +143,7 @@ class MigrationRunner
                 'batch' => $this->batch,
             ]);
             echo "Applied: {$name}\n";
+
             return 'applied';
         } catch (\Exception $e) {
             $msg = $e->getMessage();
@@ -150,17 +159,19 @@ class MigrationRunner
                     'batch' => $this->batch,
                 ]);
                 echo "Skipped: {$name} (already applied)\n";
+
                 return 'skipped';
             }
 
             echo "Error: {$name} — {$msg}\n";
+
             return 'error';
         }
     }
 
     private function ensureTrackingTable(): void
     {
-        if (!$this->schema->hasTable('schema_migrations')) {
+        if (! $this->schema->hasTable('schema_migrations')) {
             $this->schema->create('schema_migrations', function ($table) {
                 $table->string('migration')->primary();
                 $table->integer('batch');
@@ -171,8 +182,9 @@ class MigrationRunner
 
     private function getMigrationFiles(): array
     {
-        $files = glob(__DIR__ . '/../../database/migrations/*.php');
+        $files = glob(__DIR__.'/../../database/migrations/*.php');
         sort($files);
+
         return $files;
     }
 }

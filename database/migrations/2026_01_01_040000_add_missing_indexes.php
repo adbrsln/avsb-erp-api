@@ -1,7 +1,10 @@
 <?php
 
-return new class {
-    public function up(\Illuminate\Database\Schema\Builder $schema): void
+use Illuminate\Database\Schema\Builder;
+
+return new class
+{
+    public function up(Builder $schema): void
     {
         $schema->table('projects', function ($table) {
             $table->index('status');
@@ -32,7 +35,7 @@ return new class {
         });
     }
 
-    public function down(\Illuminate\Database\Schema\Builder $schema): void
+    public function down(Builder $schema): void
     {
         $connection = $schema->getConnection();
         $schemaManager = $connection->getDoctrineSchemaManager();
@@ -50,7 +53,7 @@ return new class {
         ];
 
         foreach ($tables as $tableName => $columns) {
-            $indexName = $tableName . '_' . (is_array($columns) ? implode('_', $columns) : $columns) . '_index';
+            $indexName = $tableName.'_'.(is_array($columns) ? implode('_', $columns) : $columns).'_index';
             $existing = $schemaManager->listTableIndexes($tableName);
             if (array_key_exists($indexName, $existing)) {
                 $connection->statement("ALTER TABLE `{$tableName}` DROP INDEX `{$indexName}`");

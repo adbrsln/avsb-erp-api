@@ -3,7 +3,8 @@
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Database\Schema\Blueprint;
 
-return new class {
+return new class
+{
     public function up(): void
     {
         Capsule::schema()->table('users', function (Blueprint $table) {

@@ -1,7 +1,11 @@
 <?php
 
-return new class {
-    public function up(\Illuminate\Database\Schema\Builder $schema)
+use Carbon\Carbon;
+use Illuminate\Database\Schema\Builder;
+
+return new class
+{
+    public function up(Builder $schema)
     {
         $schema->create('chart_of_accounts', function ($table) {
             $table->id();
@@ -38,7 +42,7 @@ return new class {
         });
 
         // Pre-seed Chart of Accounts for Malaysian construction company
-        $now = \Carbon\Carbon::now();
+        $now = Carbon::now();
         $accounts = [
             // === Assets (1000-1999) ===
             ['code' => '1101', 'name' => 'Petty Cash', 'type' => 'asset', 'category' => 'current_asset', 'description' => 'Petty cash in hand'],
@@ -110,7 +114,7 @@ return new class {
             ['code' => '6503', 'name' => 'Advertising & Marketing', 'type' => 'expense', 'category' => 'operating_expense'],
         ];
 
-        $rows = array_map(fn($a) => array_merge([
+        $rows = array_map(fn ($a) => array_merge([
             'description' => null,
             'is_system' => false,
             'created_at' => $now,
@@ -119,7 +123,7 @@ return new class {
         $schema->getConnection()->table('chart_of_accounts')->insert($rows);
     }
 
-    public function down(\Illuminate\Database\Schema\Builder $schema)
+    public function down(Builder $schema)
     {
         $schema->dropIfExists('journal_entry_lines');
         $schema->dropIfExists('journal_entries');

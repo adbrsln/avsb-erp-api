@@ -1,7 +1,10 @@
 <?php
 
-return new class {
-    public function up(\Illuminate\Database\Schema\Builder $schema): void
+use Illuminate\Database\Schema\Builder;
+
+return new class
+{
+    public function up(Builder $schema): void
     {
         $schema->create('project_project_type', function ($table) {
             $table->foreignId('project_id')->constrained()->cascadeOnDelete();
@@ -27,7 +30,7 @@ return new class {
         });
     }
 
-    public function down(\Illuminate\Database\Schema\Builder $schema): void
+    public function down(Builder $schema): void
     {
         $schema->table('projects', function ($table) {
             $table->foreignId('project_type_id')->nullable()->constrained()->nullOnDelete();
@@ -37,7 +40,7 @@ return new class {
         $pivotRows = $schema->getConnection()->table('project_project_type')->get();
         $processed = [];
         foreach ($pivotRows as $row) {
-            if (!isset($processed[$row->project_id])) {
+            if (! isset($processed[$row->project_id])) {
                 $schema->getConnection()->table('projects')
                     ->where('id', $row->project_id)
                     ->update(['project_type_id' => $row->project_type_id]);

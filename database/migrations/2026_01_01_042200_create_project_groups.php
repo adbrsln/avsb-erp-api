@@ -1,7 +1,10 @@
 <?php
 
-return new class {
-    public function up(\Illuminate\Database\Schema\Builder $schema): void
+use Illuminate\Database\Schema\Builder;
+
+return new class
+{
+    public function up(Builder $schema): void
     {
         // 1. Create project_groups table
         $schema->create('project_groups', function ($table) {
@@ -23,7 +26,7 @@ return new class {
         });
     }
 
-    public function down(\Illuminate\Database\Schema\Builder $schema): void
+    public function down(Builder $schema): void
     {
         $schema->dropIfExists('project_project_group');
         $schema->dropIfExists('project_groups');

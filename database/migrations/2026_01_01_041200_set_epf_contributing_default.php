@@ -1,7 +1,10 @@
 <?php
 
-return new class {
-    public function up(\Illuminate\Database\Schema\Builder $schema): void
+use Illuminate\Database\Schema\Builder;
+
+return new class
+{
+    public function up(Builder $schema): void
     {
         $schema->table('staff_profiles', function ($table) {
             $table->boolean('epf_contributing')->default(true)->change();
@@ -16,7 +19,7 @@ return new class {
             ->update(['epf_contributing' => true]);
     }
 
-    public function down(\Illuminate\Database\Schema\Builder $schema): void
+    public function down(Builder $schema): void
     {
         $schema->table('staff_profiles', function ($table) {
             $table->boolean('epf_contributing')->nullable()->change();

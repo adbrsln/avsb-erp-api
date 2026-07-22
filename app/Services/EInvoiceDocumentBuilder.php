@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\Client;
 use App\Models\CompanySetting;
 use App\Models\Invoice;
 use App\Models\SelfBilledInvoice;
@@ -17,6 +16,7 @@ class EInvoiceDocumentBuilder
         if (is_string($date) && $date !== '') {
             return date('Y-m-d', strtotime($date));
         }
+
         return date('Y-m-d');
     }
 
@@ -28,6 +28,7 @@ class EInvoiceDocumentBuilder
         if (is_string($date) && $date !== '') {
             return date('Y-m-d\TH:i:s\Z', strtotime($date));
         }
+
         return date('Y-m-d\TH:i:s\Z');
     }
 
@@ -44,6 +45,7 @@ class EInvoiceDocumentBuilder
     private function generateUuid(): string
     {
         $data = random_bytes(16);
+
         return sprintf(
             '%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x',
             ord($data[0]), ord($data[1]), ord($data[2]), ord($data[3]),
@@ -65,6 +67,7 @@ class EInvoiceDocumentBuilder
             'Day' => 'DAY',
             'Lot' => 'C62',
         ];
+
         return $map[$unit] ?? 'C62';
     }
 
@@ -85,26 +88,27 @@ class EInvoiceDocumentBuilder
         $addressLine = $addr['address'] ?? '';
         if ($addressLine !== '') {
             $xml .= "{$in}  <cac:AddressLine>\n";
-            $xml .= "{$in}    <cbc:Line>" . $this->escapeXml($addressLine) . "</cbc:Line>\n";
+            $xml .= "{$in}    <cbc:Line>".$this->escapeXml($addressLine)."</cbc:Line>\n";
             $xml .= "{$in}  </cac:AddressLine>\n";
         }
 
-        if (!empty($addr['city'])) {
-            $xml .= "{$in}  <cbc:CityName>" . $this->escapeXml($addr['city']) . "</cbc:CityName>\n";
+        if (! empty($addr['city'])) {
+            $xml .= "{$in}  <cbc:CityName>".$this->escapeXml($addr['city'])."</cbc:CityName>\n";
         }
-        if (!empty($addr['postcode'])) {
-            $xml .= "{$in}  <cbc:PostalZone>" . $this->escapeXml($addr['postcode']) . "</cbc:PostalZone>\n";
+        if (! empty($addr['postcode'])) {
+            $xml .= "{$in}  <cbc:PostalZone>".$this->escapeXml($addr['postcode'])."</cbc:PostalZone>\n";
         }
-        if (!empty($addr['state'])) {
-            $xml .= "{$in}  <cbc:CountrySubentity>" . $this->escapeXml($addr['state']) . "</cbc:CountrySubentity>\n";
+        if (! empty($addr['state'])) {
+            $xml .= "{$in}  <cbc:CountrySubentity>".$this->escapeXml($addr['state'])."</cbc:CountrySubentity>\n";
         }
 
         $country = $addr['country'] ?? 'MYS';
         $xml .= "{$in}  <cac:Country>\n";
-        $xml .= "{$in}    <cbc:IdentificationCode listID=\"ISO3166-1\">" . $this->escapeXml($country) . "</cbc:IdentificationCode>\n";
+        $xml .= "{$in}    <cbc:IdentificationCode listID=\"ISO3166-1\">".$this->escapeXml($country)."</cbc:IdentificationCode>\n";
         $xml .= "{$in}  </cac:Country>\n";
 
         $xml .= "{$in}</cac:PostalAddress>\n";
+
         return $xml;
     }
 
@@ -112,13 +116,14 @@ class EInvoiceDocumentBuilder
     {
         $in = $this->indent($indent);
         $xml = "{$in}<cac:Contact>\n";
-        if (!empty($contact['phone'])) {
-            $xml .= "{$in}  <cbc:Telephone>" . $this->escapeXml($contact['phone']) . "</cbc:Telephone>\n";
+        if (! empty($contact['phone'])) {
+            $xml .= "{$in}  <cbc:Telephone>".$this->escapeXml($contact['phone'])."</cbc:Telephone>\n";
         }
-        if (!empty($contact['email'])) {
-            $xml .= "{$in}  <cbc:ElectronicMail>" . $this->escapeXml($contact['email']) . "</cbc:ElectronicMail>\n";
+        if (! empty($contact['email'])) {
+            $xml .= "{$in}  <cbc:ElectronicMail>".$this->escapeXml($contact['email'])."</cbc:ElectronicMail>\n";
         }
         $xml .= "{$in}</cac:Contact>\n";
+
         return $xml;
     }
 
@@ -148,29 +153,29 @@ class EInvoiceDocumentBuilder
         $in = $this->indent($indent);
         $xml = '';
 
-        $tag = !empty($party['supplier']) ? 'AccountingSupplierParty' : 'AccountingCustomerParty';
+        $tag = ! empty($party['supplier']) ? 'AccountingSupplierParty' : 'AccountingCustomerParty';
         $xml .= "{$in}<cac:{$tag}>\n";
         $xml .= "{$in}  <cac:Party>\n";
 
-        if (!empty($party['tin'])) {
+        if (! empty($party['tin'])) {
             $xml .= "{$in}    <cac:PartyIdentification>\n";
-            $xml .= "{$in}      <cbc:ID schemeID=\"TIN\">" . $this->escapeXml($party['tin']) . "</cbc:ID>\n";
+            $xml .= "{$in}      <cbc:ID schemeID=\"TIN\">".$this->escapeXml($party['tin'])."</cbc:ID>\n";
             $xml .= "{$in}    </cac:PartyIdentification>\n";
         }
 
-        if (!empty($party['reg_no'])) {
+        if (! empty($party['reg_no'])) {
             $xml .= "{$in}    <cac:PartyIdentification>\n";
-            $xml .= "{$in}      <cbc:ID schemeID=\"BRN\">" . $this->escapeXml($party['reg_no']) . "</cbc:ID>\n";
+            $xml .= "{$in}      <cbc:ID schemeID=\"BRN\">".$this->escapeXml($party['reg_no'])."</cbc:ID>\n";
             $xml .= "{$in}    </cac:PartyIdentification>\n";
         }
 
-        if (!empty($party['name'])) {
+        if (! empty($party['name'])) {
             $xml .= "{$in}    <cac:PartyName>\n";
-            $xml .= "{$in}      <cbc:Name>" . $this->escapeXml($party['name']) . "</cbc:Name>\n";
+            $xml .= "{$in}      <cbc:Name>".$this->escapeXml($party['name'])."</cbc:Name>\n";
             $xml .= "{$in}    </cac:PartyName>\n";
         }
 
-        $hasAddress = !empty($party['address']);
+        $hasAddress = ! empty($party['address']);
         if ($hasAddress) {
             $xml .= $this->buildPostalAddress([
                 'address' => $party['address'] ?? '',
@@ -181,9 +186,9 @@ class EInvoiceDocumentBuilder
             ], $indent + 2);
         }
 
-        if (!empty($party['sst_reg_no'])) {
+        if (! empty($party['sst_reg_no'])) {
             $xml .= "{$in}    <cac:PartyTaxScheme>\n";
-            $xml .= "{$in}      <cbc:CompanyID>" . $this->escapeXml($party['sst_reg_no']) . "</cbc:CompanyID>\n";
+            $xml .= "{$in}      <cbc:CompanyID>".$this->escapeXml($party['sst_reg_no'])."</cbc:CompanyID>\n";
             $xml .= "{$in}      <cac:TaxScheme>\n";
             $xml .= "{$in}        <cbc:ID>OTH</cbc:ID>\n";
             $xml .= "{$in}      </cac:TaxScheme>\n";
@@ -191,10 +196,10 @@ class EInvoiceDocumentBuilder
         }
 
         $xml .= "{$in}    <cac:PartyLegalEntity>\n";
-        $xml .= "{$in}      <cbc:RegistrationName>" . $this->escapeXml($party['name'] ?? '') . "</cbc:RegistrationName>\n";
+        $xml .= "{$in}      <cbc:RegistrationName>".$this->escapeXml($party['name'] ?? '')."</cbc:RegistrationName>\n";
         $xml .= "{$in}    </cac:PartyLegalEntity>\n";
 
-        $hasContact = !empty($party['phone']) || !empty($party['email']);
+        $hasContact = ! empty($party['phone']) || ! empty($party['email']);
         if ($hasContact) {
             $xml .= $this->buildContact([
                 'phone' => $party['phone'] ?? '',
@@ -202,12 +207,12 @@ class EInvoiceDocumentBuilder
             ], $indent + 2);
         }
 
-        if (!empty($party['msic'])) {
+        if (! empty($party['msic'])) {
             $xml .= "{$in}    <cac:IndustryClassificationCode listID=\"MSIC\"";
-            if (!empty($party['msic_desc'])) {
-                $xml .= " name=\"" . $this->escapeXml($party['msic_desc']) . "\"";
+            if (! empty($party['msic_desc'])) {
+                $xml .= ' name="'.$this->escapeXml($party['msic_desc']).'"';
             }
-            $xml .= ">" . $this->escapeXml($party['msic']) . "</cac:IndustryClassificationCode>\n";
+            $xml .= '>'.$this->escapeXml($party['msic'])."</cac:IndustryClassificationCode>\n";
         }
 
         $xml .= "{$in}  </cac:Party>\n";
@@ -224,12 +229,12 @@ class EInvoiceDocumentBuilder
     {
         $in = $this->indent($indent);
         $xml = "{$in}<cac:TaxTotal>\n";
-        $xml .= "{$in}  <cbc:TaxAmount currencyID=\"{$currency}\">" . $this->formatAmount($sst) . "</cbc:TaxAmount>\n";
+        $xml .= "{$in}  <cbc:TaxAmount currencyID=\"{$currency}\">".$this->formatAmount($sst)."</cbc:TaxAmount>\n";
 
         if (abs($sst) > 0.005) {
             $xml .= "{$in}  <cac:TaxSubtotal>\n";
-            $xml .= "{$in}    <cbc:TaxableAmount currencyID=\"{$currency}\">" . $this->formatAmount($subtotal) . "</cbc:TaxableAmount>\n";
-            $xml .= "{$in}    <cbc:TaxAmount currencyID=\"{$currency}\">" . $this->formatAmount($sst) . "</cbc:TaxAmount>\n";
+            $xml .= "{$in}    <cbc:TaxableAmount currencyID=\"{$currency}\">".$this->formatAmount($subtotal)."</cbc:TaxableAmount>\n";
+            $xml .= "{$in}    <cbc:TaxAmount currencyID=\"{$currency}\">".$this->formatAmount($sst)."</cbc:TaxAmount>\n";
             $xml .= "{$in}    <cac:TaxCategory>\n";
             $xml .= "{$in}      <cbc:ID>01</cbc:ID>\n";
             $xml .= "{$in}      <cac:TaxScheme>\n";
@@ -240,6 +245,7 @@ class EInvoiceDocumentBuilder
         }
 
         $xml .= "{$in}</cac:TaxTotal>\n";
+
         return $xml;
     }
 
@@ -250,11 +256,12 @@ class EInvoiceDocumentBuilder
         $taxInclusive = $taxExclusive + $sst;
 
         $xml = "{$in}<cac:LegalMonetaryTotal>\n";
-        $xml .= "{$in}  <cbc:LineExtensionAmount currencyID=\"{$currency}\">" . $this->formatAmount($subtotal) . "</cbc:LineExtensionAmount>\n";
-        $xml .= "{$in}  <cbc:TaxExclusiveAmount currencyID=\"{$currency}\">" . $this->formatAmount(max(0, $taxExclusive)) . "</cbc:TaxExclusiveAmount>\n";
-        $xml .= "{$in}  <cbc:TaxInclusiveAmount currencyID=\"{$currency}\">" . $this->formatAmount(max(0, $taxInclusive)) . "</cbc:TaxInclusiveAmount>\n";
-        $xml .= "{$in}  <cbc:PayableAmount currencyID=\"{$currency}\">" . $this->formatAmount($total) . "</cbc:PayableAmount>\n";
+        $xml .= "{$in}  <cbc:LineExtensionAmount currencyID=\"{$currency}\">".$this->formatAmount($subtotal)."</cbc:LineExtensionAmount>\n";
+        $xml .= "{$in}  <cbc:TaxExclusiveAmount currencyID=\"{$currency}\">".$this->formatAmount(max(0, $taxExclusive))."</cbc:TaxExclusiveAmount>\n";
+        $xml .= "{$in}  <cbc:TaxInclusiveAmount currencyID=\"{$currency}\">".$this->formatAmount(max(0, $taxInclusive))."</cbc:TaxInclusiveAmount>\n";
+        $xml .= "{$in}  <cbc:PayableAmount currencyID=\"{$currency}\">".$this->formatAmount($total)."</cbc:PayableAmount>\n";
         $xml .= "{$in}</cac:LegalMonetaryTotal>\n";
+
         return $xml;
     }
 
@@ -280,21 +287,21 @@ class EInvoiceDocumentBuilder
             $xml .= "{$in}<cac:InvoiceLine>\n";
             $xml .= "{$in}  <cbc:ID>{$n}</cbc:ID>\n";
             $xml .= "{$in}  <cbc:InvoicedQuantity unitCode=\"{$unitCode}\">{$qty}</cbc:InvoicedQuantity>\n";
-            $xml .= "{$in}  <cbc:LineExtensionAmount currencyID=\"{$currency}\">" . $this->formatAmount($lineTotal) . "</cbc:LineExtensionAmount>\n";
+            $xml .= "{$in}  <cbc:LineExtensionAmount currencyID=\"{$currency}\">".$this->formatAmount($lineTotal)."</cbc:LineExtensionAmount>\n";
 
             $xml .= "{$in}  <cac:Item>\n";
             if ($desc !== '') {
-                $xml .= "{$in}    <cbc:Description>" . $this->escapeXml($desc) . "</cbc:Description>\n";
+                $xml .= "{$in}    <cbc:Description>".$this->escapeXml($desc)."</cbc:Description>\n";
             }
             if ($classificationCode !== '') {
                 $xml .= "{$in}    <cac:CommodityClassification>\n";
-                $xml .= "{$in}      <cbc:ItemClassificationCode listID=\"PTC\">" . $this->escapeXml($classificationCode) . "</cbc:ItemClassificationCode>\n";
+                $xml .= "{$in}      <cbc:ItemClassificationCode listID=\"PTC\">".$this->escapeXml($classificationCode)."</cbc:ItemClassificationCode>\n";
                 $xml .= "{$in}    </cac:CommodityClassification>\n";
             }
             $xml .= "{$in}  </cac:Item>\n";
 
             $xml .= "{$in}  <cac:Price>\n";
-            $xml .= "{$in}    <cbc:PriceAmount currencyID=\"{$currency}\">" . $this->formatAmount($unitPrice) . "</cbc:PriceAmount>\n";
+            $xml .= "{$in}    <cbc:PriceAmount currencyID=\"{$currency}\">".$this->formatAmount($unitPrice)."</cbc:PriceAmount>\n";
             $xml .= "{$in}  </cac:Price>\n";
 
             $xml .= "{$in}</cac:InvoiceLine>\n";
@@ -314,29 +321,29 @@ class EInvoiceDocumentBuilder
         $profileID = 'urn:cen.eu:en16931:2017';
         $profileVersion = '1.0';
 
-        $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
-        $xml .= '<Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"' . "\n";
-        $xml .= '         xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"' . "\n";
-        $xml .= '         xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">' . "\n";
-        $xml .= '  <cbc:UBLVersionID>2.1</cbc:UBLVersionID>' . "\n";
-        $xml .= '  <cbc:CustomizationID>' . $this->escapeXml($customizationID) . '</cbc:CustomizationID>' . "\n";
-        $xml .= '  <cbc:ProfileID>' . $this->escapeXml($profileID) . '</cbc:ProfileID>' . "\n";
-        $xml .= '  <cbc:ProfileVersionID>' . $this->escapeXml($profileVersion) . '</cbc:ProfileVersionID>' . "\n";
-        $xml .= '  <cbc:ID>' . $this->escapeXml($invoiceNumber) . '</cbc:ID>' . "\n";
-        $xml .= '  <cbc:UUID>' . $this->escapeXml($uuid) . '</cbc:UUID>' . "\n";
-        $xml .= '  <cbc:IssueDate>' . $this->escapeXml($issueDate) . '</cbc:IssueDate>' . "\n";
-        $xml .= '  <cbc:InvoiceTypeCode listVersionID="1.0">' . $this->escapeXml($invoiceTypeCode) . '</cbc:InvoiceTypeCode>' . "\n";
-        $xml .= '  <cbc:DocumentCurrencyCode>' . $this->escapeXml($documentCurrencyCode) . '</cbc:DocumentCurrencyCode>' . "\n";
+        $xml = '<?xml version="1.0" encoding="UTF-8"?>'."\n";
+        $xml .= '<Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"'."\n";
+        $xml .= '         xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"'."\n";
+        $xml .= '         xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">'."\n";
+        $xml .= '  <cbc:UBLVersionID>2.1</cbc:UBLVersionID>'."\n";
+        $xml .= '  <cbc:CustomizationID>'.$this->escapeXml($customizationID).'</cbc:CustomizationID>'."\n";
+        $xml .= '  <cbc:ProfileID>'.$this->escapeXml($profileID).'</cbc:ProfileID>'."\n";
+        $xml .= '  <cbc:ProfileVersionID>'.$this->escapeXml($profileVersion).'</cbc:ProfileVersionID>'."\n";
+        $xml .= '  <cbc:ID>'.$this->escapeXml($invoiceNumber).'</cbc:ID>'."\n";
+        $xml .= '  <cbc:UUID>'.$this->escapeXml($uuid).'</cbc:UUID>'."\n";
+        $xml .= '  <cbc:IssueDate>'.$this->escapeXml($issueDate).'</cbc:IssueDate>'."\n";
+        $xml .= '  <cbc:InvoiceTypeCode listVersionID="1.0">'.$this->escapeXml($invoiceTypeCode).'</cbc:InvoiceTypeCode>'."\n";
+        $xml .= '  <cbc:DocumentCurrencyCode>'.$this->escapeXml($documentCurrencyCode).'</cbc:DocumentCurrencyCode>'."\n";
 
         if ($supplyDate !== '') {
-            $xml .= '  <cac:InvoicePeriod>' . "\n";
-            $xml .= '    <cbc:StartDate>' . $this->escapeXml($supplyDate) . '</cbc:StartDate>' . "\n";
-            $xml .= '    <cbc:EndDate>' . $this->escapeXml($supplyDate) . '</cbc:EndDate>' . "\n";
-            $xml .= '  </cac:InvoicePeriod>' . "\n";
+            $xml .= '  <cac:InvoicePeriod>'."\n";
+            $xml .= '    <cbc:StartDate>'.$this->escapeXml($supplyDate).'</cbc:StartDate>'."\n";
+            $xml .= '    <cbc:EndDate>'.$this->escapeXml($supplyDate).'</cbc:EndDate>'."\n";
+            $xml .= '  </cac:InvoicePeriod>'."\n";
         }
 
         $xml .= $body;
-        $xml .= '</Invoice>' . "\n";
+        $xml .= '</Invoice>'."\n";
 
         return $xml;
     }
@@ -350,7 +357,7 @@ class EInvoiceDocumentBuilder
         $company = CompanySetting::first();
 
         $items = $invoice->items ?? [];
-        if (!is_array($items)) {
+        if (! is_array($items)) {
             $items = json_decode($items, true) ?: [];
         }
 
@@ -403,14 +410,16 @@ class EInvoiceDocumentBuilder
         if ($invoice->einvoice_type === 'credit_note') {
             $originalUuid = '';
             if ($invoice->credit_note_for_id) {
-                $original = \App\Models\Invoice::find($invoice->credit_note_for_id);
-                if ($original) $originalUuid = $original->uuid ?: '';
+                $original = Invoice::find($invoice->credit_note_for_id);
+                if ($original) {
+                    $originalUuid = $original->uuid ?: '';
+                }
             }
             if ($originalUuid !== '') {
                 $in = $this->indent($indent);
                 $xml .= "{$in}<cac:BillingReference>\n";
                 $xml .= "{$in}  <cac:InvoiceDocumentReference>\n";
-                $xml .= "{$in}    <cbc:ID>" . $this->escapeXml($originalUuid) . "</cbc:ID>\n";
+                $xml .= "{$in}    <cbc:ID>".$this->escapeXml($originalUuid)."</cbc:ID>\n";
                 $xml .= "{$in}  </cac:InvoiceDocumentReference>\n";
                 $xml .= "{$in}</cac:BillingReference>\n";
             }
@@ -427,12 +436,13 @@ class EInvoiceDocumentBuilder
             $xml .= "{$in}  <cbc:ID>NOTES</cbc:ID>\n";
             $xml .= "{$in}  <cbc:DocumentType>Notes</cbc:DocumentType>\n";
             $xml .= "{$in}  <cac:Attachment>\n";
-            $xml .= "{$in}    <cbc:EmbeddedDocumentBinaryObject mimeCode=\"text/plain\">" . $this->escapeXml($notes) . "</cbc:EmbeddedDocumentBinaryObject>\n";
+            $xml .= "{$in}    <cbc:EmbeddedDocumentBinaryObject mimeCode=\"text/plain\">".$this->escapeXml($notes)."</cbc:EmbeddedDocumentBinaryObject>\n";
             $xml .= "{$in}  </cac:Attachment>\n";
             $xml .= "{$in}</cac:AdditionalDocumentReference>\n";
         }
 
         $xml = $this->wrapXml($xml, $uuid, $issueDate, $invoiceNumber, $invoiceTypeCode, $currency, $supplyDate);
+
         return base64_encode($xml);
     }
 
@@ -441,7 +451,7 @@ class EInvoiceDocumentBuilder
         $company = CompanySetting::first();
 
         $items = $sb->items ?? [];
-        if (!is_array($items)) {
+        if (! is_array($items)) {
             $items = json_decode($items, true) ?: [];
         }
 
@@ -503,12 +513,13 @@ class EInvoiceDocumentBuilder
             $xml .= "{$in}  <cbc:ID>NOTES</cbc:ID>\n";
             $xml .= "{$in}  <cbc:DocumentType>Notes</cbc:DocumentType>\n";
             $xml .= "{$in}  <cac:Attachment>\n";
-            $xml .= "{$in}    <cbc:EmbeddedDocumentBinaryObject mimeCode=\"text/plain\">" . $this->escapeXml($notes) . "</cbc:EmbeddedDocumentBinaryObject>\n";
+            $xml .= "{$in}    <cbc:EmbeddedDocumentBinaryObject mimeCode=\"text/plain\">".$this->escapeXml($notes)."</cbc:EmbeddedDocumentBinaryObject>\n";
             $xml .= "{$in}  </cac:Attachment>\n";
             $xml .= "{$in}</cac:AdditionalDocumentReference>\n";
         }
 
         $xml = $this->wrapXml($xml, $uuid, $issueDate, $invoiceNumber, $invoiceTypeCode, $currency, $supplyDate);
+
         return base64_encode($xml);
     }
 }

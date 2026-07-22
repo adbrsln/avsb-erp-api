@@ -1,7 +1,10 @@
 <?php
 
-return new class {
-    public function up(\Illuminate\Database\Schema\Builder $schema): void
+use Illuminate\Database\Schema\Builder;
+
+return new class
+{
+    public function up(Builder $schema): void
     {
         $schema->table('activity_log', function ($table) {
             $table->foreignId('project_id')->nullable()->constrained('projects')->nullOnDelete()->after('id');
@@ -9,7 +12,7 @@ return new class {
         });
     }
 
-    public function down(\Illuminate\Database\Schema\Builder $schema): void
+    public function down(Builder $schema): void
     {
         $schema->table('activity_log', function ($table) {
             $table->dropIndex(['project_id']);

@@ -9,12 +9,14 @@ use PHPMailer\PHPMailer\SMTP;
 class MailService
 {
     private PHPMailer $mailer;
+
     private array $config;
+
     private ?string $lastError = null;
 
     public function __construct(?array $config = null)
     {
-        $this->config = $config ?? require __DIR__ . '/../../../config/mail.php';
+        $this->config = $config ?? require __DIR__.'/../../../config/mail.php';
         $this->mailer = new PHPMailer(true);
         $this->configure();
     }
@@ -24,7 +26,7 @@ class MailService
         $this->mailer->isSMTP();
         $this->mailer->Host = $this->config['host'];
         $this->mailer->Port = $this->config['port'];
-        $hasAuth = !empty($this->config['username']) || !empty($this->config['password']);
+        $hasAuth = ! empty($this->config['username']) || ! empty($this->config['password']);
         $this->mailer->SMTPAuth = $hasAuth;
         $this->mailer->Username = $this->config['username'];
         $this->mailer->Password = $this->config['password'];
@@ -64,15 +66,15 @@ class MailService
                 $attFilename = $att['filename'] ?? basename($attPath);
                 $attMime = $att['mime'] ?? 'application/octet-stream';
 
-                if (!empty($att['content'])) {
+                if (! empty($att['content'])) {
                     $this->mailer->addStringAttachment(
                         base64_decode($att['content']),
                         $attFilename,
                         'base64',
                         $attMime
                     );
-                } elseif (!empty($attPath)) {
-                    $storage = new FileStorageService();
+                } elseif (! empty($attPath)) {
+                    $storage = new FileStorageService;
                     try {
                         $fileContent = $storage->get($attPath);
                         $this->mailer->addStringAttachment($fileContent, $attFilename, 'base64', $attMime);
@@ -84,10 +86,12 @@ class MailService
 
             $this->mailer->send();
             $this->lastError = null;
+
             return true;
         } catch (\Throwable $e) {
             $this->lastError = $e->getMessage();
             writeErrorLog('Mail send failed', ['error' => $e->getMessage(), 'to' => $toEmail, 'subject' => $subject]);
+
             return false;
         }
     }
@@ -161,14 +165,14 @@ HTML;
     public function testConnection(?string $testEmail = null): array
     {
         $result = [
-            'success'      => false,
-            'connection'   => false,
-            'auth'         => false,
+            'success' => false,
+            'connection' => false,
+            'auth' => false,
             'send_success' => null,
-            'latency'      => 0.0,
-            'server_info'  => '',
-            'debug'        => '',
-            'error'        => null,
+            'latency' => 0.0,
+            'server_info' => '',
+            'debug' => '',
+            'error' => null,
             'error_detail' => null,
         ];
 
@@ -209,7 +213,7 @@ HTML;
                     } catch (\Throwable $e) {
                         $result['send_success'] = false;
                         $result['error'] = 'Connected and authenticated, but send failed';
-                        $result['error_detail'] = $e->getMessage() . (!empty($this->mailer->ErrorInfo) ? ' | ' . $this->mailer->ErrorInfo : '');
+                        $result['error_detail'] = $e->getMessage().(! empty($this->mailer->ErrorInfo) ? ' | '.$this->mailer->ErrorInfo : '');
                     }
                 }
 

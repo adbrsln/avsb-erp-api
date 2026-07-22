@@ -22,9 +22,10 @@ class ScheduleDeterminer
         $elected = (bool) $employee->epf_member_before_aug_1998;
 
         foreach ($this->rules as $rule) {
-            if (!$this->matches($rule, $age, $citizenship, $isPr, $elected)) {
+            if (! $this->matches($rule, $age, $citizenship, $isPr, $elected)) {
                 continue;
             }
+
             return $rule['schedule_code'];
         }
 
@@ -34,9 +35,10 @@ class ScheduleDeterminer
     public function determineRaw(int $age, string $citizenship, bool $isPr, bool $elected): string
     {
         foreach ($this->rules as $rule) {
-            if (!$this->matches($rule, $age, $citizenship, $isPr, $elected)) {
+            if (! $this->matches($rule, $age, $citizenship, $isPr, $elected)) {
                 continue;
             }
+
             return $rule['schedule_code'];
         }
 

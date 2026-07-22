@@ -1,7 +1,11 @@
 <?php
 
-return new class {
-    public function up(\Illuminate\Database\Schema\Builder $schema): void
+use Carbon\Carbon;
+use Illuminate\Database\Schema\Builder;
+
+return new class
+{
+    public function up(Builder $schema): void
     {
         // 1. Create subcontractor_pics table (mirrors client_pics)
         $schema->create('subcontractor_pics', function ($table) {
@@ -31,8 +35,8 @@ return new class {
                 'name' => $row->contact_person,
                 'phone' => $row->contact_phone,
                 'is_primary' => true,
-                'created_at' => \Carbon\Carbon::now(),
-                'updated_at' => \Carbon\Carbon::now(),
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -42,7 +46,7 @@ return new class {
         });
     }
 
-    public function down(\Illuminate\Database\Schema\Builder $schema): void
+    public function down(Builder $schema): void
     {
         $schema->table('subcontractors', function ($table) {
             $table->string('contact_person', 100)->nullable()->after('email');

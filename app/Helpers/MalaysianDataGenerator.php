@@ -98,6 +98,7 @@ class MalaysianDataGenerator
     public static function randomName(): string
     {
         $names = array_merge(self::$malayNames, self::$chineseNames, self::$indianNames);
+
         return $names[array_rand($names)];
     }
 
@@ -105,7 +106,8 @@ class MalaysianDataGenerator
     {
         $domains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'example.com.my'];
         $clean = strtolower(preg_replace('/[^a-zA-Z0-9]/', '.', $name));
-        return $clean . rand(1, 999) . '@' . $domains[array_rand($domains)];
+
+        return $clean.rand(1, 999).'@'.$domains[array_rand($domains)];
     }
 
     public static function randomIC(): string
@@ -116,13 +118,15 @@ class MalaysianDataGenerator
         $pb = str_pad(rand(1, 14), 2, '0', STR_PAD_LEFT);
         $ss = str_pad(rand(1, 99), 2, '0', STR_PAD_LEFT);
         $xx = str_pad(rand(1, 99), 2, '0', STR_PAD_LEFT);
+
         return "{$yy}{$mm}{$dd}-{$pb}-{$ss}{$xx}";
     }
 
     public static function randomPhone(): string
     {
         $prefixes = ['012', '013', '014', '016', '017', '018', '019', '011'];
-        return $prefixes[array_rand($prefixes)] . '-' . rand(1000000, 9999999);
+
+        return $prefixes[array_rand($prefixes)].'-'.rand(1000000, 9999999);
     }
 
     public static function randomCompany(): string
@@ -138,6 +142,7 @@ class MalaysianDataGenerator
     public static function randomProjectName(): string
     {
         $template = self::$projectNames[array_rand(self::$projectNames)];
+
         return str_replace('{location}', self::randomLocation(), $template);
     }
 
@@ -145,8 +150,9 @@ class MalaysianDataGenerator
     {
         $states = ['Selangor', 'Kuala Lumpur', 'Putrajaya', 'Johor', 'Penang', 'Perak', 'Pahang', 'Negeri Sembilan', 'Melaka', 'Kedah', 'Kelantan', 'Terengganu', 'Perlis', 'Sabah', 'Sarawak'];
         $state = $states[array_rand($states)];
+
         return [
-            'line1' => 'No. ' . rand(1, 999) . ', Jalan ' . self::randomLocation() . ' ' . rand(1, 50),
+            'line1' => 'No. '.rand(1, 999).', Jalan '.self::randomLocation().' '.rand(1, 50),
             'city' => self::randomLocation(),
             'state' => $state,
             'postcode' => str_pad(rand(10000, 99999), 5, '0', STR_PAD_LEFT),
@@ -161,6 +167,7 @@ class MalaysianDataGenerator
     public static function randomDate(string $start, string $end): string
     {
         $ts = rand(strtotime($start), strtotime($end));
+
         return date('Y-m-d', $ts);
     }
 
@@ -183,7 +190,7 @@ class MalaysianDataGenerator
                 'email' => self::randomEmail($name),
                 'phone' => self::randomPhone(),
                 'identification_no' => self::randomIC(),
-                'employee_id' => 'EMP-' . str_pad($i + 1, 4, '0', STR_PAD_LEFT),
+                'employee_id' => 'EMP-'.str_pad($i + 1, 4, '0', STR_PAD_LEFT),
                 'job_title' => $jobTitles[array_rand($jobTitles)],
                 'is_active' => rand(1, 10) > 1,
                 'department' => $departments[array_rand($departments)],
@@ -192,15 +199,15 @@ class MalaysianDataGenerator
                 'gender' => rand(0, 1) ? 'male' : 'female',
                 'race' => ['Malay', 'Chinese', 'Indian', 'Other'][array_rand(['Malay', 'Chinese', 'Indian', 'Other'])],
                 'nationality' => 'Malaysian',
-                'marital_status' => ['single', 'married', 'single', 'married', 'married', 'divorced'][array_rand([0,1,2,3,4,5])],
+                'marital_status' => ['single', 'married', 'single', 'married', 'married', 'divorced'][array_rand([0, 1, 2, 3, 4, 5])],
                 'basic_salary' => self::randomAmount(2000, 8000),
                 'hourly_rate' => self::randomAmount(10, 45),
                 'bank_name' => $banks[array_rand($banks)],
                 'bank_account_no' => str_pad(rand(1000000000, 9999999999), 10, '0', STR_PAD_LEFT),
                 'account_name' => $name,
-                'epf_no' => 'EPF-' . self::randomIC(),
-                'socso_no' => 'SOCSO-' . self::randomIC(),
-                'tax_no' => 'SG-' . str_pad(rand(100000000, 999999999), 9, '0', STR_PAD_LEFT),
+                'epf_no' => 'EPF-'.self::randomIC(),
+                'socso_no' => 'SOCSO-'.self::randomIC(),
+                'tax_no' => 'SG-'.str_pad(rand(100000000, 999999999), 9, '0', STR_PAD_LEFT),
                 'epf_contributing' => true,
                 'epf_member_before_aug_1998' => false,
                 'pcb_borne_by_employer' => false,
@@ -217,9 +224,10 @@ class MalaysianDataGenerator
                 'spouse' => null,
                 'date_joined' => self::randomDate('2020-01-01', '2024-06-01'),
                 'schedule' => 'Mon-Fri 9am-6pm',
-                'worker_status' => ['probation', 'normal', 'normal', 'normal'][array_rand([0,1,2,3])],
+                'worker_status' => ['probation', 'normal', 'normal', 'normal'][array_rand([0, 1, 2, 3])],
             ];
         }
+
         return $batch;
     }
 }

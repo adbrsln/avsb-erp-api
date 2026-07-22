@@ -1,7 +1,10 @@
 <?php
 
-return new class {
-    public function up(\Illuminate\Database\Schema\Builder $schema)
+use Illuminate\Database\Schema\Builder;
+
+return new class
+{
+    public function up(Builder $schema)
     {
         $schema->table('project_service_lines', function ($table) {
             $table->string('status', 20)->default('pending')->after('total');
@@ -12,7 +15,7 @@ return new class {
         });
     }
 
-    public function down(\Illuminate\Database\Schema\Builder $schema)
+    public function down(Builder $schema)
     {
         $schema->table('project_service_lines', function ($table) {
             $table->dropColumn(['status', 'planned_start', 'planned_end', 'actual_start', 'actual_end']);

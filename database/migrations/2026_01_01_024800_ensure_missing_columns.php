@@ -1,62 +1,65 @@
 <?php
 
-return new class {
-    public function up(\Illuminate\Database\Schema\Builder $schema): void
+use Illuminate\Database\Schema\Builder;
+
+return new class
+{
+    public function up(Builder $schema): void
     {
         // ── Attendance columns (migration 080/081 got out of sync) ──
-        if (!$schema->hasColumn('attendance', 'clock_in_photo')) {
+        if (! $schema->hasColumn('attendance', 'clock_in_photo')) {
             $schema->table('attendance', function ($table) {
                 $table->string('clock_in_photo', 255)->nullable();
             });
         }
-        if (!$schema->hasColumn('attendance', 'clock_out_photo')) {
+        if (! $schema->hasColumn('attendance', 'clock_out_photo')) {
             $schema->table('attendance', function ($table) {
                 $table->string('clock_out_photo', 255)->nullable();
             });
         }
-        if (!$schema->hasColumn('attendance', 'flagged')) {
+        if (! $schema->hasColumn('attendance', 'flagged')) {
             $schema->table('attendance', function ($table) {
                 $table->boolean('flagged')->default(false);
             });
         }
-        if (!$schema->hasColumn('attendance', 'flagged_reason')) {
+        if (! $schema->hasColumn('attendance', 'flagged_reason')) {
             $schema->table('attendance', function ($table) {
                 $table->string('flagged_reason', 255)->nullable();
             });
         }
-        if (!$schema->hasColumn('attendance', 'flagged_cleared_by')) {
+        if (! $schema->hasColumn('attendance', 'flagged_cleared_by')) {
             $schema->table('attendance', function ($table) {
                 $table->foreignId('flagged_cleared_by')->nullable()->constrained('staff_profiles')->restrictOnDelete();
             });
         }
-        if (!$schema->hasColumn('attendance', 'flagged_cleared_at')) {
+        if (! $schema->hasColumn('attendance', 'flagged_cleared_at')) {
             $schema->table('attendance', function ($table) {
                 $table->datetime('flagged_cleared_at')->nullable();
             });
         }
 
         // ── Claims columns (migration 083) ──
-        if (!$schema->hasColumn('claims', 'claim_ref')) {
+        if (! $schema->hasColumn('claims', 'claim_ref')) {
             $schema->table('claims', function ($table) {
                 $table->string('claim_ref', 50)->unique()->nullable();
             });
         }
-        if (!$schema->hasColumn('claims', 'receipt_url')) {
+        if (! $schema->hasColumn('claims', 'receipt_url')) {
             $schema->table('claims', function ($table) {
                 $table->string('receipt_url')->nullable();
             });
         }
-        if (!$schema->hasColumn('claims', 'rejection_reason')) {
+        if (! $schema->hasColumn('claims', 'rejection_reason')) {
             $schema->table('claims', function ($table) {
                 $table->text('rejection_reason')->nullable();
             });
         }
-        if (!$schema->hasColumn('claims', 'rejected_at')) {
+        if (! $schema->hasColumn('claims', 'rejected_at')) {
             $schema->table('claims', function ($table) {
                 $table->datetime('rejected_at')->nullable();
             });
         }
-        if (!$schema->hasColumn('claims', 'paid_at')) {
+        if (! $schema->hasColumn('claims', 'paid_at')) {
             $schema->table('claims', function ($table) {
                 $table->datetime('paid_at')->nullable();
             });
@@ -68,7 +71,7 @@ return new class {
             ->update(['status' => 'submitted']);
     }
 
-    public function down(\Illuminate\Database\Schema\Builder $schema): void
+    public function down(Builder $schema): void
     {
         // No-op — too risky to drop columns that might have data
     }

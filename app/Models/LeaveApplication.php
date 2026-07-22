@@ -2,13 +2,15 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Traits\Auditable;
 
 class LeaveApplication extends Model
 {
-    use SoftDeletes, Auditable;
+    use Auditable, SoftDeletes;
+
     protected $table = 'leave_applications';
 
     protected $fillable = [
@@ -45,26 +47,36 @@ class LeaveApplication extends Model
 
     public function getDaysAttribute(): float
     {
-        if ($this->is_half_day) return 0.5;
+        if ($this->is_half_day) {
+            return 0.5;
+        }
         $count = 0;
         $current = $this->start_date->copy();
         $end = $this->end_date->copy();
         while ($current->lte($end)) {
-            if (!$current->isWeekend()) $count++;
+            if (! $current->isWeekend()) {
+                $count++;
+            }
             $current->addDay();
         }
+
         return max(1, $count);
     }
 
-    public static function workingDaysCount(\Carbon\Carbon $start, \Carbon\Carbon $end, bool $isHalfDay = false): float
+    public static function workingDaysCount(Carbon $start, Carbon $end, bool $isHalfDay = false): float
     {
-        if ($isHalfDay) return 0.5;
+        if ($isHalfDay) {
+            return 0.5;
+        }
         $count = 0;
         $current = $start->copy();
         while ($current->lte($end)) {
-            if (!$current->isWeekend()) $count++;
+            if (! $current->isWeekend()) {
+                $count++;
+            }
             $current->addDay();
         }
+
         return max(1, $count);
     }
 
@@ -74,11 +86,11 @@ class LeaveApplication extends Model
             ->whereIn('status', ['pending', 'approved'])
             ->where(function ($q) use ($startDate, $endDate) {
                 $q->whereBetween('start_date', [$startDate, $endDate])
-                  ->orWhereBetween('end_date', [$startDate, $endDate])
-                  ->orWhere(function ($q2) use ($startDate, $endDate) {
-                      $q2->where('start_date', '<=', $startDate)
-                         ->where('end_date', '>=', $endDate);
-                  });
+                    ->orWhereBetween('end_date', [$startDate, $endDate])
+                    ->orWhere(function ($q2) use ($startDate, $endDate) {
+                        $q2->where('start_date', '<=', $startDate)
+                            ->where('end_date', '>=', $endDate);
+                    });
             });
         if ($excludeId) {
             $query->where('id', '!=', $excludeId);

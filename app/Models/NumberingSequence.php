@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use App\Traits\Auditable;
+use Illuminate\Database\Eloquent\Model;
 
 class NumberingSequence extends Model
 {
     use Auditable;
+
     protected $table = 'numbering_sequences';
 
     protected $fillable = [

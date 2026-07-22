@@ -2,9 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\ActivityLog;
-use Illuminate\Database\Eloquent\Model;
-
 class ActivityLogContext
 {
     private static ?object $causer = null;
@@ -22,7 +19,10 @@ class ActivityLogContext
     public static function getCauserId(): ?int
     {
         $causer = self::$causer;
-        if (!$causer) return null;
+        if (! $causer) {
+            return null;
+        }
+
         return $causer->sub ?? $causer->id ?? null;
     }
 
@@ -30,5 +30,4 @@ class ActivityLogContext
     {
         self::$causer = null;
     }
-
 }

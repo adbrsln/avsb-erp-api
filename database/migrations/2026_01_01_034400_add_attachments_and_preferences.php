@@ -1,15 +1,18 @@
 <?php
 
-return new class {
-    public function up(\Illuminate\Database\Schema\Builder $schema): void
+use Illuminate\Database\Schema\Builder;
+
+return new class
+{
+    public function up(Builder $schema): void
     {
-        if (!$schema->hasColumn('notification_queue', 'attachments')) {
+        if (! $schema->hasColumn('notification_queue', 'attachments')) {
             $schema->table('notification_queue', function ($table) {
                 $table->json('attachments')->nullable()->after('context');
             });
         }
 
-        if (!$schema->hasTable('notification_preferences')) {
+        if (! $schema->hasTable('notification_preferences')) {
             $schema->create('notification_preferences', function ($table) {
                 $table->id();
                 $table->bigInteger('user_id');
@@ -23,7 +26,7 @@ return new class {
         }
     }
 
-    public function down(\Illuminate\Database\Schema\Builder $schema): void
+    public function down(Builder $schema): void
     {
         if ($schema->hasColumn('notification_queue', 'attachments')) {
             $schema->table('notification_queue', function ($table) {

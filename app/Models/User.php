@@ -2,14 +2,14 @@
 
 namespace App\Models;
 
+use App\Services\ActivityLogger;
+use App\Traits\Auditable;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Sanctum\HasApiTokens;
-use App\Models\UserRole;
-use App\Traits\Auditable;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, Auditable;
+    use Auditable, HasApiTokens;
 
     protected $table = 'users';
 
@@ -34,7 +34,8 @@ class User extends Authenticatable
     public function getRoleNames(): array
     {
         $rows = $this->roles()->pluck('role')->toArray();
-        return !empty($rows) ? $rows : ['staff'];
+
+        return ! empty($rows) ? $rows : ['staff'];
     }
 
     public function hasRole(string $role): bool
@@ -57,7 +58,7 @@ class User extends Authenticatable
 
         $newRoles = $this->getRoleNames();
         if ($oldRoles !== $newRoles) {
-            \App\Services\ActivityLogger::on($this)
+            ActivityLogger::on($this)
                 ->withProperties([
                     'old' => $oldRoles,
                     'new' => $newRoles,

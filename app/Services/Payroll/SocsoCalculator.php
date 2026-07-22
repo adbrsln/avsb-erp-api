@@ -27,6 +27,7 @@ class SocsoCalculator
 
         if ($salary > self::CEILING_WAGE) {
             $capped = $this->getHighestTier();
+
             return new SocsoResult(
                 salary: $salary,
                 employerAmount: (float) $capped->employer_amount,
@@ -51,6 +52,7 @@ class SocsoCalculator
         if ($this->highestTier === null) {
             $this->highestTier = SocsoContributionTier::orderByDesc('wage_to')->first();
         }
+
         return $this->highestTier;
     }
 }

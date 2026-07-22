@@ -27,6 +27,7 @@ class EisCalculator
 
         if ($salary > self::CEILING_WAGE) {
             $capped = $this->getHighestTier();
+
             return new EisResult(
                 salary: $salary,
                 employerAmount: (float) $capped->employer_amount,
@@ -51,6 +52,7 @@ class EisCalculator
         if ($this->highestTier === null) {
             $this->highestTier = EisContributionTier::orderByDesc('wage_to')->first();
         }
+
         return $this->highestTier;
     }
 }

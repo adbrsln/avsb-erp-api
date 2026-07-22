@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class SocsoContributionTier extends Model
 {
     protected $table = 'socso_contribution_tiers';
+
     public $timestamps = false;
 
     protected $fillable = [

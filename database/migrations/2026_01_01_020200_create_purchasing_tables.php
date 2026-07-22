@@ -1,7 +1,10 @@
 <?php
 
-return new class {
-    public function up(\Illuminate\Database\Schema\Builder $schema)
+use Illuminate\Database\Schema\Builder;
+
+return new class
+{
+    public function up(Builder $schema)
     {
         $schema->create('vendors', function ($table) {
             $table->id();
@@ -115,10 +118,10 @@ return new class {
         });
     }
 
-    public function down(\Illuminate\Database\Schema\Builder $schema)
+    public function down(Builder $schema)
     {
         $tables = ['inventory_transactions', 'inventory_items', 'bill_payments', 'bill_items', 'bills',
-                    'purchase_order_items', 'purchase_orders', 'vendors'];
+            'purchase_order_items', 'purchase_orders', 'vendors'];
         foreach ($tables as $t) {
             $schema->dropIfExists($t);
         }

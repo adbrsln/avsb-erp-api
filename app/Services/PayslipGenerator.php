@@ -3,16 +3,18 @@
 namespace App\Services;
 
 use App\Models\CompanySetting;
-use App\Services\FileStorageService;
 use App\Models\PayrollRunItem;
 use App\Models\StaffProfile;
+use Dompdf\Dompdf;
 
 class PayslipGenerator
 {
     public function generate(int $itemId): string
     {
         $item = PayrollRunItem::with('adjustments', 'period')->find($itemId);
-        if (!$item) throw new \RuntimeException("Payroll item #{$itemId} not found.");
+        if (! $item) {
+            throw new \RuntimeException("Payroll item #{$itemId} not found.");
+        }
 
         $employee = StaffProfile::find($item->employee_id);
         $company = CompanySetting::first();
@@ -33,13 +35,13 @@ class PayslipGenerator
 
         $html = $this->buildHtml($item, $employee, $company, $totalEr, $totalEe, $netSalary, $adjustedNet, $isHourly, $earningsAdjustments, $deductionsAdjustments, $adjEarningsTotal, $adjDeductionsTotal);
 
-        $dompdf = new \Dompdf\Dompdf();
+        $dompdf = new Dompdf;
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
 
-        $path = 'uploads/payslips/' . $item->period_id . '/' . $item->id . '.pdf';
-        $storage = new FileStorageService();
+        $path = 'uploads/payslips/'.$item->period_id.'/'.$item->id.'.pdf';
+        $storage = new FileStorageService;
         $storage->put($path, $dompdf->output(), 'application/pdf');
 
         return $path;
@@ -87,7 +89,7 @@ class PayslipGenerator
         $socso24Ee = number_format($item->socso_24h_employee ?? 0, 2);
         $tEe = number_format($totalEe, 2);
         $socso24EeDisplay = ($item->socso_24h_employee ?? 0) > 0
-            ? '<tr><td></td><td class="amt"></td><td>SKBBK</td><td class="amt">' . $socso24Ee . '</td></tr>'
+            ? '<tr><td></td><td class="amt"></td><td>SKBBK</td><td class="amt">'.$socso24Ee.'</td></tr>'
             : '';
         $net = number_format($netSalary, 2);
         $adjNet = number_format($adjustedNet, 2);
@@ -95,7 +97,7 @@ class PayslipGenerator
         $totalDeductionsFormatted = number_format($totalEe + $adjDeductionsTotal, 2);
 
         $earningsLabel = $isHourly
-            ? "Hours Worked ({$item->total_hours}h × RM " . number_format($item->hourly_rate_applied ?? 0, 2) . "/hr)"
+            ? "Hours Worked ({$item->total_hours}h × RM ".number_format($item->hourly_rate_applied ?? 0, 2).'/hr)'
             : 'Basic Salary';
 
         $epfErDisplay = $isHourly ? 'N/A' : $epfEr;

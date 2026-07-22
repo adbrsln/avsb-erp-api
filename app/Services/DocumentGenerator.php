@@ -8,14 +8,15 @@ use App\Models\Invoice;
 use App\Models\Quotation;
 use App\Models\Receipt;
 use App\Models\SelfBilledInvoice;
+use Carbon\Carbon;
 use Dompdf\Dompdf;
-use Dompdf\Options;
 
 class DocumentGenerator
 {
     private function company(): array
     {
         $c = CompanySetting::first();
+
         return [
             'name' => $c->company_name ?? 'AVSB Roadworks Sdn Bhd',
             'address' => $c->address ?? '',
@@ -28,16 +29,25 @@ class DocumentGenerator
 
     private function embedLogo(string $path): string
     {
-        if (empty($path)) return '';
+        if (empty($path)) {
+            return '';
+        }
         try {
-            $storage = new FileStorageService();
+            $storage = new FileStorageService;
             $data = $storage->get($path);
-            if ($data === null) return '';
+            if ($data === null) {
+                return '';
+            }
             $mime = 'image/png';
-            if (preg_match('/\.(jpg|jpeg)$/i', $path)) $mime = 'image/jpeg';
-            elseif (preg_match('/\.gif$/i', $path)) $mime = 'image/gif';
-            elseif (preg_match('/\.webp$/i', $path)) $mime = 'image/webp';
-            return 'data:' . $mime . ';base64,' . base64_encode($data);
+            if (preg_match('/\.(jpg|jpeg)$/i', $path)) {
+                $mime = 'image/jpeg';
+            } elseif (preg_match('/\.gif$/i', $path)) {
+                $mime = 'image/gif';
+            } elseif (preg_match('/\.webp$/i', $path)) {
+                $mime = 'image/webp';
+            }
+
+            return 'data:'.$mime.';base64,'.base64_encode($data);
         } catch (\Throwable $e) {
             return '';
         }
@@ -56,7 +66,7 @@ class DocumentGenerator
         $i = 0;
         foreach ($data['items'] as $item) {
             $i++;
-            $name = !empty($item['item_name']) ? '<strong>' . htmlspecialchars($item['item_name']) . '</strong><br/>' : '';
+            $name = ! empty($item['item_name']) ? '<strong>'.htmlspecialchars($item['item_name']).'</strong><br/>' : '';
             $desc = htmlspecialchars($item['description'] ?? $item['name'] ?? '');
             $unit = htmlspecialchars($item['unit'] ?? '');
             $qty = $item['quantity'] ?? $item['qty'] ?? 0;
@@ -67,9 +77,9 @@ class DocumentGenerator
                 <td>{$name}{$desc}</td>
                 <td class='r'>{$unit}</td>
                 <td class='r'>{$qty}</td>
-                <td class='r'>" . $this->fmt($rate) . "</td>
-                <td class='r'>" . $this->fmt($total) . "</td>
-            </tr>";
+                <td class='r'>".$this->fmt($rate)."</td>
+                <td class='r'>".$this->fmt($total).'</td>
+            </tr>';
         }
 
         $subtotalFmt = $this->fmt($data['subtotal'] ?? 0);
@@ -89,20 +99,36 @@ class DocumentGenerator
         // Build Bill To block
         $billToHtml = '';
         $clientLineHtml = "<p><strong>{$clientLabel}:</strong> {$client}</p>";
-        if (!$isSelfBilled && ($buyerTin || $buyerRegNo || $buyerSstRegNo || $buyerAddress || $buyerEmail || $buyerPhone)) {
+        if (! $isSelfBilled && ($buyerTin || $buyerRegNo || $buyerSstRegNo || $buyerAddress || $buyerEmail || $buyerPhone)) {
             $billToHtml .= '<div class="bill-to">';
             $billToHtml .= '<h3>Bill To:</h3>';
-            $billToHtml .= '<p class="name">' . $client . '</p>';
-            if ($buyerAddress) $billToHtml .= '<p class="addr">' . $buyerAddress . '</p>';
+            $billToHtml .= '<p class="name">'.$client.'</p>';
+            if ($buyerAddress) {
+                $billToHtml .= '<p class="addr">'.$buyerAddress.'</p>';
+            }
             $idsLine = '';
-            if ($buyerTin) $idsLine .= '<strong>TIN:</strong> ' . $buyerTin;
-            if ($buyerRegNo) $idsLine .= ($idsLine ? '  ·  ' : '') . '<strong>BRN:</strong> ' . $buyerRegNo;
-            if ($buyerSstRegNo) $idsLine .= ($idsLine ? '  ·  ' : '') . '<strong>SST Reg:</strong> ' . $buyerSstRegNo;
-            if ($idsLine) $billToHtml .= '<p>' . $idsLine . '</p>';
+            if ($buyerTin) {
+                $idsLine .= '<strong>TIN:</strong> '.$buyerTin;
+            }
+            if ($buyerRegNo) {
+                $idsLine .= ($idsLine ? '  ·  ' : '').'<strong>BRN:</strong> '.$buyerRegNo;
+            }
+            if ($buyerSstRegNo) {
+                $idsLine .= ($idsLine ? '  ·  ' : '').'<strong>SST Reg:</strong> '.$buyerSstRegNo;
+            }
+            if ($idsLine) {
+                $billToHtml .= '<p>'.$idsLine.'</p>';
+            }
             $contactLine = '';
-            if ($buyerEmail) $contactLine .= '<strong>Email:</strong> ' . $buyerEmail;
-            if ($buyerPhone) $contactLine .= ($contactLine ? '  ·  ' : '') . '<strong>Phone:</strong> ' . $buyerPhone;
-            if ($contactLine) $billToHtml .= '<p>' . $contactLine . '</p>';
+            if ($buyerEmail) {
+                $contactLine .= '<strong>Email:</strong> '.$buyerEmail;
+            }
+            if ($buyerPhone) {
+                $contactLine .= ($contactLine ? '  ·  ' : '').'<strong>Phone:</strong> '.$buyerPhone;
+            }
+            if ($contactLine) {
+                $billToHtml .= '<p>'.$contactLine.'</p>';
+            }
             $billToHtml .= '</div>';
             $clientLineHtml = ''; // Bill To block already shows client name
         }
@@ -122,8 +148,10 @@ class DocumentGenerator
         $companyExtraHtml = '';
         if ($companyPhone || $companyEmail) {
             $line = $companyPhone ? "<strong>Tel:</strong> {$companyPhone}" : '';
-            if ($companyEmail) $line .= ($line ? ' | ' : '') . "<strong>Email:</strong> {$companyEmail}";
-            $companyExtraHtml = '<br>' . $line;
+            if ($companyEmail) {
+                $line .= ($line ? ' | ' : '')."<strong>Email:</strong> {$companyEmail}";
+            }
+            $companyExtraHtml = '<br>'.$line;
         }
         $logoHtml = $logoDataUri ? "<img src=\"{$logoDataUri}\" style=\"height:64px;width:auto;\">" : '';
         $logoDivHtml = $logoHtml ? "<div class=\"header-logo\">{$logoHtml}</div>" : '';
@@ -214,20 +242,22 @@ td.r { text-align: right; }
 </html>
 HTML;
 
-        $dompdf = new Dompdf();
+        $dompdf = new Dompdf;
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
+
         return $dompdf->output();
     }
 
     public function quotation(Quotation $q): string
     {
         $items = is_array($q->items) ? $q->items : (json_decode($q->items ?? '[]', true) ?: []);
+
         return $this->render('QUOTATION', [
             'number' => $q->quote_number,
             'client' => $q->client,
-            'date' => $q->date ? \Carbon\Carbon::parse($q->date)->format('d F Y') : date('d F Y'),
+            'date' => $q->date ? Carbon::parse($q->date)->format('d F Y') : date('d F Y'),
             'status' => strtoupper($q->status ?? 'DRAFT'),
             'items' => $items,
             'subtotal' => $q->subtotal,
@@ -250,21 +280,22 @@ HTML;
     public function contract(Contract $c): string
     {
         $items = is_array($c->items) ? $c->items : (json_decode($c->items ?? '[]', true) ?: []);
-        $notes = $c->terms ? 'Terms: ' . $c->terms : '';
+        $notes = $c->terms ? 'Terms: '.$c->terms : '';
         if ($c->billing_milestones) {
             $milestones = is_array($c->billing_milestones) ? $c->billing_milestones : (json_decode($c->billing_milestones ?? '[]', true) ?: []);
             $notes .= "\n\nBilling Milestones:\n";
             foreach ($milestones as $m) {
-                $notes .= "- {$m['description']}: {$m['percentage']}% (RM " . number_format($m['amount'] ?? 0, 2) . ")\n";
+                $notes .= "- {$m['description']}: {$m['percentage']}% (RM ".number_format($m['amount'] ?? 0, 2).")\n";
             }
         }
         $subtotal = $c->subtotal > 0 ? $c->subtotal : round($c->total_amount / (1 + ($c->sst_rate / 100) - ($c->retention_rate / 100)), 2);
         $sstAmount = round($subtotal * ($c->sst_rate / 100), 2);
         $retentionAmount = round($subtotal * ($c->retention_rate / 100), 2);
+
         return $this->render('CONTRACT', [
             'number' => $c->contract_number,
             'client' => $c->client,
-            'date' => $c->date ? \Carbon\Carbon::parse($c->date)->format('d F Y') : date('d F Y'),
+            'date' => $c->date ? Carbon::parse($c->date)->format('d F Y') : date('d F Y'),
             'status' => strtoupper($c->status ?? 'DRAFT'),
             'items' => $items,
             'subtotal' => $subtotal,
@@ -287,10 +318,11 @@ HTML;
     public function invoice(Invoice $i): string
     {
         $items = is_array($i->items) ? $i->items : (json_decode($i->items ?? '[]', true) ?: []);
+
         return $this->render('INVOICE', [
             'number' => $i->invoice_number,
             'client' => $i->client,
-            'date' => $i->date ? \Carbon\Carbon::parse($i->date)->format('d F Y') : date('d F Y'),
+            'date' => $i->date ? Carbon::parse($i->date)->format('d F Y') : date('d F Y'),
             'status' => strtoupper(str_replace('_', ' ', $i->status ?? 'DRAFT')),
             'items' => $items,
             'subtotal' => $i->subtotal,
@@ -332,16 +364,24 @@ HTML;
         $companyExtraHtml = '';
         if ($companyPhone || $companyEmail) {
             $line = $companyPhone ? "<strong>Tel:</strong> {$companyPhone}" : '';
-            if ($companyEmail) $line .= ($line ? ' | ' : '') . "<strong>Email:</strong> {$companyEmail}";
-            $companyExtraHtml = '<br>' . $line;
+            if ($companyEmail) {
+                $line .= ($line ? ' | ' : '')."<strong>Email:</strong> {$companyEmail}";
+            }
+            $companyExtraHtml = '<br>'.$line;
         }
         $logoHtml = $logoDataUri ? "<img src=\"{$logoDataUri}\" style=\"height:64px;width:auto;\">" : '';
 
         $addrLine = $buyerAddress ? "<p class=\"addr\">{$buyerAddress}</p>" : '';
         $idsLine = '';
-        if ($buyerTin) $idsLine .= "TIN: {$buyerTin}";
-        if ($buyerRegNo) $idsLine .= ($idsLine ? '  ·  ' : '') . "BRN: {$buyerRegNo}";
-        if ($idsLine) $idsLine = '<p>' . $idsLine . '</p>';
+        if ($buyerTin) {
+            $idsLine .= "TIN: {$buyerTin}";
+        }
+        if ($buyerRegNo) {
+            $idsLine .= ($idsLine ? '  ·  ' : '')."BRN: {$buyerRegNo}";
+        }
+        if ($idsLine) {
+            $idsLine = '<p>'.$idsLine.'</p>';
+        }
         $paymentRef = htmlspecialchars($r->payment?->payment_reference ?? '');
         $paymentRefRow = $paymentRef ? "<tr><td class=\"label\">Payment Ref</td><td class=\"value\">{$paymentRef}</td></tr>" : '';
 
@@ -349,7 +389,7 @@ HTML;
         $invNo = htmlspecialchars($inv->invoice_number);
         $amountFmt = $this->fmt($r->amount);
         $balanceFmt = $this->fmt(max(0, $balance));
-        $dateFmt = $r->date ? \Carbon\Carbon::parse($r->date)->format('d F Y') : date('d F Y');
+        $dateFmt = $r->date ? Carbon::parse($r->date)->format('d F Y') : date('d F Y');
 
         $html = <<<HTML
 <!DOCTYPE html>
@@ -417,10 +457,11 @@ body { font-family: 'Helvetica', 'Arial', sans-serif; font-size: 11pt; color: #1
 </html>
 HTML;
 
-        $dompdf = new Dompdf();
+        $dompdf = new Dompdf;
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
+
         return $dompdf->output();
     }
 
@@ -428,10 +469,11 @@ HTML;
     {
         $items = is_array($s->items) ? $s->items : (json_decode($s->items ?? '[]', true) ?: []);
         $supplierName = $s->supplier ? ($s->supplier->company_name ?? '') : '';
+
         return $this->render('SELF-BILLED INVOICE', [
             'number' => $s->invoice_number,
             'client' => $supplierName,
-            'date' => $s->date ? \Carbon\Carbon::parse($s->date)->format('d F Y') : date('d F Y'),
+            'date' => $s->date ? Carbon::parse($s->date)->format('d F Y') : date('d F Y'),
             'status' => strtoupper(str_replace('_', ' ', $s->status ?? 'DRAFT')),
             'items' => $items,
             'subtotal' => $s->subtotal,
@@ -440,7 +482,7 @@ HTML;
             'retention' => $s->retention,
             'total' => $s->total,
             'notes' => $s->notes,
-            'header_subtitle' => 'Supplier: ' . htmlspecialchars($supplierName),
+            'header_subtitle' => 'Supplier: '.htmlspecialchars($supplierName),
         ], '#ca2316', 'Supplier');
     }
 }

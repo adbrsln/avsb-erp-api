@@ -1,14 +1,17 @@
 <?php
 
-return new class {
-    public function up(\Illuminate\Database\Schema\Builder $schema): void
+use Illuminate\Database\Schema\Builder;
+
+return new class
+{
+    public function up(Builder $schema): void
     {
         $schema->dropIfExists('quotation_items');
     }
 
-    public function down(\Illuminate\Database\Schema\Builder $schema): void
+    public function down(Builder $schema): void
     {
-        if (!$schema->hasTable('quotation_items')) {
+        if (! $schema->hasTable('quotation_items')) {
             $schema->create('quotation_items', function ($table) {
                 $table->id();
                 $table->foreignId('quotation_id')->constrained()->cascadeOnDelete();

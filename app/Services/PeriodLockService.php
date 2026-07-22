@@ -16,6 +16,7 @@ class PeriodLockService
         if ($locked) {
             return 'The entry date falls within a closed or locked period. Manual journal entries cannot be posted in closed periods.';
         }
+
         return null;
     }
 }

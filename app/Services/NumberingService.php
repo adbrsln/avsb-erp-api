@@ -15,7 +15,7 @@ class NumberingService
                 'pattern' => '{PREFIX}{YEAR}-{MONTH}-{SEQ:4}',
                 'last_sequence' => 0,
                 'last_year_month' => '',
-                'description' => 'Auto-created for ' . $code,
+                'description' => 'Auto-created for '.$code,
             ]
         );
         $ym = date('ym');
@@ -31,13 +31,13 @@ class NumberingService
 
         $replacements = [
             '{PREFIX}' => $seq->prefix,
-            '{YEAR}'   => date('y'),
-            '{MONTH}'  => date('m'),
+            '{YEAR}' => date('y'),
+            '{MONTH}' => date('m'),
         ];
 
         $pattern = $seq->pattern;
         if (preg_match('/\{SEQ:(\d+)\}/', $pattern, $m)) {
-            $pattern = str_replace($m[0], str_pad((string)$num, (int)$m[1], '0', STR_PAD_LEFT), $pattern);
+            $pattern = str_replace($m[0], str_pad((string) $num, (int) $m[1], '0', STR_PAD_LEFT), $pattern);
         }
 
         return str_replace(array_keys($replacements), array_values($replacements), $pattern);
@@ -50,7 +50,7 @@ class NumberingService
             'purchase_order' => 'PO-',
             'bill' => 'B-',
             'journal' => 'JE-',
-            default => strtoupper(substr($code, 0, 3)) . '-',
+            default => strtoupper(substr($code, 0, 3)).'-',
         };
     }
 }

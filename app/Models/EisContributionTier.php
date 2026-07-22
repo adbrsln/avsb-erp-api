@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class EisContributionTier extends Model
 {
     protected $table = 'eis_contribution_tiers';
+
     public $timestamps = false;
 
     protected $fillable = [

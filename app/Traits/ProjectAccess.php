@@ -12,15 +12,21 @@ trait ProjectAccess
     protected function getStaffFromRequest(ServerRequestInterface $request): ?StaffProfile
     {
         $user = $request->getAttribute('user');
-        if (!$user) return null;
+        if (! $user) {
+            return null;
+        }
         $email = is_object($user) ? ($user->email ?? '') : ($user['email'] ?? '');
-        if (empty($email)) return null;
+        if (empty($email)) {
+            return null;
+        }
+
         return StaffProfile::where('email', $email)->first();
     }
 
     protected function getUserRoles(ServerRequestInterface $request): array
     {
         $user = $request->getAttribute('user');
+
         return is_object($user) ? ($user->roles ?? []) : ($user['roles'] ?? []);
     }
 
@@ -31,17 +37,23 @@ trait ProjectAccess
 
     protected function isProjectMember(ServerRequestInterface $request, int $projectId): bool
     {
-        if ($this->isPmPlus($request)) return true;
+        if ($this->isPmPlus($request)) {
+            return true;
+        }
 
         $staff = $this->getStaffFromRequest($request);
-        if (!$staff) return false;
+        if (! $staff) {
+            return false;
+        }
 
         if (Project::find($projectId)?->staffPics()
             ->where('staff_id', $staff->id)
-            ->exists()) return true;
+            ->exists()) {
+            return true;
+        }
 
         return Phase::where('project_id', $projectId)
-            ->whereHas('tasks.staff', fn($q) => $q->where('staff_id', $staff->id))
+            ->whereHas('tasks.staff', fn ($q) => $q->where('staff_id', $staff->id))
             ->exists();
     }
 }

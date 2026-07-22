@@ -4,8 +4,8 @@ namespace App\Services\Notification;
 
 use App\Models\PushSubscription;
 use App\Models\User;
-use Minishlink\WebPush\WebPush;
 use Minishlink\WebPush\Subscription;
+use Minishlink\WebPush\WebPush;
 
 class PushNotificationService
 {
@@ -24,6 +24,7 @@ class PushNotificationService
             $this->webPush = new WebPush($auth);
             $this->webPush->setAutomaticPadding(false);
         }
+
         return $this->webPush;
     }
 
@@ -82,7 +83,10 @@ class PushNotificationService
     public function sendToEmail(string $email, string $title, string $body, ?string $url = null): array
     {
         $user = User::where('email', $email)->first();
-        if (!$user) return ['sent' => 0, 'failed' => 0, 'reason' => 'user not found'];
+        if (! $user) {
+            return ['sent' => 0, 'failed' => 0, 'reason' => 'user not found'];
+        }
+
         return $this->sendToUser($user, $title, $body, $url);
     }
 }

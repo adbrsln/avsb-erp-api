@@ -3,11 +3,11 @@
 namespace App\Traits;
 
 use Illuminate\Database\Eloquent\Builder;
-use Psr\Http\Message\ResponseInterface as Response;
+use Illuminate\Http\JsonResponse;
 
 trait PaginatedResponse
 {
-    protected function paginate(Builder $query, Response $response, array $params = [], array $extra = []): Response
+    protected function paginate(Builder $query, array $params = [], array $extra = []): JsonResponse
     {
         $page = max(1, intval($params['page'] ?? 1));
         $perPage = min(100, max(1, intval($params['per_page'] ?? 15)));
@@ -30,7 +30,7 @@ trait PaginatedResponse
                 'current_page' => $page,
                 'per_page' => $perPage,
                 'total' => $total,
-                'last_page' => ceil($total / $perPage),
+                'last_page' => (int) ceil($total / max(1, $perPage)),
             ],
         ];
 
@@ -38,7 +38,6 @@ trait PaginatedResponse
             $result[$key] = $val;
         }
 
-        $response->getBody()->write(json_encode($result));
-        return $response->withHeader('Content-Type', 'application/json');
+        return response()->json($result);
     }
 }

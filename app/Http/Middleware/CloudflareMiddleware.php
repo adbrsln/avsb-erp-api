@@ -12,7 +12,7 @@ class CloudflareMiddleware
     {
         $proxySecret = config('services.cloudflare.proxy_secret', '');
 
-        if (!empty($proxySecret)) {
+        if (! empty($proxySecret)) {
             $header = $request->header('X-Proxy-Secret');
             if ($header !== $proxySecret) {
                 return response()->json(['error' => 'Forbidden'], 403);

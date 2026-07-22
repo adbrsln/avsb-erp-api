@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use App\Traits\Auditable;
+use Illuminate\Database\Eloquent\Model;
 
 class PhaseTemplate extends Model
 {
     use Auditable;
+
     protected $table = 'phase_templates';
 
     protected $fillable = [

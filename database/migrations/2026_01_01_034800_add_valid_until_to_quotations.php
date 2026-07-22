@@ -1,16 +1,19 @@
 <?php
 
-return new class {
-    public function up(\Illuminate\Database\Schema\Builder $schema): void
+use Illuminate\Database\Schema\Builder;
+
+return new class
+{
+    public function up(Builder $schema): void
     {
-        if (!$schema->hasColumn('quotations', 'valid_until')) {
+        if (! $schema->hasColumn('quotations', 'valid_until')) {
             $schema->table('quotations', function ($table) {
                 $table->date('valid_until')->nullable()->after('date');
             });
         }
     }
 
-    public function down(\Illuminate\Database\Schema\Builder $schema): void
+    public function down(Builder $schema): void
     {
         if ($schema->hasColumn('quotations', 'valid_until')) {
             $schema->table('quotations', function ($table) {

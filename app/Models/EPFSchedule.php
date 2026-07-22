@@ -7,8 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 class EPFSchedule extends Model
 {
     protected $table = 'epf_schedules';
+
     protected $primaryKey = 'code';
+
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     protected $fillable = [

@@ -3,12 +3,16 @@
 namespace App\Services;
 
 use Aws\S3\S3Client;
+use Psr\Http\Message\UploadedFileInterface;
 
 class FileStorageService
 {
     private string $driver;
+
     private ?S3Client $s3 = null;
+
     private string $bucket;
+
     private string $localRoot;
 
     private const ALLOWED_MIMES = [
@@ -38,10 +42,10 @@ class FileStorageService
 
     private const BLOCKED_EXTENSIONS = ['php', 'phtml', 'php3', 'php4', 'php5', 'phar', 'sh', 'exe', 'bat', 'cmd', 'pl', 'py', 'rb', 'jsp', 'asp', 'aspx', 'htaccess'];
 
-    public static function validateUpload(\Psr\Http\Message\UploadedFileInterface $file): ?string
+    public static function validateUpload(UploadedFileInterface $file): ?string
     {
         if ($file->getError() !== UPLOAD_ERR_OK) {
-            return 'Upload failed with error code: ' . $file->getError();
+            return 'Upload failed with error code: '.$file->getError();
         }
 
         $size = $file->getSize();
@@ -49,23 +53,23 @@ class FileStorageService
             return 'Uploaded file is empty';
         }
         if ($size > self::MAX_FILE_SIZE) {
-            return 'File exceeds maximum size of ' . (self::MAX_FILE_SIZE / 1024 / 1024) . 'MB';
+            return 'File exceeds maximum size of '.(self::MAX_FILE_SIZE / 1024 / 1024).'MB';
         }
 
         // Reject blocked extensions
         $ext = strtolower(pathinfo($file->getClientFilename(), PATHINFO_EXTENSION));
         if (in_array($ext, self::BLOCKED_EXTENSIONS, true)) {
-            return 'File extension "' . $ext . '" is not allowed';
+            return 'File extension "'.$ext.'" is not allowed';
         }
 
         // Verify extension matches expected MIME types
         $clientMime = $file->getClientMediaType();
-        if (!in_array($clientMime, self::ALLOWED_MIMES, true)) {
-            return 'File type "' . $clientMime . '" is not allowed';
+        if (! in_array($clientMime, self::ALLOWED_MIMES, true)) {
+            return 'File type "'.$clientMime.'" is not allowed';
         }
         $expectedMimes = self::EXTENSION_MIME_MAP[$ext] ?? null;
-        if ($expectedMimes && !in_array($clientMime, $expectedMimes, true)) {
-            return 'MIME type "' . $clientMime . '" does not match extension "' . $ext . '"';
+        if ($expectedMimes && ! in_array($clientMime, $expectedMimes, true)) {
+            return 'MIME type "'.$clientMime.'" does not match extension "'.$ext.'"';
         }
 
         // Server-side MIME verification using file content (finfo)
@@ -78,8 +82,8 @@ class FileStorageService
                 if ($detected && $detected !== 'application/octet-stream') {
                     $allowedByMime = in_array($detected, self::ALLOWED_MIMES, true);
                     $allowedByType = $expectedMimes && in_array($detected, $expectedMimes, true);
-                    if (!$allowedByMime || !$allowedByType) {
-                        return 'File content appears to be "' . $detected . '", which is not allowed';
+                    if (! $allowedByMime || ! $allowedByType) {
+                        return 'File content appears to be "'.$detected.'", which is not allowed';
                     }
                 }
             }
@@ -92,7 +96,7 @@ class FileStorageService
     {
         $this->driver = $_ENV['STORAGE_DRIVER'] ?? 'local';
         $this->bucket = $_ENV['R2_BUCKET'] ?? 'avsb-erp';
-        $this->localRoot = __DIR__ . '/../../uploads';
+        $this->localRoot = __DIR__.'/../../uploads';
 
         if ($this->driver === 'r2') {
             $accountId = $_ENV['R2_ACCOUNT_ID'] ?? '';
@@ -100,7 +104,7 @@ class FileStorageService
                 ? "https://{$accountId}.r2.cloudflarestorage.com"
                 : 'http://localhost:9000';
 
-            $hasCustomEndpoint = !empty($_ENV['R2_ENDPOINT']);
+            $hasCustomEndpoint = ! empty($_ENV['R2_ENDPOINT']);
             $this->s3 = new S3Client([
                 'version' => 'latest',
                 'region' => $_ENV['R2_REGION'] ?? ($hasCustomEndpoint ? 'us-east-1' : 'auto'),
@@ -117,8 +121,8 @@ class FileStorageService
     private function resolvePath(string $path): string
     {
         $path = str_replace("\0", '', $path);
-        $fullPath = $this->localRoot . '/' . ltrim(str_replace('\\', '/', $path), '/');
-        $parts = array_filter(explode('/', $fullPath), fn($p) => $p !== '' && $p !== '.');
+        $fullPath = $this->localRoot.'/'.ltrim(str_replace('\\', '/', $path), '/');
+        $parts = array_filter(explode('/', $fullPath), fn ($p) => $p !== '' && $p !== '.');
         $resolved = [];
         foreach ($parts as $part) {
             if ($part === '..') {
@@ -127,11 +131,12 @@ class FileStorageService
                 $resolved[] = $part;
             }
         }
-        $clean = '/' . implode('/', $resolved);
+        $clean = '/'.implode('/', $resolved);
         $root = rtrim($this->localRoot, '/');
-        if ($clean !== $root && !str_starts_with($clean, $root . '/')) {
+        if ($clean !== $root && ! str_starts_with($clean, $root.'/')) {
             throw new \RuntimeException('Path traversal blocked');
         }
+
         return $clean;
     }
 
@@ -151,7 +156,7 @@ class FileStorageService
         } else {
             $fullPath = $this->resolvePath($path);
             $dir = dirname($fullPath);
-            if (!is_dir($dir)) {
+            if (! is_dir($dir)) {
                 mkdir($dir, 0775, true);
             }
             file_put_contents($fullPath, $body);
@@ -165,8 +170,10 @@ class FileStorageService
                 'Bucket' => $this->bucket,
                 'Key' => $path,
             ]);
+
             return (string) $result['Body'];
         }
+
         return file_get_contents($this->resolvePath($path));
     }
 
@@ -190,6 +197,7 @@ class FileStorageService
         if ($this->driver === 'r2') {
             return $this->s3->doesObjectExist($this->bucket, $path);
         }
+
         return is_file($this->resolvePath($path));
     }
 
@@ -200,8 +208,10 @@ class FileStorageService
                 'Bucket' => $this->bucket,
                 'Key' => $path,
             ]);
+
             return (int) $result['ContentLength'];
         }
+
         return filesize($this->resolvePath($path));
     }
 
@@ -217,14 +227,16 @@ class FileStorageService
                 $params['ContentType'] = $mime;
             } elseif (function_exists('mime_content_type')) {
                 $detected = mime_content_type($sourceFile);
-                if ($detected) $params['ContentType'] = $detected;
+                if ($detected) {
+                    $params['ContentType'] = $detected;
+                }
             }
             $params['CacheControl'] = 'public, max-age=3600';
             $this->s3->putObject($params);
         } else {
             $fullPath = $this->resolvePath($path);
             $dir = dirname($fullPath);
-            if (!is_dir($dir)) {
+            if (! is_dir($dir)) {
                 mkdir($dir, 0775, true);
             }
             copy($sourceFile, $fullPath);
@@ -233,7 +245,7 @@ class FileStorageService
 
     public function getPresignedUrl(string $path, int $expiryMinutes = 5, ?string $filename = null): ?string
     {
-        if ($this->driver !== 'r2' || !$this->s3) {
+        if ($this->driver !== 'r2' || ! $this->s3) {
             return null;
         }
         $params = [
@@ -241,11 +253,12 @@ class FileStorageService
             'Key' => $path,
         ];
         if ($filename) {
-            $params['ResponseContentDisposition'] = 'attachment; filename="' . addslashes($filename) . '"';
+            $params['ResponseContentDisposition'] = 'attachment; filename="'.addslashes($filename).'"';
         }
         try {
             $cmd = $this->s3->getCommand('GetObject', $params);
             $request = $this->s3->createPresignedRequest($cmd, "+{$expiryMinutes} minutes");
+
             return (string) $request->getUri();
         } catch (\Throwable) {
             return null;

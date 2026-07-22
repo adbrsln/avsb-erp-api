@@ -1,9 +1,11 @@
 <?php
 
 use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Schema\Builder;
 
-return new class {
-    public function up(\Illuminate\Database\Schema\Builder $schema): void
+return new class
+{
+    public function up(Builder $schema): void
     {
         $schema->create('tax_codes', function ($table) {
             $table->id();
@@ -32,7 +34,7 @@ return new class {
         Capsule::table('tax_codes')->insert($codes);
     }
 
-    public function down(\Illuminate\Database\Schema\Builder $schema): void
+    public function down(Builder $schema): void
     {
         $schema->dropIfExists('tax_codes');
     }

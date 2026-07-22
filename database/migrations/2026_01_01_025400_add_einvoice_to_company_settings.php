@@ -1,7 +1,10 @@
 <?php
 
-return new class {
-    public function up(\Illuminate\Database\Schema\Builder $schema): void
+use Illuminate\Database\Schema\Builder;
+
+return new class
+{
+    public function up(Builder $schema): void
     {
         $schema->table('company_settings', function ($table) {
             $table->string('sst_registration_no', 20)->nullable();
@@ -13,7 +16,7 @@ return new class {
         });
     }
 
-    public function down(\Illuminate\Database\Schema\Builder $schema): void
+    public function down(Builder $schema): void
     {
         $schema->table('company_settings', function ($table) {
             $table->dropColumn(['sst_registration_no', 'tax_id_number', 'msic_code', 'msic_description', 'business_phone', 'business_email']);

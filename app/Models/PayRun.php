@@ -2,14 +2,15 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Traits\Auditable;
 
 class PayRun extends Model
 {
-    use SoftDeletes, Auditable;
+    use Auditable, SoftDeletes;
+
     protected $table = 'pay_runs';
 
     protected $fillable = [

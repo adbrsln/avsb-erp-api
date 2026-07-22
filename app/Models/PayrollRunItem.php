@@ -2,13 +2,15 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use App\Traits\Auditable;
+use Illuminate\Database\Eloquent\Model;
 
 class PayrollRunItem extends Model
 {
     use Auditable;
+
     protected $table = 'payroll_run_items';
+
     public $timestamps = false;
 
     protected $fillable = [

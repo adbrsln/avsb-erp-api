@@ -2,13 +2,13 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Traits\Auditable;
 
 class ProjectClaim extends Model
 {
-    use SoftDeletes, Auditable;
+    use Auditable, SoftDeletes;
 
     protected $table = 'project_claims';
 
@@ -28,16 +28,23 @@ class ProjectClaim extends Model
 
     public function getItemsAttribute($value): array
     {
-        if (is_array($value)) return $value;
+        if (is_array($value)) {
+            return $value;
+        }
         if (is_string($value)) {
             $decoded = json_decode($value, true);
-            if (is_array($decoded)) return $decoded;
+            if (is_array($decoded)) {
+                return $decoded;
+            }
             // Handle double-encoded data (string stored inside JSON column)
             if (is_string($decoded)) {
                 $inner = json_decode($decoded, true);
-                if (is_array($inner)) return $inner;
+                if (is_array($inner)) {
+                    return $inner;
+                }
             }
         }
+
         return [];
     }
 

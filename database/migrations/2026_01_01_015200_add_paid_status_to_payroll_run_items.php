@@ -1,7 +1,10 @@
 <?php
 
-return new class {
-    public function up(\Illuminate\Database\Schema\Builder $schema)
+use Illuminate\Database\Schema\Builder;
+
+return new class
+{
+    public function up(Builder $schema)
     {
         $schema->table('payroll_run_items', function ($table) {
             $table->boolean('paid')->default(false)->after('eis_employee');
@@ -9,7 +12,7 @@ return new class {
         });
     }
 
-    public function down(\Illuminate\Database\Schema\Builder $schema)
+    public function down(Builder $schema)
     {
         $schema->table('payroll_run_items', function ($table) {
             $table->dropColumn(['paid', 'paid_at']);

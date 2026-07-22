@@ -1,7 +1,10 @@
 <?php
 
-return new class {
-    public function up(\Illuminate\Database\Schema\Builder $schema)
+use Illuminate\Database\Schema\Builder;
+
+return new class
+{
+    public function up(Builder $schema)
     {
         // ── Migrate staff_profiles.role to users.role ──
         $db = $schema->getConnection();
@@ -36,7 +39,7 @@ return new class {
         });
     }
 
-    public function down(\Illuminate\Database\Schema\Builder $schema)
+    public function down(Builder $schema)
     {
         $schema->table('staff_profiles', function ($table) {
             $table->string('role', 50)->nullable()->after('employee_id');

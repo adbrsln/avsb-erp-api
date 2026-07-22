@@ -1,7 +1,10 @@
 <?php
 
-return new class {
-    public function up(\Illuminate\Database\Schema\Builder $schema): void
+use Illuminate\Database\Schema\Builder;
+
+return new class
+{
+    public function up(Builder $schema): void
     {
         $schema->table('tasks', function ($table) {
             $table->foreignId('started_by')->nullable()->constrained('staff_profiles')->nullOnDelete()->after('actual_start');
@@ -10,7 +13,7 @@ return new class {
         });
     }
 
-    public function down(\Illuminate\Database\Schema\Builder $schema): void
+    public function down(Builder $schema): void
     {
         $schema->table('tasks', function ($table) {
             $table->dropForeign(['started_by']);

@@ -2,13 +2,15 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use App\Traits\Auditable;
+use Illuminate\Database\Eloquent\Model;
 
 class UserRole extends Model
 {
     use Auditable;
+
     protected $table = 'user_roles';
+
     public $timestamps = false;
 
     protected $fillable = [

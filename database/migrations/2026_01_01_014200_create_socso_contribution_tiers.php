@@ -1,7 +1,10 @@
 <?php
 
-return new class {
-    public function up(\Illuminate\Database\Schema\Builder $schema)
+use Illuminate\Database\Schema\Builder;
+
+return new class
+{
+    public function up(Builder $schema)
     {
         $schema->create('socso_contribution_tiers', function ($table) {
             $table->id();
@@ -38,7 +41,7 @@ return new class {
         $schema->getConnection()->table('socso_contribution_tiers')->insert($rows);
     }
 
-    public function down(\Illuminate\Database\Schema\Builder $schema)
+    public function down(Builder $schema)
     {
         $schema->dropIfExists('socso_contribution_tiers');
     }

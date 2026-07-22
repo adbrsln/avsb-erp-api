@@ -2,14 +2,14 @@
 
 namespace App\Models;
 
+use App\Services\NumberingService;
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Traits\Auditable;
 
 class Asset extends Model
 {
     use Auditable;
-
     use SoftDeletes;
 
     protected $table = 'assets';
@@ -37,7 +37,7 @@ class Asset extends Model
     {
         static::creating(function ($asset) {
             if (empty($asset->asset_code)) {
-                $asset->asset_code = (new \App\Services\NumberingService)->generate('asset');
+                $asset->asset_code = (new NumberingService)->generate('asset');
             }
         });
     }

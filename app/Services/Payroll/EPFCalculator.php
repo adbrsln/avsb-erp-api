@@ -13,7 +13,7 @@ class EPFCalculator
         $scheduleCode = (new ScheduleDeterminer)->determine($employee);
         $schedule = EPFSchedule::find($scheduleCode);
 
-        if (!$schedule) {
+        if (! $schedule) {
             throw new \RuntimeException("EPF schedule '{$scheduleCode}' not found.");
         }
 
@@ -67,7 +67,7 @@ class EPFCalculator
         $scheduleCode = (new ScheduleDeterminer)->determineRaw($age, $citizenship, $isPr, $electedBefore1998);
         $schedule = EPFSchedule::find($scheduleCode);
 
-        if (!$schedule) {
+        if (! $schedule) {
             throw new \RuntimeException("EPF schedule '{$scheduleCode}' not found.");
         }
 

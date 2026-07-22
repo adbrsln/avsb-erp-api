@@ -45,7 +45,7 @@ class PeriodClosingService
         $entry = JournalEntry::create([
             'entry_number' => (new NumberingService)->generate('journal'),
             'entry_date' => $period->end_date,
-            'description' => 'Closing entry for ' . $period->name,
+            'description' => 'Closing entry for '.$period->name,
             'reference_type' => 'closing_entry',
             'status' => 'posted',
             'posted_at' => now(),
@@ -65,7 +65,7 @@ class PeriodClosingService
                 'account_id' => $cypl->id,
                 'debit' => $netProfit < 0 ? abs($netProfit) : 0,
                 'credit' => $netProfit > 0 ? $netProfit : 0,
-                'description' => 'Net profit for ' . $period->name,
+                'description' => 'Net profit for '.$period->name,
             ]);
         }
 
@@ -79,7 +79,7 @@ class PeriodClosingService
         return (float) (JournalEntryLine::where('account_id', $accountId)
             ->whereHas('journalEntry', function ($q) use ($period) {
                 $q->where('status', 'posted')
-                  ->whereBetween('entry_date', [$period->start_date->format('Y-m-d'), $period->end_date->format('Y-m-d')]);
+                    ->whereBetween('entry_date', [$period->start_date->format('Y-m-d'), $period->end_date->format('Y-m-d')]);
             })
             ->selectRaw('COALESCE(SUM(debit), 0) - COALESCE(SUM(credit), 0) as balance')
             ->first()->balance ?? 0);

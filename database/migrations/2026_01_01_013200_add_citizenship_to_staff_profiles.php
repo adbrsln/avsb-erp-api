@@ -1,7 +1,10 @@
 <?php
 
-return new class {
-    public function up(\Illuminate\Database\Schema\Builder $schema)
+use Illuminate\Database\Schema\Builder;
+
+return new class
+{
+    public function up(Builder $schema)
     {
         $schema->table('staff_profiles', function ($table) {
             $table->string('citizenship', 20)->nullable()->after('nationality')
@@ -9,7 +12,7 @@ return new class {
         });
     }
 
-    public function down(\Illuminate\Database\Schema\Builder $schema)
+    public function down(Builder $schema)
     {
         $schema->table('staff_profiles', function ($table) {
             $table->dropColumn('citizenship');

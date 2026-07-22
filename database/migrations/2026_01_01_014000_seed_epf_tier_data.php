@@ -1,7 +1,11 @@
 <?php
 
-return new class {
-    public function up(\Illuminate\Database\Schema\Builder $schema)
+use Carbon\Carbon;
+use Illuminate\Database\Schema\Builder;
+
+return new class
+{
+    public function up(Builder $schema)
     {
         // ─── Schedule Rules ──────────────────────────────────────────
         $rules = [
@@ -421,8 +425,7 @@ return new class {
             [19900.01, 20000.00, 2400, 2200],
         ];
 
-
-        $now = \Carbon\Carbon::now();
+        $now = Carbon::now();
         $db = $schema->getConnection();
 
         // Schedule A
@@ -447,7 +450,7 @@ return new class {
         $db->table('epf_contribution_tiers')->insert($rowsD);
     }
 
-    public function down(\Illuminate\Database\Schema\Builder $schema)
+    public function down(Builder $schema)
     {
         $schema->getConnection()->table('epf_schedule_rules')->truncate();
         $schema->getConnection()->table('epf_contribution_tiers')->truncate();

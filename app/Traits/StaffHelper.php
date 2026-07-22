@@ -10,7 +10,7 @@ trait StaffHelper
     protected function getStaffId(ServerRequestInterface $request): ?int
     {
         $user = $request->getAttribute('user');
-        if (!$user) {
+        if (! $user) {
             return null;
         }
 
@@ -20,6 +20,7 @@ trait StaffHelper
         }
 
         $staff = StaffProfile::where('email', $email)->first();
+
         return $staff ? (int) $staff->id : null;
     }
 }

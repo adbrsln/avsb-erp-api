@@ -1,9 +1,12 @@
 <?php
 
-return new class {
-    public function up(\Illuminate\Database\Schema\Builder $schema): void
+use Illuminate\Database\Schema\Builder;
+
+return new class
+{
+    public function up(Builder $schema): void
     {
-        if (!$schema->hasTable('public_holidays')) {
+        if (! $schema->hasTable('public_holidays')) {
             $schema->create('public_holidays', function ($table) {
                 $table->id();
                 $table->string('name', 100);
@@ -15,14 +18,14 @@ return new class {
             });
         }
 
-        if (!$schema->hasColumn('leave_applications', 'mc_document_path')) {
+        if (! $schema->hasColumn('leave_applications', 'mc_document_path')) {
             $schema->table('leave_applications', function ($table) {
                 $table->string('mc_document_path', 255)->nullable()->after('reason');
             });
         }
     }
 
-    public function down(\Illuminate\Database\Schema\Builder $schema): void
+    public function down(Builder $schema): void
     {
         $schema->dropIfExists('public_holidays');
         if ($schema->hasColumn('leave_applications', 'mc_document_path')) {

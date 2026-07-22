@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -13,15 +14,16 @@ class AuthController extends Controller
         if (strlen($password) < 8) {
             return 'Password must be at least 8 characters';
         }
-        if (!preg_match('/[A-Z]/', $password)) {
+        if (! preg_match('/[A-Z]/', $password)) {
             return 'Password must contain an uppercase letter';
         }
-        if (!preg_match('/[a-z]/', $password)) {
+        if (! preg_match('/[a-z]/', $password)) {
             return 'Password must contain a lowercase letter';
         }
-        if (!preg_match('/[0-9]/', $password)) {
+        if (! preg_match('/[0-9]/', $password)) {
             return 'Password must contain a digit';
         }
+
         return null;
     }
 
@@ -41,8 +43,11 @@ class AuthController extends Controller
                 ]),
             ],
         ]));
-        if (!$response) return false;
+        if (! $response) {
+            return false;
+        }
         $result = json_decode($response, true);
+
         return ($result['success'] ?? false) === true;
     }
 
@@ -57,15 +62,15 @@ class AuthController extends Controller
         $user = User::where('email', $data['email'])->first();
 
         // Turnstile check
-        if (!$this->verifyTurnstile($data['turnstile_token'] ?? '')) {
+        if (! $this->verifyTurnstile($data['turnstile_token'] ?? '')) {
             return response()->json(['error' => 'Security check failed'], 422);
         }
 
         // Account lockout check
         if ($user && $user->locked_until) {
-            $lockedUntil = $user->locked_until instanceof \Carbon\Carbon
+            $lockedUntil = $user->locked_until instanceof Carbon
                 ? $user->locked_until
-                : \Carbon\Carbon::parse($user->locked_until);
+                : Carbon::parse($user->locked_until);
             if ($lockedUntil->isFuture()) {
                 return response()->json(['error' => 'Account temporarily locked. Try again later.'], 423);
             }
@@ -73,7 +78,7 @@ class AuthController extends Controller
 
         $passwordValid = $user && password_verify($data['password'], $user->password);
 
-        if (!$passwordValid) {
+        if (! $passwordValid) {
             $attempts = $user ? ($user->login_attempts ?? 0) : 0;
             $delay = (int) min(500000 * pow(2, min($attempts, 3)), 4000000);
             usleep($delay);
@@ -81,7 +86,7 @@ class AuthController extends Controller
             if ($user) {
                 $user->increment('login_attempts');
                 if ($user->login_attempts >= 5) {
-                    $user->update(['locked_until' => \Carbon\Carbon::now()->addMinutes(15)]);
+                    $user->update(['locked_until' => Carbon::now()->addMinutes(15)]);
                 }
             }
 
@@ -134,12 +139,14 @@ class AuthController extends Controller
         $user = $request->user();
         $userArr = $user->toArray();
         $userArr['roles'] = $user->getRoleNames();
+
         return response()->json($userArr);
     }
 
     public function logout(Request $request): JsonResponse
     {
         $request->user()->currentAccessToken()->delete();
+
         return response()->json(['message' => 'Logged out']);
     }
 
@@ -153,7 +160,7 @@ class AuthController extends Controller
 
         $user = $request->user();
 
-        if (!password_verify($data['current_password'], $user->password)) {
+        if (! password_verify($data['current_password'], $user->password)) {
             return response()->json(['error' => 'Current password is incorrect'], 422);
         }
 
@@ -179,7 +186,7 @@ class AuthController extends Controller
 
         $user = $request->user();
 
-        if (!password_verify($data['password'], $user->password)) {
+        if (! password_verify($data['password'], $user->password)) {
             return response()->json(['verified' => false, 'error' => 'Invalid password'], 422);
         }
 

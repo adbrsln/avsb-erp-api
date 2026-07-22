@@ -9,6 +9,7 @@ use Carbon\Carbon;
 class EInvoiceClient
 {
     private const SANDBOX_BASE = 'https://preprod-api.myinvois.hasil.gov.my';
+
     private const PRODUCTION_BASE = 'https://api.myinvois.hasil.gov.my';
 
     private ?EInvoiceCredential $credential = null;
@@ -17,16 +18,18 @@ class EInvoiceClient
     {
         if ($this->credential === null) {
             $this->credential = EInvoiceCredential::where('is_active', true)->first();
-            if (!$this->credential) {
+            if (! $this->credential) {
                 throw new \RuntimeException('No active e-invoice credential found.');
             }
         }
+
         return $this->credential;
     }
 
     private function getBaseUrl(): string
     {
         $cred = $this->credential();
+
         return $cred->environment === 'production' ? self::PRODUCTION_BASE : self::SANDBOX_BASE;
     }
 
@@ -89,7 +92,7 @@ class EInvoiceClient
 
     public function searchDocuments(array $filters): array
     {
-        return $this->request('GET', '/api/v1.0/documents/search?' . http_build_query($filters));
+        return $this->request('GET', '/api/v1.0/documents/search?'.http_build_query($filters));
     }
 
     private function getToken(): string
@@ -101,6 +104,7 @@ class EInvoiceClient
         }
 
         $auth = $this->authenticate();
+
         return $auth['access_token'] ?? '';
     }
 
@@ -108,7 +112,7 @@ class EInvoiceClient
     {
         $startTime = microtime(true);
         $baseUrl = $this->getBaseUrl();
-        $url = $baseUrl . $path;
+        $url = $baseUrl.$path;
 
         $attempt = 0;
         $maxRetries = 3;
@@ -128,7 +132,7 @@ class EInvoiceClient
 
             if ($useAuth) {
                 $token = $this->getToken();
-                $headers[] = 'Authorization: Bearer ' . $token;
+                $headers[] = 'Authorization: Bearer '.$token;
             }
 
             if ($method === 'POST' || $method === 'PUT') {
@@ -159,7 +163,7 @@ class EInvoiceClient
                     'error' => $curlError,
                     'attempt' => $attempt,
                 ]);
-                throw new \RuntimeException('e-Invoice API connection failed: ' . $curlError);
+                throw new \RuntimeException('e-Invoice API connection failed: '.$curlError);
             }
 
             $decoded = json_decode($responseBody, true);
@@ -171,6 +175,7 @@ class EInvoiceClient
             if ($isSuccess) {
                 $action = $this->resolveAction($method, $path, $body);
                 $this->log($action, $body, $decoded, $httpStatus, true, $durationMs);
+
                 return $decoded ?? [];
             }
 
@@ -187,6 +192,7 @@ class EInvoiceClient
                 ]);
 
                 $attempt = 0;
+
                 continue;
             }
 
@@ -198,6 +204,7 @@ class EInvoiceClient
                     'attempt' => $attempt,
                 ]);
                 sleep($delay);
+
                 continue;
             }
 
@@ -219,7 +226,7 @@ class EInvoiceClient
             'response' => $lastResponse,
         ]);
 
-        throw new \RuntimeException('e-Invoice API error [' . $lastHttpStatus . ']: ' . $errorMsg);
+        throw new \RuntimeException('e-Invoice API error ['.$lastHttpStatus.']: '.$errorMsg);
     }
 
     private function resolveAction(string $method, string $path, ?array $body = null): string
@@ -227,7 +234,7 @@ class EInvoiceClient
         if ($path === '/connect/token') {
             return 'authenticate';
         }
-        if (strpos($path, '/api/v1.0/documentsubmissions') === 0 && !strpos($path, '/api/v1.0/documentsubmissions/')) {
+        if (strpos($path, '/api/v1.0/documentsubmissions') === 0 && ! strpos($path, '/api/v1.0/documentsubmissions/')) {
             return 'submit_document';
         }
         if (preg_match('#/api/v1\.0/documentsubmissions/(\S+)#', $path)) {
@@ -245,6 +252,7 @@ class EInvoiceClient
         if (strpos($path, '/api/v1.0/documents/search') === 0) {
             return 'search_documents';
         }
+
         return 'api_call';
     }
 

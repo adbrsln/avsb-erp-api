@@ -10,8 +10,11 @@ use App\Models\StaffProfile;
 class PayrollProcessor
 {
     private EPFCalculator $epfCalculator;
+
     private SocsoCalculator $socsoCalculator;
+
     private EisCalculator $eisCalculator;
+
     private Socso24Calculator $socso24Calculator;
 
     public function __construct()
@@ -25,13 +28,13 @@ class PayrollProcessor
     public function process(int $periodId, ?array $employeeIds = null): array
     {
         $period = PayrollPeriod::find($periodId);
-        if (!$period) {
+        if (! $period) {
             throw new \RuntimeException("Payroll period #{$periodId} not found.");
         }
 
         $query = StaffProfile::where('is_active', true)
             ->where('epf_contributing', true)
-            ->whereDoesntHave('user.roles', fn($q) => $q->where('role', 'super_admin'));
+            ->whereDoesntHave('user.roles', fn ($q) => $q->where('role', 'super_admin'));
         if ($employeeIds !== null) {
             $query->whereIn('id', $employeeIds);
         }
@@ -121,13 +124,13 @@ class PayrollProcessor
     public function processPartTime(int $periodId): array
     {
         $period = PayrollPeriod::find($periodId);
-        if (!$period) {
+        if (! $period) {
             throw new \RuntimeException("Payroll period #{$periodId} not found.");
         }
 
         $employees = StaffProfile::where('is_active', true)
             ->where('worker_status', 'part_time')
-            ->whereDoesntHave('user.roles', fn($q) => $q->where('role', 'super_admin'))
+            ->whereDoesntHave('user.roles', fn ($q) => $q->where('role', 'super_admin'))
             ->get();
 
         if ($employees->isEmpty()) {
@@ -136,7 +139,7 @@ class PayrollProcessor
 
         $items = [];
         foreach ($employees as $employee) {
-            $records = \App\Models\Attendance::where('staff_id', $employee->id)
+            $records = Attendance::where('staff_id', $employee->id)
                 ->whereDate('date', '>=', $period->start_date)
                 ->whereDate('date', '<=', $period->end_date)
                 ->whereNotNull('clock_out')
@@ -170,7 +173,7 @@ class PayrollProcessor
                 ]
             );
 
-            \App\Models\Attendance::whereIn('id', $records->pluck('id'))
+            Attendance::whereIn('id', $records->pluck('id'))
                 ->update(['payroll_run_item_id' => $item->id]);
 
             $items[] = [

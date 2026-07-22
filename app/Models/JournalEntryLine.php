@@ -2,13 +2,15 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use App\Traits\Auditable;
+use Illuminate\Database\Eloquent\Model;
 
 class JournalEntryLine extends Model
 {
     use Auditable;
+
     protected $table = 'journal_entry_lines';
+
     public $timestamps = false;
 
     protected $fillable = [

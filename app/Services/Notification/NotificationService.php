@@ -2,10 +2,10 @@
 
 namespace App\Services\Notification;
 
-use App\Models\NotificationQueue;
-use App\Models\NotificationTemplate;
 use App\Models\NotificationLog;
 use App\Models\NotificationPreference;
+use App\Models\NotificationQueue;
+use App\Models\NotificationTemplate;
 use App\Models\User;
 use App\Models\UserNotification;
 
@@ -15,7 +15,7 @@ class NotificationService
 
     public function __construct(?MailService $mailer = null)
     {
-        $this->mailer = $mailer ?? new MailService();
+        $this->mailer = $mailer ?? new MailService;
     }
 
     public static function queue(
@@ -30,14 +30,22 @@ class NotificationService
         ?string $url = null,
         ?array $attachments = null
     ): ?NotificationQueue {
-        if (empty($recipientEmail)) return null;
-        if (!$subject || !$body) {
+        if (empty($recipientEmail)) {
+            return null;
+        }
+        if (! $subject || ! $body) {
             $template = NotificationTemplate::where('event_type', $eventType)->first();
-            if (!$template) return null;
+            if (! $template) {
+                return null;
+            }
 
             $rendered = self::render($template, $context);
-            if (!$subject) $subject = $rendered['subject'];
-            if (!$body) $body = $rendered['body'];
+            if (! $subject) {
+                $subject = $rendered['subject'];
+            }
+            if (! $body) {
+                $body = $rendered['body'];
+            }
         }
 
         // Check notification preferences
@@ -50,7 +58,7 @@ class NotificationService
         }
 
         // Create in-app notification (check preference)
-        if ($user && (!$prefs || $prefs->in_app)) {
+        if ($user && (! $prefs || $prefs->in_app)) {
             $cleanBody = preg_replace('/<p>\s*<a\s+[^>]*href="[^"]*"[^>]*>.*?<\/a>\s*<\/p>/i', '', $body);
             $cleanBody = preg_replace('/<a\s+[^>]*href="[^"]*"[^>]*>.*?<\/a>/i', '', $cleanBody);
             $cleanBody = trim(strip_tags($cleanBody));
@@ -65,7 +73,7 @@ class NotificationService
         }
 
         // Send push immediately (only if user has active subscription)
-        if ($user && (!$prefs || $prefs->push)) {
+        if ($user && (! $prefs || $prefs->push)) {
             try {
                 $pushBody = strip_tags(str_replace(['<br>', '<br/>', '<br />', '</p>', '</div>'], "\n", $body));
                 (new PushNotificationService)->sendToEmail(
@@ -81,7 +89,7 @@ class NotificationService
 
         // Queue email (check global env toggle + user preference)
         $mailEnabled = ($_ENV['MAIL_ENABLED'] ?? 'true') !== 'false';
-        if ($mailEnabled && (!$prefs || $prefs->email)) {
+        if ($mailEnabled && (! $prefs || $prefs->email)) {
             $queueData = [
                 'recipient_name' => $recipientName,
                 'subject' => $subject,
@@ -121,7 +129,9 @@ class NotificationService
         foreach ($recipients as $r) {
             $email = $r['email'] ?? '';
             $name = $r['name'] ?? '';
-            if (empty($email)) continue;
+            if (empty($email)) {
+                continue;
+            }
             self::queue($eventType, $email, $name, $context, $modelType, $modelId, $subject, $body, $url, $attachments);
         }
     }
@@ -130,7 +140,7 @@ class NotificationService
     {
         $replace = [];
         foreach ($context as $key => $value) {
-            $replace['{{' . $key . '}}'] = htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+            $replace['{{'.$key.'}}'] = htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
         }
 
         $subject = str_replace(array_keys($replace), array_values($replace), $template->subject_template);
@@ -146,7 +156,7 @@ class NotificationService
         $items = NotificationQueue::where('status', 'pending')
             ->where(function ($q) {
                 $q->whereNull('scheduled_at')
-                  ->orWhere('scheduled_at', '<=', date('Y-m-d H:i:s'));
+                    ->orWhere('scheduled_at', '<=', date('Y-m-d H:i:s'));
             })
             ->limit($limit)
             ->lockForUpdate()
@@ -164,7 +174,9 @@ class NotificationService
                     'attempts' => $item->attempts + 1,
                 ]);
 
-            if ($updated === 0) continue;
+            if ($updated === 0) {
+                continue;
+            }
 
             $item->refresh();
 

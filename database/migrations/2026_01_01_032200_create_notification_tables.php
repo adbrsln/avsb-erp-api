@@ -1,9 +1,12 @@
 <?php
 
-return new class {
-    public function up(\Illuminate\Database\Schema\Builder $schema): void
+use Illuminate\Database\Schema\Builder;
+
+return new class
+{
+    public function up(Builder $schema): void
     {
-        if (!$schema->hasTable('notification_templates')) {
+        if (! $schema->hasTable('notification_templates')) {
             $schema->create('notification_templates', function ($table) {
                 $table->id();
                 $table->string('event_type', 100)->unique();
@@ -14,7 +17,7 @@ return new class {
             });
         }
 
-        if (!$schema->hasTable('notification_queue')) {
+        if (! $schema->hasTable('notification_queue')) {
             $schema->create('notification_queue', function ($table) {
                 $table->id();
                 $table->string('event_type', 100)->index();
@@ -37,7 +40,7 @@ return new class {
             });
         }
 
-        if (!$schema->hasTable('notification_logs')) {
+        if (! $schema->hasTable('notification_logs')) {
             $schema->create('notification_logs', function ($table) {
                 $table->id();
                 $table->bigInteger('queue_id')->nullable();
@@ -53,7 +56,7 @@ return new class {
         }
     }
 
-    public function down(\Illuminate\Database\Schema\Builder $schema): void
+    public function down(Builder $schema): void
     {
         $schema->dropIfExists('notification_logs');
         $schema->dropIfExists('notification_queue');

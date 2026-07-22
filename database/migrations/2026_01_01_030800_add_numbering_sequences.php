@@ -1,9 +1,11 @@
 <?php
 
 use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Schema\Builder;
 
-return new class {
-    public function up(\Illuminate\Database\Schema\Builder $schema): void
+return new class
+{
+    public function up(Builder $schema): void
     {
         Capsule::table('numbering_sequences')->insert([
             [
@@ -33,7 +35,7 @@ return new class {
         ]);
     }
 
-    public function down(\Illuminate\Database\Schema\Builder $schema): void
+    public function down(Builder $schema): void
     {
         Capsule::table('numbering_sequences')->whereIn('code', ['self_billed_invoice', 'subcontractor', 'subcontractor_claim'])->delete();
     }
