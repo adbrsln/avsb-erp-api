@@ -154,3 +154,52 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 - Do NOT delete tests without approval.
 
 </laravel-boost-guidelines>
+
+---
+
+## Session Memory — Jul 22, 2026
+
+### Project: avsb-erp-api (Laravel 13)
+Full migration from Slim 4 (avsb-erp/api/) to Laravel 13 (avsb-erp-api/).
+
+### Migration Status
+| Component | Source | Target | Status |
+|-----------|--------|--------|--------|
+| Controllers | 64 | 66 (+2) | All ported |
+| Models | 79 | 79 | Drop-in, identical |
+| Services | 27 | 27 | Drop-in, identical |
+| Traits | 5 | 5 | Updated PSR-7 → Laravel Request |
+| Migrations | 143 | 139 | Converted to Laravel convention |
+| Seeders | 56 | 56 | Moved to database/seeders/ |
+| API Routes | 399 | 397 | 2 legacy endpoints deprecated |
+| Tests | 0 | 125 | Pest feature tests |
+| Cron scripts | 5 | 5 | Artisan commands + schedule |
+
+### Key Conversions Applied
+- **Auth**: `lcobucci/jwt` → `Laravel Sanctum` (stateless tokens)
+- **Middleware**: `JwtAuth` → `auth:sanctum`; `RateLimit` → Laravel `throttle`
+- **Controllers**: PSR-7 `Request/Response` → `Illuminate\Http\Request/JsonResponse`
+- **Migrations**: `return new class` → `extends Migration`; `$schema->` → `Schema::`
+- **Seeders**: `App\Seeds\*` → `Database\Seeders\*`; moved to `database/seeders/`
+- **Database**: `Capsule::table()` → `DB::table()`; `Capsule::connection()` → `DB::`
+- **Cron**: raw PHP scripts → Artisan commands in `routes/console.php`
+
+### Seeder Commands
+- `php artisan db:seed` — initial seeders only
+- `php artisan db:seed --class=DummySeeder` — initial + dummy demo data
+- `php artisan db:seed --class=BulkSeeder` — initial (skipped) + bulk data
+
+### API Test Suite
+- 125 Pest tests across 10 files covering all domains
+- Auto-seeds minimal test data via `TestDataSeeder`
+- Run: `php artisan test` or `php artisan test --compact`
+
+### Storage
+- MinIO (S3-compatible) at localhost:9000 via `FileStorageService`
+- Config vars: `STORAGE_DRIVER=r2`, `R2_ENDPOINT`, `R2_BUCKET=avsb-uploads`
+
+### Remaining Gaps
+- 2 Slim endpoints not ported: `/audit-logs/export`, `/payroll/me/download-payslip`
+- 3 Pest tests skipped (edge cases needing specific DB records)
+- StaffSeeder has pre-existing schema mismatch (`role` column migrated to `business_staff`)
+
