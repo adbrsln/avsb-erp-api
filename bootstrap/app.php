@@ -28,4 +28,17 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*'),
         );
+
+        // Log all API exceptions with request context
+        $exceptions->reportable(function (Throwable $e, Request $request) {
+            if ($request->is('api/*')) {
+                $context = [
+                    'url' => $request->fullUrl(),
+                    'method' => $request->method(),
+                    'user_id' => $request->user()?->id,
+                    'ip' => $request->ip(),
+                ];
+                logger()->error($e->getMessage(), $context);
+            }
+        });
     })->create();
