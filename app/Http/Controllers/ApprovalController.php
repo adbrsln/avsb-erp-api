@@ -17,7 +17,7 @@ class ApprovalController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
-        $userRoles = $user->roles ?? [$user->role ?? 'staff'];
+        $userRoles = $user->getRoleNames();
         $params = $request->all();
         $typeFilter = $params['type'] ?? null;
 

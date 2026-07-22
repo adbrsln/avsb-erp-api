@@ -386,10 +386,10 @@ Route::prefix('v1')->group(function () {
         // ── Assets ──
         Route::get('assets', [AssetController::class, 'index']);
         Route::post('assets', [AssetController::class, 'store']);
+        Route::get('assets/types', [AssetController::class, 'types']);
         Route::get('assets/{id}', [AssetController::class, 'show']);
         Route::put('assets/{id}', [AssetController::class, 'update']);
         Route::delete('assets/{id}', [AssetController::class, 'destroy']);
-        Route::get('assets/types', [AssetController::class, 'types']);
         Route::get('assets/by-code/{code}', [AssetController::class, 'findByCode']);
         Route::get('assets/{id}/licenses', [AssetLicenseController::class, 'index']);
         Route::post('assets/{assetId}/licenses', [AssetLicenseController::class, 'store']);
@@ -533,7 +533,7 @@ Route::prefix('v1')->group(function () {
         Route::post('bills/{billId}/payments', [BillPaymentController::class, 'store']);
 
         // ── E-Invoice ──
-        Route::get('einvoice/settings', [EInvoiceController::class, 'getSettings']);
+        Route::get('einvoice/settings', [EInvoiceController::class, 'settings']);
         Route::put('einvoice/settings', [EInvoiceController::class, 'updateSettings']);
         Route::post('einvoice/test-connection', [EInvoiceController::class, 'testConnection']);
         Route::get('einvoice/tax-codes', [EInvoiceController::class, 'getTaxCodes']);
