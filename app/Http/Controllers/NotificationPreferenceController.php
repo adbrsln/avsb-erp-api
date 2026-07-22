@@ -36,9 +36,9 @@ class NotificationPreferenceController extends Controller
         return response()->json(['data' => $types]);
     }
 
-    public function update(Request $request): JsonResponse
+    public function update(Request $request, ?int $userId = null): JsonResponse
     {
-        $userId = $request->user()->id ?? null;
+        $userId = $userId ?? $request->user()->id ?? null;
         if (! $userId) {
             return response()->json(['error' => 'Not authenticated'], 401);
         }

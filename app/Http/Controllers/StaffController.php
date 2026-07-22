@@ -250,6 +250,28 @@ class StaffController extends Controller
         ]);
     }
 
+    public function resign(Request $request, int $id): JsonResponse
+    {
+        $staff = StaffProfile::findOrFail($id);
+        $data = $request->all();
+        $lastDay = $data['last_day'] ?? date('Y-m-d');
+
+        if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $lastDay)) {
+            return response()->json(['error' => 'last_day must be a valid date (YYYY-MM-DD)'], 422);
+        }
+
+        $notes = trim($data['notes'] ?? '');
+        $archiveReason = 'resigned'.($notes ? ': '.$notes : '');
+
+        $staff->update([
+            'is_active' => false,
+            'last_day' => $lastDay,
+            'archive_reason' => $archiveReason,
+        ]);
+
+        return response()->json($staff);
+    }
+
     public function myProfile(Request $request): JsonResponse
     {
         $user = $request->user();

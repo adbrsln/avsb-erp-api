@@ -23,6 +23,7 @@ use App\Services\NumberingService;
 use App\Traits\PaginatedResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -824,5 +825,31 @@ class InvoiceController extends Controller
             'labor' => $labor,
             'total_cost' => $materials + $claims + $labor,
         ];
+    }
+
+    public function download(Request $request, int $id): Response|JsonResponse
+    {
+        $i = Invoice::findOrFail($id);
+        $filename = $i->invoice_number.'.pdf';
+        $path = 'documents/invoices/'.$i->id.'.pdf';
+
+        $pdf = (new DocumentGenerator)->invoice($i);
+        $this->storage->put($path, $pdf, 'application/pdf');
+
+        $url = $this->storage->getPresignedUrl($path, 5, $filename);
+        if ($url) {
+            return response()->json(['url' => $url, 'filename' => $filename]);
+        }
+
+        $pdf = $this->storage->get($path);
+        if ($pdf === null) {
+            return response()->json(['error' => 'PDF not found'], 404);
+        }
+
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+            'Content-Length' => strlen($pdf),
+        ]);
     }
 }

@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\ChartOfAccount;
+use App\Models\EInvoiceSubmissionLog;
 use App\Models\JournalEntry;
 use App\Models\JournalEntryLine;
 use App\Models\SelfBilledInvoice;
 use App\Models\StaffProfile;
 use App\Models\Subcontractor;
+use App\Services\DocumentGenerator;
 use App\Services\EInvoiceClient;
 use App\Services\EInvoiceDocumentBuilder;
 use App\Services\FileStorageService;
@@ -18,6 +20,7 @@ use App\Services\NumberingService;
 use App\Traits\PaginatedResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -377,5 +380,83 @@ class SelfBilledInvoiceController extends Controller
         }
 
         return response()->json($item);
+    }
+
+    public function submitEInvoice(Request $request, int $id): JsonResponse
+    {
+        return $this->submit($request, $id);
+    }
+
+    public function submissionStatus(Request $request, int $id): JsonResponse
+    {
+        $item = SelfBilledInvoice::findOrFail($id);
+
+        $logs = EInvoiceSubmissionLog::where('model_type', SelfBilledInvoice::class)
+            ->where('model_id', $item->id)
+            ->orderByDesc('created_at')
+            ->get();
+
+        return response()->json([
+            'submission_status' => $item->submission_status,
+            'submission_uid' => $item->submission_uid,
+            'uuid' => $item->uuid,
+            'submitted_at' => $item->submitted_at,
+            'last_submission_attempt' => $item->last_submission_attempt,
+            'submission_error' => $item->submission_error,
+            'logs' => $logs,
+        ]);
+    }
+
+    public function cancel(Request $request, int $id): JsonResponse
+    {
+        $item = SelfBilledInvoice::findOrFail($id);
+
+        if (empty($item->uuid)) {
+            return response()->json(['error' => 'This invoice has not been submitted yet'], 422);
+        }
+
+        $data = $request->all();
+        $reason = $data['reason'] ?? 'Cancelled by user';
+
+        try {
+            $client = new EInvoiceClient;
+            $client->cancelDocument($item->uuid, $reason);
+
+            $item->update(['submission_status' => 'cancelled']);
+            $item->load('supplier', 'project', 'approver', 'creator');
+
+            return response()->json($item);
+        } catch (\RuntimeException $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+    }
+
+    public function download(Request $request, int $id): Response|JsonResponse
+    {
+        $item = SelfBilledInvoice::with('supplier')->findOrFail($id);
+        $filename = ($item->invoice_number ?? 'self_billed').'.pdf';
+        $path = 'documents/self-billed/'.$item->id.'.pdf';
+
+        $pdf = (new DocumentGenerator)->selfBilled($item);
+        if ($pdf === null) {
+            return response()->json(['error' => 'Failed to generate PDF'], 500);
+        }
+        $this->storage->put($path, $pdf, 'application/pdf');
+
+        $url = $this->storage->getPresignedUrl($path, 5, $filename);
+        if ($url) {
+            return response()->json(['url' => $url, 'filename' => $filename]);
+        }
+
+        $pdf = $this->storage->get($path);
+        if ($pdf === null) {
+            return response()->json(['error' => 'PDF not found'], 404);
+        }
+
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+            'Content-Length' => strlen($pdf),
+        ]);
     }
 }

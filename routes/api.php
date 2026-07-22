@@ -101,6 +101,8 @@ Route::prefix('v1')->group(function () {
         Route::get('staff/{id}/projects', [StaffController::class, 'myProjects']);
         Route::get('staff/{id}/tasks', [StaffController::class, 'myTasks']);
         Route::get('staff/{id}/phases', [StaffController::class, 'projectPhases']);
+        Route::get('staff/{id}/leave-balance', [LeaveGroupController::class, 'staffBalance']);
+        Route::post('staff/{id}/resign', [StaffController::class, 'resign']);
 
         // ── Users ──
         Route::get('users', [UserController::class, 'index']);
@@ -164,6 +166,7 @@ Route::prefix('v1')->group(function () {
         Route::post('project-phases/{id}/comments', [PhaseController::class, 'addComment']);
         Route::get('project-phases/{id}/checklist-items', [PhaseController::class, 'checklistItems']);
         Route::get('project-phases/{id}/checklist-results', [PhaseController::class, 'checklistResults']);
+        Route::post('project-phases/save', [PhaseController::class, 'save']);
 
         // ── Tasks ──
         Route::get('tasks', [TaskController::class, 'index']);
@@ -336,6 +339,7 @@ Route::prefix('v1')->group(function () {
         Route::post('leave-balances/{id}/adjust', [LeaveGroupController::class, 'adjustBalance']);
 
         // ── Claims ──
+        Route::get('claims/categories', [ClaimController::class, 'categories']);
         Route::get('claims', [ClaimController::class, 'index']);
         Route::post('claims', [ClaimController::class, 'store']);
         Route::get('claims/{id}', [ClaimController::class, 'show']);
@@ -349,6 +353,7 @@ Route::prefix('v1')->group(function () {
         Route::post('my-claims', [ClaimController::class, 'storeMyClaim']);
         Route::get('my-claims/{id}', [ClaimController::class, 'showMyClaim']);
         Route::post('my-claims/{id}/upload-receipt', [ClaimController::class, 'uploadReceipt']);
+        Route::get('claims/categories', [ClaimController::class, 'categories']);
 
         // ── Timecards ──
         Route::get('timecards', [TimecardController::class, 'index']);
@@ -504,6 +509,9 @@ Route::prefix('v1')->group(function () {
         Route::put('project-groups/{id}', [ProjectGroupController::class, 'update']);
         Route::delete('project-groups/{id}', [ProjectGroupController::class, 'destroy']);
 
+        // ── Client PICs ──
+        Route::get('client-pics/{id}', [ClientPICController::class, 'show']);
+
         // ── Phase Staff ──
         Route::get('project-phases/{phaseId}/staff', [PhaseStaffController::class, 'index']);
         Route::post('project-phases/{phaseId}/staff', [PhaseStaffController::class, 'sync']);
@@ -512,7 +520,7 @@ Route::prefix('v1')->group(function () {
         Route::get('projects/{id}/cost-summary', [ProjectController::class, 'costSummary']);
 
         // ── Project Generate Invoice ──
-        Route::post('projects/{id}/generate-invoice', [ProjectController::class, 'generateInvoice']);
+        Route::post('projects/{id}/generate-invoice', [InvoiceController::class, 'generateForProject']);
 
         // ── Project Subcontractors ──
         Route::put('project-subcontractors/{id}', [ProjectSubcontractorController::class, 'update']);
@@ -543,8 +551,8 @@ Route::prefix('v1')->group(function () {
 
         // ── Self-Billed E-Invoice ──
         Route::post('self-billed-invoices/{id}/submit-einvoice', [SelfBilledInvoiceController::class, 'submitEInvoice']);
-        Route::get('self-billed-invoices/{id}/einvoice-status', [SelfBilledInvoiceController::class, 'einvoiceStatus']);
-        Route::post('self-billed-invoices/{id}/cancel-einvoice', [SelfBilledInvoiceController::class, 'cancelEInvoice']);
+        Route::get('self-billed-invoices/{id}/einvoice-status', [SelfBilledInvoiceController::class, 'submissionStatus']);
+        Route::post('self-billed-invoices/{id}/cancel-einvoice', [SelfBilledInvoiceController::class, 'cancel']);
 
         // ── EPF / SOCSO / EIS Calculators ──
         Route::get('epf/schedules', [EPFController::class, 'schedules']);
@@ -568,6 +576,7 @@ Route::prefix('v1')->group(function () {
         // ── Notification Preferences ──
         Route::get('notification-preferences', [NotificationPreferenceController::class, 'index']);
         Route::put('notification-preferences', [NotificationPreferenceController::class, 'update']);
+        Route::put('notification-preferences/{userId}', [NotificationPreferenceController::class, 'update']);
         Route::put('notification-preferences/bulk', [NotificationPreferenceController::class, 'bulkUpdate']);
 
         // ── Push Subscriptions ──

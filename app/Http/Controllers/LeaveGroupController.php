@@ -128,6 +128,16 @@ class LeaveGroupController extends Controller
         return response()->json(['data' => $created]);
     }
 
+    public function staffBalance(Request $request, int $id): JsonResponse
+    {
+        $year = $request->input('year', date('Y'));
+        $balances = StaffLeaveBalance::where('staff_id', $id)
+            ->where('year', $year)
+            ->get();
+
+        return response()->json(['data' => $balances]);
+    }
+
     public function carryForward(Request $request, int $id): JsonResponse
     {
         $staffId = $id;

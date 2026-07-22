@@ -6,6 +6,7 @@ use App\Models\Client;
 use App\Models\Contract;
 use App\Models\Invoice;
 use App\Models\Quotation;
+use App\Services\DocumentGenerator;
 use App\Services\FileStorageService;
 use App\Services\Notification\NotificationEvent;
 use App\Services\Notification\NotificationService;
@@ -14,6 +15,7 @@ use App\Traits\PaginatedResponse;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
 
 class QuoteController extends Controller
@@ -349,5 +351,37 @@ class QuoteController extends Controller
         }
 
         return response()->json($invoice, 201);
+    }
+
+    public function download(Request $request, int $id): Response|JsonResponse
+    {
+        $q = Quotation::findOrFail($id);
+        $filename = $q->quote_number.'.pdf';
+        $path = 'documents/quotations/'.$q->id.'.pdf';
+
+        try {
+            $pdf = (new DocumentGenerator)->quotation($q);
+        } catch (\Throwable $e) {
+            Log::error('Quotation PDF generation failed', ['quotation_id' => $q->id, 'error' => $e->getMessage()]);
+
+            return response()->json(['error' => 'Failed to generate PDF'], 500);
+        }
+        $this->storage->put($path, $pdf, 'application/pdf');
+
+        $url = $this->storage->getPresignedUrl($path, 5, $filename);
+        if ($url) {
+            return response()->json(['url' => $url, 'filename' => $filename]);
+        }
+
+        $pdf = $this->storage->get($path);
+        if ($pdf === null) {
+            return response()->json(['error' => 'PDF not found'], 404);
+        }
+
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+            'Content-Length' => strlen($pdf),
+        ]);
     }
 }

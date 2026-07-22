@@ -8,6 +8,7 @@ use App\Models\Contract;
 use App\Models\Invoice;
 use App\Models\JournalEntry;
 use App\Models\JournalEntryLine;
+use App\Services\DocumentGenerator;
 use App\Services\FileStorageService;
 use App\Services\Notification\NotificationEvent;
 use App\Services\Notification\NotificationService;
@@ -16,6 +17,7 @@ use App\Traits\PaginatedResponse;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -389,5 +391,31 @@ class ContractController extends Controller
         });
 
         return response()->json($invoice, 201);
+    }
+
+    public function download(Request $request, int $id): Response|JsonResponse
+    {
+        $c = Contract::findOrFail($id);
+        $filename = $c->contract_number.'.pdf';
+        $path = 'documents/contracts/'.$c->id.'.pdf';
+
+        $pdf = (new DocumentGenerator)->contract($c);
+        $this->storage->put($path, $pdf, 'application/pdf');
+
+        $url = $this->storage->getPresignedUrl($path, 5, $filename);
+        if ($url) {
+            return response()->json(['url' => $url, 'filename' => $filename]);
+        }
+
+        $pdf = $this->storage->get($path);
+        if ($pdf === null) {
+            return response()->json(['error' => 'PDF not found'], 404);
+        }
+
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+            'Content-Length' => strlen($pdf),
+        ]);
     }
 }
