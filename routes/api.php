@@ -90,7 +90,11 @@ Route::prefix('v1')->group(function () {
         Route::post('auth/verify-password', [AuthController::class, 'verifyPassword']);
 
         // ── Staff ──
+        Route::get('staff/me', [StaffController::class, 'myProfile']);
         Route::get('staff/me/profile', [StaffController::class, 'myProfile']);
+        Route::get('staff/me/projects', [StaffController::class, 'myProjects']);
+        Route::get('staff/me/tasks', [StaffController::class, 'myTasks']);
+        Route::get('staff/me/projects/{projectId}/project-phases', [StaffController::class, 'projectPhases']);
         Route::get('staff', [StaffController::class, 'index']);
         Route::post('staff', [StaffController::class, 'store']);
         Route::get('staff/{id}', [StaffController::class, 'show']);
@@ -130,6 +134,7 @@ Route::prefix('v1')->group(function () {
 
         // ── Company Settings ──
         Route::get('company-settings', [CompanySettingController::class, 'show']);
+        Route::get('settings/company', [CompanySettingController::class, 'show']);
         Route::put('company-settings', [CompanySettingController::class, 'update']);
         Route::post('company-settings/logo', [CompanySettingController::class, 'uploadLogo']);
         Route::delete('company-settings/logo', [CompanySettingController::class, 'deleteLogo']);
@@ -478,7 +483,9 @@ Route::prefix('v1')->group(function () {
 
         // ── Activity Log ──
         Route::get('activity-logs', [ActivityLogController::class, 'index']);
+        Route::get('audit-logs', [ActivityLogController::class, 'index']);
         Route::get('activity-logs/{id}', [ActivityLogController::class, 'show']);
+        Route::get('audit-logs/{id}', [ActivityLogController::class, 'show']);
 
         // ── System ──
         Route::get('system/ping', function () {
