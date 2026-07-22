@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class EisContributionTier extends Model
 {
+    use HasFactory;
+
     protected $table = 'eis_contribution_tiers';
 
     public $timestamps = false;

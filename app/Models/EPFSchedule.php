@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class EPFSchedule extends Model
 {
+    use HasFactory;
+
     protected $table = 'epf_schedules';
 
     protected $primaryKey = 'code';

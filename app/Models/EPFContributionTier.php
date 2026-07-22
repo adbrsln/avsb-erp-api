@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class EPFContributionTier extends Model
 {
+    use HasFactory;
+
     protected $table = 'epf_contribution_tiers';
 
     protected $fillable = [

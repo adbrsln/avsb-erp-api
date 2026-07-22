@@ -4,12 +4,13 @@ namespace App\Models;
 
 use App\Services\NumberingService;
 use App\Traits\Auditable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Asset extends Model
 {
-    use Auditable;
+    use Auditable, HasFactory;
     use SoftDeletes;
 
     protected $table = 'assets';

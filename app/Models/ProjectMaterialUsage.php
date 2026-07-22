@@ -3,11 +3,12 @@
 namespace App\Models;
 
 use App\Traits\Auditable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class ProjectMaterialUsage extends Model
 {
-    use Auditable;
+    use Auditable, HasFactory;
 
     protected $table = 'project_material_usage';
 

@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class SocsoContributionTier extends Model
 {
+    use HasFactory;
+
     protected $table = 'socso_contribution_tiers';
 
     public $timestamps = false;

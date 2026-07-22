@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Socso24hTier extends Model
 {
+    use HasFactory;
+
     protected $table = 'socso_24h_tiers';
 
     public $timestamps = false;

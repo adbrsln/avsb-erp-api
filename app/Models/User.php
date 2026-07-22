@@ -4,12 +4,13 @@ namespace App\Models;
 
 use App\Services\ActivityLogger;
 use App\Traits\Auditable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use Auditable, HasApiTokens;
+    use Auditable, HasApiTokens, HasFactory;
 
     protected $table = 'users';
 
