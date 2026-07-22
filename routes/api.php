@@ -136,9 +136,14 @@ Route::prefix('v1')->group(function () {
         Route::get('company-settings', [CompanySettingController::class, 'show']);
         Route::get('settings/company', [CompanySettingController::class, 'show']);
         Route::put('company-settings', [CompanySettingController::class, 'update']);
+        Route::put('settings/company', [CompanySettingController::class, 'update']);
+        Route::put('company-settings', [CompanySettingController::class, 'update']);
         Route::post('company-settings/logo', [CompanySettingController::class, 'uploadLogo']);
+        Route::post('settings/company/logo', [CompanySettingController::class, 'uploadLogo']);
         Route::delete('company-settings/logo', [CompanySettingController::class, 'deleteLogo']);
+        Route::delete('settings/company/logo', [CompanySettingController::class, 'deleteLogo']);
         Route::get('company-settings/logo', [CompanySettingController::class, 'serveLogo']);
+        Route::get('settings/company/logo', [CompanySettingController::class, 'serveLogo']);
 
         // ── Projects ──
         Route::get('projects/stats', [ProjectController::class, 'stats']);
