@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use Aws\S3\S3Client;
-use Psr\Http\Message\UploadedFileInterface;
+use Illuminate\Http\UploadedFile;
 
 class FileStorageService
 {
@@ -42,9 +42,9 @@ class FileStorageService
 
     private const BLOCKED_EXTENSIONS = ['php', 'phtml', 'php3', 'php4', 'php5', 'phar', 'sh', 'exe', 'bat', 'cmd', 'pl', 'py', 'rb', 'jsp', 'asp', 'aspx', 'htaccess'];
 
-    public static function validateUpload(UploadedFileInterface $file): ?string
+    public static function validateUpload(UploadedFile $file): ?string
     {
-        if ($file->getError() !== UPLOAD_ERR_OK) {
+        if (! $file->isValid()) {
             return 'Upload failed with error code: '.$file->getError();
         }
 
@@ -57,13 +57,13 @@ class FileStorageService
         }
 
         // Reject blocked extensions
-        $ext = strtolower(pathinfo($file->getClientFilename(), PATHINFO_EXTENSION));
+        $ext = strtolower($file->getClientOriginalExtension());
         if (in_array($ext, self::BLOCKED_EXTENSIONS, true)) {
             return 'File extension "'.$ext.'" is not allowed';
         }
 
         // Verify extension matches expected MIME types
-        $clientMime = $file->getClientMediaType();
+        $clientMime = $file->getClientMimeType();
         if (! in_array($clientMime, self::ALLOWED_MIMES, true)) {
             return 'File type "'.$clientMime.'" is not allowed';
         }
@@ -73,18 +73,14 @@ class FileStorageService
         }
 
         // Server-side MIME verification using file content (finfo)
-        $stream = $file->getStream();
-        if ($stream && $stream->isReadable()) {
-            $content = $stream->read(8192);
-            $stream->rewind();
-            if (function_exists('finfo_buffer')) {
-                $detected = finfo_buffer(finfo_open(FILEINFO_MIME_TYPE), $content);
-                if ($detected && $detected !== 'application/octet-stream') {
-                    $allowedByMime = in_array($detected, self::ALLOWED_MIMES, true);
-                    $allowedByType = $expectedMimes && in_array($detected, $expectedMimes, true);
-                    if (! $allowedByMime || ! $allowedByType) {
-                        return 'File content appears to be "'.$detected.'", which is not allowed';
-                    }
+        if (function_exists('finfo_buffer')) {
+            $content = file_get_contents($file->path());
+            $detected = finfo_buffer(finfo_open(FILEINFO_MIME_TYPE), $content ?: '');
+            if ($detected && $detected !== 'application/octet-stream') {
+                $allowedByMime = in_array($detected, self::ALLOWED_MIMES, true);
+                $allowedByType = $expectedMimes && in_array($detected, $expectedMimes, true);
+                if (! $allowedByMime || ! $allowedByType) {
+                    return 'File content appears to be "'.$detected.'", which is not allowed';
                 }
             }
         }
