@@ -6,7 +6,6 @@ use App\Http\Middleware\SecurityHeadersMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -30,15 +29,23 @@ return Application::configure(basePath: dirname(__DIR__))
         );
 
         // Log all API exceptions with request context
-        $exceptions->reportable(function (Throwable $e, Request $request) {
-            if ($request->is('api/*')) {
-                $context = [
-                    'url' => $request->fullUrl(),
-                    'method' => $request->method(),
-                    'user_id' => $request->user()?->id,
-                    'ip' => $request->ip(),
-                ];
-                logger()->error($e->getMessage(), $context);
+        $exceptions->reportable(function (\Throwable $e) {
+            try {
+                $req = request();
+                if ($req && $req->is('api/*')) {
+                    $context = [
+                        'url' => $req->fullUrl(),
+                        'method' => $req->method(),
+                        'user_id' => $req->user()?->id,
+                        'ip' => $req->ip(),
+                    ];
+                    logger()->error($e->getMessage(), $context);
+                } else {
+                    logger()->error($e->getMessage());
+                }
+            } catch (\Throwable) {
+                // Fallback: log without context
+                logger()->error($e->getMessage());
             }
         });
     })->create();
