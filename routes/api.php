@@ -301,7 +301,7 @@ Route::prefix('v1')->group(function () {
         Route::post('self-billed-invoices/{id}/mark-paid', [SelfBilledInvoiceController::class, 'markPaid']);
 
         // ── Payments Hub ──
-        Route::get('payments', [PaymentController::class, 'index']);
+        Route::get('payments/pending', [PaymentController::class, 'index']);
         Route::post('payments/mark-paid', [PaymentController::class, 'markPaid']);
 
         // ── Attendance ──
