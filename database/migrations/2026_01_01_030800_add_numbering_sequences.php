@@ -2,13 +2,14 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     public function up(): void
     {
-        Capsule::table('numbering_sequences')->insert([
+        DB::table('numbering_sequences')->insert([
             [
                 'code' => 'self_billed_invoice',
                 'prefix' => 'SBV-',
@@ -38,6 +39,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Capsule::table('numbering_sequences')->whereIn('code', ['self_billed_invoice', 'subcontractor', 'subcontractor_claim'])->delete();
+        DB::table('numbering_sequences')->whereIn('code', ['self_billed_invoice', 'subcontractor', 'subcontractor_claim'])->delete();
     }
 };

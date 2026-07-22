@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -32,7 +33,7 @@ return new class extends Migration
             ['code' => '12', 'name' => 'Out of Scope', 'rate' => 0.00],
             ['code' => 'AJP', 'name' => 'Exempt (relief/zero-rated)', 'rate' => 0.00],
         ];
-        Capsule::table('tax_codes')->insert($codes);
+        DB::table('tax_codes')->insert($codes);
     }
 
     public function down(): void
