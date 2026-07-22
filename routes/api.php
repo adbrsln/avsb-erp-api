@@ -313,7 +313,7 @@ Route::prefix('v1')->group(function () {
 
         // ── Attendance ──
         Route::post('attendance/clock-in', [AttendanceController::class, 'clockIn']);
-        Route::post('attendance/clock-out', [AttendanceController::class, 'clockOut']);
+        Route::post('attendance/clock-out/{id}', [AttendanceController::class, 'clockOut']);
         Route::get('attendance/today', [AttendanceController::class, 'today']);
         Route::get('attendance/my-projects', [AttendanceController::class, 'myProjects']);
         Route::get('attendance/records', [AttendanceController::class, 'records']);
