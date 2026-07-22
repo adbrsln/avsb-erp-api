@@ -375,12 +375,17 @@ Route::prefix('v1')->group(function () {
         Route::put('payroll/periods/{id}/close', [PayrollController::class, 'closePeriod']);
         Route::put('payroll/periods/{id}/reopen', [PayrollController::class, 'reopenPeriod']);
         Route::post('payroll/periods/{id}/bulk-mark-paid', [PayrollController::class, 'bulkMarkPaid']);
-        Route::post('payroll/items/{id}/confirm', [PayrollController::class, 'confirmItem']);
-        Route::post('payroll/items/{id}/mark-paid', [PayrollController::class, 'markItemPaid']);
-        Route::get('payroll/items/{id}/adjustments', [PayrollController::class, 'getItemAdjustments']);
-        Route::post('payroll/items/{id}/adjustments', [PayrollController::class, 'createItemAdjustment']);
+        Route::post('payroll/periods/{id}/items/{itemId}/confirm', [PayrollController::class, 'confirmItem']);
+        Route::post('payroll/periods/{id}/items/{itemId}/mark-paid', [PayrollController::class, 'markItemPaid']);
+        Route::get('payroll/periods/{id}/items/{itemId}/adjustments', [PayrollController::class, 'getItemAdjustments']);
+        Route::post('payroll/periods/{id}/items/{itemId}/adjustments', [PayrollController::class, 'createItemAdjustment']);
+        Route::delete('payroll/periods/{periodId}/items/{itemId}/adjustments/{adjustmentId}', [PayrollController::class, 'deleteItemAdjustment']);
+        Route::post('payroll/items/{itemId}/confirm', [PayrollController::class, 'confirmItem']);
+        Route::post('payroll/items/{itemId}/mark-paid', [PayrollController::class, 'markItemPaid']);
+        Route::get('payroll/items/{itemId}/adjustments', [PayrollController::class, 'getItemAdjustments']);
+        Route::post('payroll/items/{itemId}/adjustments', [PayrollController::class, 'createItemAdjustment']);
         Route::delete('payroll/adjustments/{id}', [PayrollController::class, 'deleteItemAdjustment']);
-        Route::post('payroll/items/{id}/recalculate', [PayrollController::class, 'recalculateItem']);
+        Route::post('payroll/items/{itemId}/recalculate', [PayrollController::class, 'recalculateItem']);
         Route::get('my-payslips', [PayrollController::class, 'myPayslips']);
 
         // ── Part Time ──
