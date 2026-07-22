@@ -5,17 +5,17 @@ namespace App\Traits;
 use App\Models\Phase;
 use App\Models\Project;
 use App\Models\StaffProfile;
-use Psr\Http\Message\ServerRequestInterface;
+use Illuminate\Http\Request;
 
 trait ProjectAccess
 {
-    protected function getStaffFromRequest(ServerRequestInterface $request): ?StaffProfile
+    protected function getStaffFromRequest(Request $request): ?StaffProfile
     {
-        $user = $request->getAttribute('user');
+        $user = $request->user();
         if (! $user) {
             return null;
         }
-        $email = is_object($user) ? ($user->email ?? '') : ($user['email'] ?? '');
+        $email = $user->email ?? '';
         if (empty($email)) {
             return null;
         }
@@ -23,19 +23,19 @@ trait ProjectAccess
         return StaffProfile::where('email', $email)->first();
     }
 
-    protected function getUserRoles(ServerRequestInterface $request): array
+    protected function getUserRoles(Request $request): array
     {
-        $user = $request->getAttribute('user');
+        $user = $request->user();
 
-        return is_object($user) ? ($user->roles ?? []) : ($user['roles'] ?? []);
+        return $user ? $user->getRoleNames() : [];
     }
 
-    protected function isPmPlus(ServerRequestInterface $request): bool
+    protected function isPmPlus(Request $request): bool
     {
         return (bool) array_intersect($this->getUserRoles($request), ['admin', 'pm', 'super_admin']);
     }
 
-    protected function isProjectMember(ServerRequestInterface $request, int $projectId): bool
+    protected function isProjectMember(Request $request, int $projectId): bool
     {
         if ($this->isPmPlus($request)) {
             return true;

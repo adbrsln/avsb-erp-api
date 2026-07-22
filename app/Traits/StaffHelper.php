@@ -3,18 +3,18 @@
 namespace App\Traits;
 
 use App\Models\StaffProfile;
-use Psr\Http\Message\ServerRequestInterface;
+use Illuminate\Http\Request;
 
 trait StaffHelper
 {
-    protected function getStaffId(ServerRequestInterface $request): ?int
+    protected function getStaffId(Request $request): ?int
     {
-        $user = $request->getAttribute('user');
+        $user = $request->user();
         if (! $user) {
             return null;
         }
 
-        $email = is_object($user) ? ($user->email ?? '') : ($user['email'] ?? '');
+        $email = $user->email ?? '';
         if (empty($email)) {
             return null;
         }
