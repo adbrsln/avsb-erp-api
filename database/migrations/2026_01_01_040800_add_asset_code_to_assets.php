@@ -1,22 +1,24 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
-        if (! $schema->hasColumn('assets', 'asset_code')) {
-            $schema->table('assets', function ($table) {
+        if (! Schema::hasColumn('assets', 'asset_code')) {
+            Schema::table('assets', function (Blueprint $table) {
                 $table->string('asset_code', 50)->nullable()->unique()->after('name');
             });
         }
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        if ($schema->hasColumn('assets', 'asset_code')) {
-            $schema->table('assets', function ($table) {
+        if (Schema::hasColumn('assets', 'asset_code')) {
+            Schema::table('assets', function (Blueprint $table) {
                 $table->dropColumn('asset_code');
             });
         }

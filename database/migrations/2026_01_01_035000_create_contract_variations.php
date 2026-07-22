@@ -1,13 +1,15 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
-        if (! $schema->hasTable('contract_variations')) {
-            $schema->create('contract_variations', function ($table) {
+        if (! Schema::hasTable('contract_variations')) {
+            Schema::create('contract_variations', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('contract_id')->constrained()->cascadeOnDelete();
                 $table->string('variation_number', 50);
@@ -22,8 +24,8 @@ return new class
         }
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        $schema->dropIfExists('contract_variations');
+        Schema::dropIfExists('contract_variations');
     }
 };

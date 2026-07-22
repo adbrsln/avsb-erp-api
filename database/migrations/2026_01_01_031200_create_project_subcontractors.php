@@ -1,12 +1,14 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
-        $schema->create('project_subcontractors', function ($table) {
+        Schema::create('project_subcontractors', function (Blueprint $table) {
             $table->id();
             $table->foreignId('project_id')->constrained('projects')->cascadeOnDelete();
             $table->foreignId('subcontractor_id')->constrained('subcontractors');
@@ -24,8 +26,8 @@ return new class
         });
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        $schema->dropIfExists('project_subcontractors');
+        Schema::dropIfExists('project_subcontractors');
     }
 };

@@ -1,12 +1,14 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema)
+    public function up(): void
     {
-        $schema->create('payroll_adjustments', function ($table) {
+        Schema::create('payroll_adjustments', function (Blueprint $table) {
             $table->id();
             $table->foreignId('payroll_run_item_id')->constrained()->cascadeOnDelete();
             $table->enum('type', ['earnings', 'deductions']);
@@ -17,8 +19,8 @@ return new class
         });
     }
 
-    public function down(Builder $schema)
+    public function down(): void
     {
-        $schema->dropIfExists('payroll_adjustments');
+        Schema::dropIfExists('payroll_adjustments');
     }
 };

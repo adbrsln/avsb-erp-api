@@ -1,17 +1,19 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
-        $schema->table('staff_profiles', function ($table) {
+        Schema::table('staff_profiles', function (Blueprint $table) {
             $table->boolean('epf_contributing')->default(true)->change();
         });
 
         // Fix existing active staff who have NULL/false epf_contributing
-        $schema->getConnection()->table('staff_profiles')
+        Schema::getConnection()->table('staff_profiles')
             ->where('is_active', true)
             ->where(function ($q) {
                 $q->whereNull('epf_contributing')->orWhere('epf_contributing', false);
@@ -19,9 +21,9 @@ return new class
             ->update(['epf_contributing' => true]);
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        $schema->table('staff_profiles', function ($table) {
+        Schema::table('staff_profiles', function (Blueprint $table) {
             $table->boolean('epf_contributing')->nullable()->change();
         });
     }

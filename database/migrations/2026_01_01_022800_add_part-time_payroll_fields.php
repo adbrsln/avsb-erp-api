@@ -1,13 +1,15 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
-        if (! $schema->hasColumn('payroll_run_items', 'wage_type')) {
-            $schema->table('payroll_run_items', function ($table) {
+        if (! Schema::hasColumn('payroll_run_items', 'wage_type')) {
+            Schema::table('payroll_run_items', function (Blueprint $table) {
                 $table->string('wage_type', 20)->default('monthly_salary')->after('payroll_run_id');
                 $table->decimal('total_hours', 6, 2)->nullable()->after('salary');
                 $table->decimal('hourly_rate_applied', 10, 2)->nullable()->after('total_hours');
@@ -16,8 +18,8 @@ return new class
             });
         }
 
-        if (! $schema->hasColumn('attendance', 'payroll_run_item_id')) {
-            $schema->table('attendance', function ($table) {
+        if (! Schema::hasColumn('attendance', 'payroll_run_item_id')) {
+            Schema::table('attendance', function (Blueprint $table) {
                 $table->unsignedBigInteger('payroll_run_item_id')->nullable()->after('note');
                 $table->foreign('payroll_run_item_id')
                     ->references('id')
@@ -27,17 +29,17 @@ return new class
         }
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        if ($schema->hasColumn('attendance', 'payroll_run_item_id')) {
-            $schema->table('attendance', function ($table) {
+        if (Schema::hasColumn('attendance', 'payroll_run_item_id')) {
+            Schema::table('attendance', function (Blueprint $table) {
                 $table->dropForeign(['payroll_run_item_id']);
                 $table->dropColumn('payroll_run_item_id');
             });
         }
 
-        if ($schema->hasColumn('payroll_run_items', 'wage_type')) {
-            $schema->table('payroll_run_items', function ($table) {
+        if (Schema::hasColumn('payroll_run_items', 'wage_type')) {
+            Schema::table('payroll_run_items', function (Blueprint $table) {
                 $table->dropColumn(['wage_type', 'total_hours', 'hourly_rate_applied', 'period_start', 'period_end']);
             });
         }

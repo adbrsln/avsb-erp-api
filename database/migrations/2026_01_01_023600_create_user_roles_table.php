@@ -1,15 +1,17 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
-        $db = $schema->getConnection();
+        $db = Schema::getConnection();
 
         // 1. Create user_roles table
-        $schema->create('user_roles', function ($table) {
+        Schema::create('user_roles', function (Blueprint $table) {
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->string('role', 20);
             $table->primary(['user_id', 'role']);
@@ -31,17 +33,17 @@ return new class
         }
 
         // 3. Drop the old column
-        $schema->table('users', function ($table) {
+        Schema::table('users', function (Blueprint $table) {
             $table->dropColumn('role');
         });
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        $db = $schema->getConnection();
+        $db = Schema::getConnection();
 
         // Restore users.role with the first non-staff role (prefer admin > pm > staff)
-        $schema->table('users', function ($table) {
+        Schema::table('users', function (Blueprint $table) {
             $table->string('role')->default('staff')->after('password');
         });
 
@@ -60,6 +62,6 @@ return new class
             $db->table('users')->where('id', $userId)->update(['role' => $role]);
         }
 
-        $schema->dropIfExists('user_roles');
+        Schema::dropIfExists('user_roles');
     }
 };

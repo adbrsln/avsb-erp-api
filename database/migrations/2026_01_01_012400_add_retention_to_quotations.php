@@ -1,20 +1,22 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema)
+    public function up(): void
     {
-        $schema->table('quotations', function ($table) {
+        Schema::table('quotations', function (Blueprint $table) {
             $table->decimal('retention_pct', 5, 2)->default(0)->after('sst');
             $table->decimal('retention_amount', 12, 2)->default(0)->after('retention_pct');
         });
     }
 
-    public function down(Builder $schema)
+    public function down(): void
     {
-        $schema->table('quotations', function ($table) {
+        Schema::table('quotations', function (Blueprint $table) {
             $table->dropColumn(['retention_pct', 'retention_amount']);
         });
     }

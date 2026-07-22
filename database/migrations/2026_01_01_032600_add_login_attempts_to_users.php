@@ -1,13 +1,14 @@
 <?php
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
     public function up(): void
     {
-        Capsule::schema()->table('users', function (Blueprint $table) {
+        Schema::table('users', function (Blueprint $table) {
             $table->integer('login_attempts')->default(0)->after('password');
             $table->timestamp('locked_until')->nullable()->after('login_attempts');
         });
@@ -15,7 +16,7 @@ return new class
 
     public function down(): void
     {
-        Capsule::schema()->table('users', function (Blueprint $table) {
+        Schema::table('users', function (Blueprint $table) {
             $table->dropColumn('login_attempts');
             $table->dropColumn('locked_until');
         });

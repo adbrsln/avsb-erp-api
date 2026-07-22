@@ -1,12 +1,14 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema)
+    public function up(): void
     {
-        $schema->table('phases', function ($table) {
+        Schema::table('phases', function (Blueprint $table) {
             $table->foreignId('started_by')->nullable()->constrained('staff_profiles')->nullOnDelete()->after('status');
             $table->datetime('started_at')->nullable()->after('started_by');
             $table->foreignId('completed_by')->nullable()->constrained('staff_profiles')->nullOnDelete()->after('started_at');
@@ -15,9 +17,9 @@ return new class
         });
     }
 
-    public function down(Builder $schema)
+    public function down(): void
     {
-        $schema->table('phases', function ($table) {
+        Schema::table('phases', function (Blueprint $table) {
             $table->dropForeign(['started_by']);
             $table->dropForeign(['completed_by']);
             $table->dropColumn(['started_by', 'started_at', 'completed_by', 'completed_at', 'completion_remarks']);

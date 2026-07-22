@@ -1,12 +1,14 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
-        $schema->create('project_type_phase_template', function ($table) {
+        Schema::create('project_type_phase_template', function (Blueprint $table) {
             $table->foreignId('project_type_id')->constrained()->cascadeOnDelete();
             $table->foreignId('phase_template_id')->constrained()->cascadeOnDelete();
             $table->integer('sort_order')->default(0);
@@ -14,8 +16,8 @@ return new class
         });
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        $schema->dropIfExists('project_type_phase_template');
+        Schema::dropIfExists('project_type_phase_template');
     }
 };

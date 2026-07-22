@@ -1,12 +1,14 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema)
+    public function up(): void
     {
-        $schema->create('invoices', function ($table) {
+        Schema::create('invoices', function (Blueprint $table) {
             $table->id();
             $table->string('invoice_number')->unique();
             $table->foreignId('contract_id')->nullable()->constrained()->nullOnDelete();
@@ -24,8 +26,8 @@ return new class
         });
     }
 
-    public function down(Builder $schema)
+    public function down(): void
     {
-        $schema->dropIfExists('invoices');
+        Schema::dropIfExists('invoices');
     }
 };

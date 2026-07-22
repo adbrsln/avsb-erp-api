@@ -1,13 +1,15 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
-        if (! $schema->hasTable('public_holidays')) {
-            $schema->create('public_holidays', function ($table) {
+        if (! Schema::hasTable('public_holidays')) {
+            Schema::create('public_holidays', function (Blueprint $table) {
                 $table->id();
                 $table->string('name', 100);
                 $table->date('date');
@@ -18,18 +20,18 @@ return new class
             });
         }
 
-        if (! $schema->hasColumn('leave_applications', 'mc_document_path')) {
-            $schema->table('leave_applications', function ($table) {
+        if (! Schema::hasColumn('leave_applications', 'mc_document_path')) {
+            Schema::table('leave_applications', function (Blueprint $table) {
                 $table->string('mc_document_path', 255)->nullable()->after('reason');
             });
         }
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        $schema->dropIfExists('public_holidays');
-        if ($schema->hasColumn('leave_applications', 'mc_document_path')) {
-            $schema->table('leave_applications', function ($table) {
+        Schema::dropIfExists('public_holidays');
+        if (Schema::hasColumn('leave_applications', 'mc_document_path')) {
+            Schema::table('leave_applications', function (Blueprint $table) {
                 $table->dropColumn('mc_document_path');
             });
         }

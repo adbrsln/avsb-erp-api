@@ -1,19 +1,21 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
-        $schema->table('subcontractors', function ($table) {
+        Schema::table('subcontractors', function (Blueprint $table) {
             $table->string('sst_reg_no', 50)->nullable()->after('tax_id');
         });
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        $schema->table('subcontractors', function ($table) {
+        Schema::table('subcontractors', function (Blueprint $table) {
             $table->dropColumn('sst_reg_no');
         });
     }

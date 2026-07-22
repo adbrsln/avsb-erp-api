@@ -1,12 +1,14 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema)
+    public function up(): void
     {
-        $schema->create('company_settings', function ($table) {
+        Schema::create('company_settings', function (Blueprint $table) {
             $table->id();
             $table->string('company_name');
             $table->text('address')->nullable();
@@ -18,8 +20,8 @@ return new class
         });
     }
 
-    public function down(Builder $schema)
+    public function down(): void
     {
-        $schema->dropIfExists('company_settings');
+        Schema::dropIfExists('company_settings');
     }
 };

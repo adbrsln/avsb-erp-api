@@ -1,44 +1,45 @@
 <?php
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
     public function up(): void
     {
-        Capsule::schema()->table('quotation_items', function (Blueprint $table) {
+        Schema::table('quotation_items', function (Blueprint $table) {
             $table->text('description')->nullable()->change();
         });
-        Capsule::schema()->table('claim_items', function (Blueprint $table) {
+        Schema::table('claim_items', function (Blueprint $table) {
             $table->text('description')->nullable()->change();
         });
-        Capsule::schema()->table('billing_milestones', function (Blueprint $table) {
+        Schema::table('billing_milestones', function (Blueprint $table) {
             $table->text('description')->nullable()->change();
         });
-        Capsule::schema()->table('numbering_sequences', function (Blueprint $table) {
+        Schema::table('numbering_sequences', function (Blueprint $table) {
             $table->text('description')->nullable()->change();
         });
-        Capsule::schema()->table('checklist_results', function (Blueprint $table) {
+        Schema::table('checklist_results', function (Blueprint $table) {
             $table->renameColumn('notes', 'remarks');
         });
     }
 
     public function down(): void
     {
-        Capsule::schema()->table('quotation_items', function (Blueprint $table) {
+        Schema::table('quotation_items', function (Blueprint $table) {
             $table->string('description')->nullable()->change();
         });
-        Capsule::schema()->table('claim_items', function (Blueprint $table) {
+        Schema::table('claim_items', function (Blueprint $table) {
             $table->string('description')->nullable()->change();
         });
-        Capsule::schema()->table('billing_milestones', function (Blueprint $table) {
+        Schema::table('billing_milestones', function (Blueprint $table) {
             $table->string('description')->nullable()->change();
         });
-        Capsule::schema()->table('numbering_sequences', function (Blueprint $table) {
+        Schema::table('numbering_sequences', function (Blueprint $table) {
             $table->string('description')->nullable()->change();
         });
-        Capsule::schema()->table('checklist_results', function (Blueprint $table) {
+        Schema::table('checklist_results', function (Blueprint $table) {
             $table->renameColumn('remarks', 'notes');
         });
     }

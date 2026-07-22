@@ -1,22 +1,24 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
-        if (! $schema->hasColumn('contracts', 'subtotal')) {
-            $schema->table('contracts', function ($table) {
+        if (! Schema::hasColumn('contracts', 'subtotal')) {
+            Schema::table('contracts', function (Blueprint $table) {
                 $table->decimal('subtotal', 12, 2)->default(0)->after('total_amount');
             });
         }
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        if ($schema->hasColumn('contracts', 'subtotal')) {
-            $schema->table('contracts', function ($table) {
+        if (Schema::hasColumn('contracts', 'subtotal')) {
+            Schema::table('contracts', function (Blueprint $table) {
                 $table->dropColumn('subtotal');
             });
         }

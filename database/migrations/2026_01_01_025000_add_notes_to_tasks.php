@@ -1,20 +1,22 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
-        $schema->table('tasks', function ($table) {
+        Schema::table('tasks', function (Blueprint $table) {
             $table->text('pause_notes')->nullable()->after('pause_reason');
             $table->text('completion_notes')->nullable()->after('paused_at');
         });
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        $schema->table('tasks', function ($table) {
+        Schema::table('tasks', function (Blueprint $table) {
             $table->dropColumn(['pause_notes', 'completion_notes']);
         });
     }

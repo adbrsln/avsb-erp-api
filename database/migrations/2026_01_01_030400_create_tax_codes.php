@@ -1,13 +1,14 @@
 <?php
 
-use Illuminate\Database\Capsule\Manager as Capsule;
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
-        $schema->create('tax_codes', function ($table) {
+        Schema::create('tax_codes', function (Blueprint $table) {
             $table->id();
             $table->string('code', 5)->unique();
             $table->string('name', 100);
@@ -34,8 +35,8 @@ return new class
         Capsule::table('tax_codes')->insert($codes);
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        $schema->dropIfExists('tax_codes');
+        Schema::dropIfExists('tax_codes');
     }
 };

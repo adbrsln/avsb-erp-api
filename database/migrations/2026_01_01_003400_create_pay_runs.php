@@ -1,12 +1,14 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema)
+    public function up(): void
     {
-        $schema->create('pay_runs', function ($table) {
+        Schema::create('pay_runs', function (Blueprint $table) {
             $table->id();
             $table->foreignId('staff_id')->constrained('staff_profiles')->cascadeOnDelete();
             $table->date('period_start');
@@ -22,8 +24,8 @@ return new class
         });
     }
 
-    public function down(Builder $schema)
+    public function down(): void
     {
-        $schema->dropIfExists('pay_runs');
+        Schema::dropIfExists('pay_runs');
     }
 };

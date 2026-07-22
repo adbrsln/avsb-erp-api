@@ -1,26 +1,28 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
-        if (! $schema->hasColumn('attendance', 'clock_in_photo')) {
-            $schema->table('attendance', function ($table) {
+        if (! Schema::hasColumn('attendance', 'clock_in_photo')) {
+            Schema::table('attendance', function (Blueprint $table) {
                 $table->string('clock_in_photo', 255)->nullable();
             });
         }
-        if (! $schema->hasColumn('attendance', 'clock_out_photo')) {
-            $schema->table('attendance', function ($table) {
+        if (! Schema::hasColumn('attendance', 'clock_out_photo')) {
+            Schema::table('attendance', function (Blueprint $table) {
                 $table->string('clock_out_photo', 255)->nullable();
             });
         }
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        $schema->table('attendance', function ($table) {
+        Schema::table('attendance', function (Blueprint $table) {
             $table->dropColumn(['clock_in_photo', 'clock_out_photo']);
         });
     }

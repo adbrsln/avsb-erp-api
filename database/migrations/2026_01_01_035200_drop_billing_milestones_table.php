@@ -1,18 +1,20 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
-        $schema->dropIfExists('billing_milestones');
+        Schema::dropIfExists('billing_milestones');
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        if (! $schema->hasTable('billing_milestones')) {
-            $schema->create('billing_milestones', function ($table) {
+        if (! Schema::hasTable('billing_milestones')) {
+            Schema::create('billing_milestones', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('contract_id')->constrained()->cascadeOnDelete();
                 $table->string('description');

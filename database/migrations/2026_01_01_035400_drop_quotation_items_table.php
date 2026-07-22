@@ -1,18 +1,20 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
-        $schema->dropIfExists('quotation_items');
+        Schema::dropIfExists('quotation_items');
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        if (! $schema->hasTable('quotation_items')) {
-            $schema->create('quotation_items', function ($table) {
+        if (! Schema::hasTable('quotation_items')) {
+            Schema::create('quotation_items', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('quotation_id')->constrained()->cascadeOnDelete();
                 $table->text('description');

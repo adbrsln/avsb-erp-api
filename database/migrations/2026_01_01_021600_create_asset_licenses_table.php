@@ -1,12 +1,14 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema)
+    public function up(): void
     {
-        $schema->create('asset_licenses', function ($table) {
+        Schema::create('asset_licenses', function (Blueprint $table) {
             $table->id();
             $table->foreignId('asset_id')->constrained('assets')->cascadeOnDelete();
             $table->string('license_type', 100);
@@ -22,8 +24,8 @@ return new class
         });
     }
 
-    public function down(Builder $schema)
+    public function down(): void
     {
-        $schema->dropIfExists('asset_licenses');
+        Schema::dropIfExists('asset_licenses');
     }
 };

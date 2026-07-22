@@ -1,12 +1,14 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
-        $schema->create('einvoice_credentials', function ($table) {
+        Schema::create('einvoice_credentials', function (Blueprint $table) {
             $table->id();
             $table->string('label', 50);
             $table->string('client_id', 255);
@@ -21,8 +23,8 @@ return new class
         });
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        $schema->dropIfExists('einvoice_credentials');
+        Schema::dropIfExists('einvoice_credentials');
     }
 };

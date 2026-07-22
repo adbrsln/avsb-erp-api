@@ -1,37 +1,39 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema)
+    public function up(): void
     {
-        $schema->table('work_orders', function ($table) {
+        Schema::table('work_orders', function (Blueprint $table) {
             $table->string('work_order_number', 50)->nullable()->unique()->after('id');
         });
-        $schema->table('project_service_lines', function ($table) {
+        Schema::table('project_service_lines', function (Blueprint $table) {
             $table->string('service_line_ref', 50)->nullable()->unique()->after('id');
         });
-        $schema->table('leave_applications', function ($table) {
+        Schema::table('leave_applications', function (Blueprint $table) {
             $table->string('leave_ref', 50)->nullable()->unique()->after('id');
         });
-        $schema->table('claims', function ($table) {
+        Schema::table('claims', function (Blueprint $table) {
             $table->string('claim_ref', 50)->nullable()->unique()->after('id');
         });
     }
 
-    public function down(Builder $schema)
+    public function down(): void
     {
-        $schema->table('work_orders', function ($table) {
+        Schema::table('work_orders', function (Blueprint $table) {
             $table->dropColumn('work_order_number');
         });
-        $schema->table('project_service_lines', function ($table) {
+        Schema::table('project_service_lines', function (Blueprint $table) {
             $table->dropColumn('service_line_ref');
         });
-        $schema->table('leave_applications', function ($table) {
+        Schema::table('leave_applications', function (Blueprint $table) {
             $table->dropColumn('leave_ref');
         });
-        $schema->table('claims', function ($table) {
+        Schema::table('claims', function (Blueprint $table) {
             $table->dropColumn('claim_ref');
         });
     }

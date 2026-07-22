@@ -1,20 +1,22 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema)
+    public function up(): void
     {
-        $schema->create('task_staff', function ($table) {
+        Schema::create('task_staff', function (Blueprint $table) {
             $table->foreignId('task_id')->constrained()->cascadeOnDelete();
             $table->foreignId('staff_id')->constrained('staff_profiles')->cascadeOnDelete();
             $table->primary(['task_id', 'staff_id']);
         });
     }
 
-    public function down(Builder $schema)
+    public function down(): void
     {
-        $schema->dropIfExists('task_staff');
+        Schema::dropIfExists('task_staff');
     }
 };

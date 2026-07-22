@@ -1,12 +1,14 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema)
+    public function up(): void
     {
-        $schema->create('claims', function ($table) {
+        Schema::create('claims', function (Blueprint $table) {
             $table->id();
             $table->foreignId('staff_id')->constrained('staff_profiles')->cascadeOnDelete();
             $table->string('title');
@@ -20,7 +22,7 @@ return new class
             $table->timestamps();
         });
 
-        $schema->create('claim_items', function ($table) {
+        Schema::create('claim_items', function (Blueprint $table) {
             $table->id();
             $table->foreignId('claim_id')->constrained('claims')->cascadeOnDelete();
             $table->string('description');
@@ -31,9 +33,9 @@ return new class
         });
     }
 
-    public function down(Builder $schema)
+    public function down(): void
     {
-        $schema->dropIfExists('claim_items');
-        $schema->dropIfExists('claims');
+        Schema::dropIfExists('claim_items');
+        Schema::dropIfExists('claims');
     }
 };

@@ -1,12 +1,14 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
-        $schema->create('fiscal_periods', function ($table) {
+        Schema::create('fiscal_periods', function (Blueprint $table) {
             $table->id();
             $table->string('name', 100);
             $table->date('start_date');
@@ -21,8 +23,8 @@ return new class
         });
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        $schema->dropIfExists('fiscal_periods');
+        Schema::dropIfExists('fiscal_periods');
     }
 };

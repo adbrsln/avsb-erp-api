@@ -1,21 +1,23 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema)
+    public function up(): void
     {
-        $schema->table('payroll_run_items', function ($table) {
+        Schema::table('payroll_run_items', function (Blueprint $table) {
             $table->boolean('confirmed')->default(false)->after('paid_at');
             $table->datetime('confirmed_at')->nullable()->after('confirmed');
             $table->foreignId('confirmed_by')->nullable()->constrained('staff_profiles')->restrictOnDelete()->after('confirmed_at');
         });
     }
 
-    public function down(Builder $schema)
+    public function down(): void
     {
-        $schema->table('payroll_run_items', function ($table) {
+        Schema::table('payroll_run_items', function (Blueprint $table) {
             $table->dropConstrainedForeignId('confirmed_by');
             $table->dropColumn(['confirmed', 'confirmed_at']);
         });

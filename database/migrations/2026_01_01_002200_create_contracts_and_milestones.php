@@ -1,12 +1,14 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema)
+    public function up(): void
     {
-        $schema->create('contracts', function ($table) {
+        Schema::create('contracts', function (Blueprint $table) {
             $table->id();
             $table->string('contract_number')->unique();
             $table->foreignId('project_id')->nullable()->constrained()->nullOnDelete();
@@ -21,7 +23,7 @@ return new class
             $table->timestamps();
         });
 
-        $schema->create('billing_milestones', function ($table) {
+        Schema::create('billing_milestones', function (Blueprint $table) {
             $table->id();
             $table->foreignId('contract_id')->constrained()->cascadeOnDelete();
             $table->string('description');
@@ -33,9 +35,9 @@ return new class
         });
     }
 
-    public function down(Builder $schema)
+    public function down(): void
     {
-        $schema->dropIfExists('billing_milestones');
-        $schema->dropIfExists('contracts');
+        Schema::dropIfExists('billing_milestones');
+        Schema::dropIfExists('contracts');
     }
 };

@@ -1,65 +1,69 @@
 <?php
 
-return new class
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
 {
     public function up($schema)
     {
-        $schema->table('projects', function ($table) {
+        Schema::table('projects', function (Blueprint $table) {
             $table->softDeletes();
         });
-        $schema->table('staff_profiles', function ($table) {
+        Schema::table('staff_profiles', function (Blueprint $table) {
             $table->softDeletes();
         });
-        $schema->table('quotations', function ($table) {
+        Schema::table('quotations', function (Blueprint $table) {
             $table->softDeletes();
         });
-        $schema->table('contracts', function ($table) {
+        Schema::table('contracts', function (Blueprint $table) {
             $table->softDeletes();
         });
-        $schema->table('invoices', function ($table) {
+        Schema::table('invoices', function (Blueprint $table) {
             $table->softDeletes();
         });
-        $schema->table('leave_applications', function ($table) {
+        Schema::table('leave_applications', function (Blueprint $table) {
             $table->softDeletes();
         });
-        $schema->table('claims', function ($table) {
+        Schema::table('claims', function (Blueprint $table) {
             $table->softDeletes();
         });
-        $schema->table('timecards', function ($table) {
+        Schema::table('timecards', function (Blueprint $table) {
             $table->softDeletes();
         });
-        $schema->table('pay_runs', function ($table) {
+        Schema::table('pay_runs', function (Blueprint $table) {
             $table->softDeletes();
         });
     }
 
     public function down($schema)
     {
-        $schema->table('projects', function ($table) {
+        Schema::table('projects', function (Blueprint $table) {
             $table->dropSoftDeletes();
         });
-        $schema->table('staff_profiles', function ($table) {
+        Schema::table('staff_profiles', function (Blueprint $table) {
             $table->dropSoftDeletes();
         });
-        $schema->table('quotations', function ($table) {
+        Schema::table('quotations', function (Blueprint $table) {
             $table->dropSoftDeletes();
         });
-        $schema->table('contracts', function ($table) {
+        Schema::table('contracts', function (Blueprint $table) {
             $table->dropSoftDeletes();
         });
-        $schema->table('invoices', function ($table) {
+        Schema::table('invoices', function (Blueprint $table) {
             $table->dropSoftDeletes();
         });
-        $schema->table('leave_applications', function ($table) {
+        Schema::table('leave_applications', function (Blueprint $table) {
             $table->dropSoftDeletes();
         });
-        $schema->table('claims', function ($table) {
+        Schema::table('claims', function (Blueprint $table) {
             $table->dropSoftDeletes();
         });
-        $schema->table('timecards', function ($table) {
+        Schema::table('timecards', function (Blueprint $table) {
             $table->dropSoftDeletes();
         });
-        $schema->table('pay_runs', function ($table) {
+        Schema::table('pay_runs', function (Blueprint $table) {
             $table->dropSoftDeletes();
         });
     }

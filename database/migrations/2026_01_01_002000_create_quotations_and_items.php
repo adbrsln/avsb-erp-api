@@ -1,12 +1,14 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema)
+    public function up(): void
     {
-        $schema->create('quotations', function ($table) {
+        Schema::create('quotations', function (Blueprint $table) {
             $table->id();
             $table->string('quote_number')->unique();
             $table->foreignId('project_id')->nullable()->constrained()->nullOnDelete();
@@ -21,7 +23,7 @@ return new class
             $table->timestamps();
         });
 
-        $schema->create('quotation_items', function ($table) {
+        Schema::create('quotation_items', function (Blueprint $table) {
             $table->id();
             $table->foreignId('quotation_id')->constrained()->cascadeOnDelete();
             $table->string('description');
@@ -33,9 +35,9 @@ return new class
         });
     }
 
-    public function down(Builder $schema)
+    public function down(): void
     {
-        $schema->dropIfExists('quotation_items');
-        $schema->dropIfExists('quotations');
+        Schema::dropIfExists('quotation_items');
+        Schema::dropIfExists('quotations');
     }
 };

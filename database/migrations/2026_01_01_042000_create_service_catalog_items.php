@@ -1,12 +1,14 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
-        $schema->create('service_catalog_items', function ($table) {
+        Schema::create('service_catalog_items', function (Blueprint $table) {
             $table->id();
             $table->string('name', 255);
             $table->text('description')->nullable();
@@ -20,8 +22,8 @@ return new class
         });
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        $schema->dropIfExists('service_catalog_items');
+        Schema::dropIfExists('service_catalog_items');
     }
 };

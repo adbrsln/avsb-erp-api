@@ -1,13 +1,15 @@
 <?php
 
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 use Carbon\Carbon;
-use Illuminate\Database\Schema\Builder;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema)
+    public function up(): void
     {
-        $schema->create('epf_schedules', function ($table) {
+        Schema::create('epf_schedules', function (Blueprint $table) {
             $table->string('code', 10)->primary();
             $table->string('name', 100);
             $table->decimal('employer_rate', 5, 2)->nullable()->comment('Percentage for wages > RM5,000');
@@ -18,7 +20,7 @@ return new class
         });
 
         $now = Carbon::now();
-        $schema->getConnection()->table('epf_schedules')->insert([
+        Schema::getConnection()->table('epf_schedules')->insert([
             ['code' => 'A', 'name' => 'Standard (Citizen/PR < 60)', 'employer_rate' => 12.00, 'employee_rate' => 11.00, 'max_tier_wage' => 20000.00, 'description' => null, 'created_at' => $now, 'updated_at' => $now],
             ['code' => 'C', 'name' => 'Reduced (PR/Elected ≥ 60, Non-citizen)', 'employer_rate' => 6.00, 'employee_rate' => 5.50, 'max_tier_wage' => 20000.00, 'description' => null, 'created_at' => $now, 'updated_at' => $now],
             ['code' => 'D', 'name' => 'Citizen ≥ 60', 'employer_rate' => 4.00, 'employee_rate' => 0.00, 'max_tier_wage' => 20000.00, 'description' => null, 'created_at' => $now, 'updated_at' => $now],
@@ -26,8 +28,8 @@ return new class
         ]);
     }
 
-    public function down(Builder $schema)
+    public function down(): void
     {
-        $schema->dropIfExists('epf_schedules');
+        Schema::dropIfExists('epf_schedules');
     }
 };

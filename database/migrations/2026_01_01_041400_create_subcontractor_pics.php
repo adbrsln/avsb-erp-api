@@ -1,14 +1,16 @@
 <?php
 
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 use Carbon\Carbon;
-use Illuminate\Database\Schema\Builder;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
         // 1. Create subcontractor_pics table (mirrors client_pics)
-        $schema->create('subcontractor_pics', function ($table) {
+        Schema::create('subcontractor_pics', function (Blueprint $table) {
             $table->id();
             $table->foreignId('subcontractor_id')->constrained('subcontractors')->cascadeOnDelete();
             $table->string('name');
@@ -23,7 +25,7 @@ return new class
         });
 
         // 2. Migrate existing contact_person + contact_phone into PIC rows
-        $db = $schema->getConnection();
+        $db = Schema::getConnection();
         $rows = $db->table('subcontractors')
             ->whereNotNull('contact_person')
             ->where('contact_person', '!=', '')
@@ -41,17 +43,17 @@ return new class
         }
 
         // 3. Drop old columns
-        $schema->table('subcontractors', function ($table) {
+        Schema::table('subcontractors', function (Blueprint $table) {
             $table->dropColumn(['contact_person', 'contact_phone']);
         });
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        $schema->table('subcontractors', function ($table) {
+        Schema::table('subcontractors', function (Blueprint $table) {
             $table->string('contact_person', 100)->nullable()->after('email');
             $table->string('contact_phone', 50)->nullable()->after('contact_person');
         });
-        $schema->dropIfExists('subcontractor_pics');
+        Schema::dropIfExists('subcontractor_pics');
     }
 };

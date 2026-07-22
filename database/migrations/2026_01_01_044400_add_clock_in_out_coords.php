@@ -1,35 +1,37 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
-        $schema->table('attendance', function ($table) use ($schema) {
-            if (! $schema->hasColumn('attendance', 'clock_in_latitude')) {
+        Schema::table('attendance', function (Blueprint $table) {
+            if (! Schema::hasColumn('attendance', 'clock_in_latitude')) {
                 $table->decimal('clock_in_latitude', 10, 7)->nullable();
             }
-            if (! $schema->hasColumn('attendance', 'clock_in_longitude')) {
+            if (! Schema::hasColumn('attendance', 'clock_in_longitude')) {
                 $table->decimal('clock_in_longitude', 10, 7)->nullable();
             }
-            if (! $schema->hasColumn('attendance', 'clock_out_latitude')) {
+            if (! Schema::hasColumn('attendance', 'clock_out_latitude')) {
                 $table->decimal('clock_out_latitude', 10, 7)->nullable();
             }
-            if (! $schema->hasColumn('attendance', 'clock_out_longitude')) {
+            if (! Schema::hasColumn('attendance', 'clock_out_longitude')) {
                 $table->decimal('clock_out_longitude', 10, 7)->nullable();
             }
         });
 
         // Migrate existing latitude/longitude to clock_in_latitude/clock_in_longitude
-        $schema->getConnection()->statement(
+        Schema::getConnection()->statement(
             'UPDATE attendance SET clock_in_latitude = latitude, clock_in_longitude = longitude WHERE clock_in_latitude IS NULL AND latitude IS NOT NULL'
         );
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        $schema->table('attendance', function ($table) {
+        Schema::table('attendance', function (Blueprint $table) {
             $table->dropColumn(['clock_in_latitude', 'clock_in_longitude', 'clock_out_latitude', 'clock_out_longitude']);
         });
     }

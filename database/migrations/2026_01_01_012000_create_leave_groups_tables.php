@@ -1,12 +1,14 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema)
+    public function up(): void
     {
-        $schema->create('leave_groups', function ($table) {
+        Schema::create('leave_groups', function (Blueprint $table) {
             $table->id();
             $table->string('name');
             $table->text('description')->nullable();
@@ -14,7 +16,7 @@ return new class
             $table->timestamps();
         });
 
-        $schema->create('leave_group_entitlements', function ($table) {
+        Schema::create('leave_group_entitlements', function (Blueprint $table) {
             $table->id();
             $table->foreignId('leave_group_id')->constrained()->cascadeOnDelete();
             $table->string('type');
@@ -24,7 +26,7 @@ return new class
             $table->timestamps();
         });
 
-        $schema->create('staff_leave_balances', function ($table) {
+        Schema::create('staff_leave_balances', function (Blueprint $table) {
             $table->id();
             $table->foreignId('staff_id')->constrained('staff_profiles')->cascadeOnDelete();
             $table->string('type');
@@ -37,19 +39,19 @@ return new class
             $table->timestamps();
         });
 
-        $schema->table('staff_profiles', function ($table) {
+        Schema::table('staff_profiles', function (Blueprint $table) {
             $table->foreignId('leave_group_id')->nullable()->constrained('leave_groups')->nullOnDelete();
         });
     }
 
-    public function down(Builder $schema)
+    public function down(): void
     {
-        $schema->table('staff_profiles', function ($table) {
+        Schema::table('staff_profiles', function (Blueprint $table) {
             $table->dropForeign(['leave_group_id']);
             $table->dropColumn('leave_group_id');
         });
-        $schema->dropIfExists('staff_leave_balances');
-        $schema->dropIfExists('leave_group_entitlements');
-        $schema->dropIfExists('leave_groups');
+        Schema::dropIfExists('staff_leave_balances');
+        Schema::dropIfExists('leave_group_entitlements');
+        Schema::dropIfExists('leave_groups');
     }
 };

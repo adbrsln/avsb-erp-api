@@ -1,16 +1,18 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
-        $db = $schema->getConnection();
+        $db = Schema::getConnection();
 
         // 1. Add month/year to periods
-        if (! $schema->hasColumn('payroll_periods', 'month')) {
-            $schema->table('payroll_periods', function ($table) {
+        if (! Schema::hasColumn('payroll_periods', 'month')) {
+            Schema::table('payroll_periods', function (Blueprint $table) {
                 $table->tinyInteger('month')->unsigned()->nullable()->after('code');
                 $table->smallInteger('year')->unsigned()->nullable()->after('month');
             });
@@ -18,14 +20,14 @@ return new class
 
         $db->statement('UPDATE payroll_periods SET month = MONTH(start_date), year = YEAR(start_date) WHERE month IS NULL');
 
-        $schema->table('payroll_periods', function ($table) {
+        Schema::table('payroll_periods', function (Blueprint $table) {
             $table->tinyInteger('month')->unsigned()->nullable(false)->change();
             $table->smallInteger('year')->unsigned()->nullable(false)->change();
         });
 
         // 2. Add period_id to payroll_run_items
-        if (! $schema->hasColumn('payroll_run_items', 'period_id')) {
-            $schema->table('payroll_run_items', function ($table) {
+        if (! Schema::hasColumn('payroll_run_items', 'period_id')) {
+            Schema::table('payroll_run_items', function (Blueprint $table) {
                 $table->unsignedBigInteger('period_id')->nullable()->after('id');
             });
         }
@@ -60,27 +62,27 @@ return new class
         }
 
         // 4. Finalize period_id constraints
-        $schema->table('payroll_run_items', function ($table) {
+        Schema::table('payroll_run_items', function (Blueprint $table) {
             $table->unsignedBigInteger('period_id')->nullable(false)->change();
             $table->foreign('period_id')->references('id')->on('payroll_periods')->restrictOnDelete();
             $table->unique(['period_id', 'employee_id']);
         });
 
         // 5. Drop payroll_run_id
-        $schema->table('payroll_run_items', function ($table) {
+        Schema::table('payroll_run_items', function (Blueprint $table) {
             $table->dropForeign(['payroll_run_id']);
             $table->dropColumn('payroll_run_id');
         });
 
         // 6. Drop runs table
-        $schema->dropIfExists('payroll_runs');
+        Schema::dropIfExists('payroll_runs');
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        $db = $schema->getConnection();
+        $db = Schema::getConnection();
 
-        $schema->create('payroll_runs', function ($table) {
+        Schema::create('payroll_runs', function (Blueprint $table) {
             $table->id();
             $table->foreignId('period_id')->constrained('payroll_periods')->restrictOnDelete();
             $table->datetime('processed_at');
@@ -90,7 +92,7 @@ return new class
             $table->timestamps();
         });
 
-        $schema->table('payroll_run_items', function ($table) {
+        Schema::table('payroll_run_items', function (Blueprint $table) {
             $table->unsignedBigInteger('payroll_run_id')->nullable()->after('id');
             $table->foreign('payroll_run_id')->references('id')->on('payroll_runs')->cascadeOnDelete();
         });
@@ -102,14 +104,14 @@ return new class
             $db->statement('UPDATE payroll_run_items SET payroll_run_id = ? WHERE period_id = ?', [$runId, $row->period_id]);
         }
 
-        $schema->table('payroll_run_items', function ($table) {
+        Schema::table('payroll_run_items', function (Blueprint $table) {
             $table->unsignedBigInteger('payroll_run_id')->nullable(false)->change();
             $table->dropForeign(['period_id']);
             $table->dropUnique(['period_id', 'employee_id']);
             $table->dropColumn('period_id');
         });
 
-        $schema->table('payroll_periods', function ($table) {
+        Schema::table('payroll_periods', function (Blueprint $table) {
             $table->dropColumn(['month', 'year']);
         });
     }

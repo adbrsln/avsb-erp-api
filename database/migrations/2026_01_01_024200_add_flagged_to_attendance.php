@@ -1,36 +1,38 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
-        if (! $schema->hasColumn('attendance', 'flagged')) {
-            $schema->table('attendance', function ($table) {
+        if (! Schema::hasColumn('attendance', 'flagged')) {
+            Schema::table('attendance', function (Blueprint $table) {
                 $table->boolean('flagged')->default(false);
             });
         }
-        if (! $schema->hasColumn('attendance', 'flagged_reason')) {
-            $schema->table('attendance', function ($table) {
+        if (! Schema::hasColumn('attendance', 'flagged_reason')) {
+            Schema::table('attendance', function (Blueprint $table) {
                 $table->string('flagged_reason', 255)->nullable();
             });
         }
-        if (! $schema->hasColumn('attendance', 'flagged_cleared_by')) {
-            $schema->table('attendance', function ($table) {
+        if (! Schema::hasColumn('attendance', 'flagged_cleared_by')) {
+            Schema::table('attendance', function (Blueprint $table) {
                 $table->foreignId('flagged_cleared_by')->nullable()->constrained('staff_profiles')->restrictOnDelete();
             });
         }
-        if (! $schema->hasColumn('attendance', 'flagged_cleared_at')) {
-            $schema->table('attendance', function ($table) {
+        if (! Schema::hasColumn('attendance', 'flagged_cleared_at')) {
+            Schema::table('attendance', function (Blueprint $table) {
                 $table->datetime('flagged_cleared_at')->nullable();
             });
         }
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        $schema->table('attendance', function ($table) {
+        Schema::table('attendance', function (Blueprint $table) {
             $table->dropConstrainedForeignId('flagged_cleared_by');
             $table->dropColumn(['flagged', 'flagged_reason', 'flagged_cleared_at']);
         });

@@ -1,24 +1,26 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
-        $schema->table('projects', function ($table) use ($schema) {
-            if (! $schema->hasColumn('projects', 'latitude')) {
+        Schema::table('projects', function (Blueprint $table) {
+            if (! Schema::hasColumn('projects', 'latitude')) {
                 $table->decimal('latitude', 10, 7)->nullable();
             }
-            if (! $schema->hasColumn('projects', 'longitude')) {
+            if (! Schema::hasColumn('projects', 'longitude')) {
                 $table->decimal('longitude', 10, 7)->nullable();
             }
         });
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        $schema->table('projects', function ($table) {
+        Schema::table('projects', function (Blueprint $table) {
             $table->dropColumn(['latitude', 'longitude']);
         });
     }

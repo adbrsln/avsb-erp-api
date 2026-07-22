@@ -1,12 +1,14 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema)
+    public function up(): void
     {
-        $schema->create('epf_contribution_tiers', function ($table) {
+        Schema::create('epf_contribution_tiers', function (Blueprint $table) {
             $table->id();
             $table->string('schedule_code', 10);
             $table->decimal('wage_from', 10, 2);
@@ -20,8 +22,8 @@ return new class
         });
     }
 
-    public function down(Builder $schema)
+    public function down(): void
     {
-        $schema->dropIfExists('epf_contribution_tiers');
+        Schema::dropIfExists('epf_contribution_tiers');
     }
 };

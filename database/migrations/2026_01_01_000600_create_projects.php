@@ -1,12 +1,14 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema)
+    public function up(): void
     {
-        $schema->create('projects', function ($table) {
+        Schema::create('projects', function (Blueprint $table) {
             $table->id();
             $table->string('name');
             $table->string('client')->nullable();
@@ -21,8 +23,8 @@ return new class
         });
     }
 
-    public function down(Builder $schema)
+    public function down(): void
     {
-        $schema->dropIfExists('projects');
+        Schema::dropIfExists('projects');
     }
 };

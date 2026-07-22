@@ -1,19 +1,21 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
-        $schema->table('company_settings', function ($table) {
+        Schema::table('company_settings', function (Blueprint $table) {
             $table->integer('socso_24h_phase')->default(1)->after('eis_no');
         });
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        $schema->table('company_settings', function ($table) {
+        Schema::table('company_settings', function (Blueprint $table) {
             $table->dropColumn('socso_24h_phase');
         });
     }

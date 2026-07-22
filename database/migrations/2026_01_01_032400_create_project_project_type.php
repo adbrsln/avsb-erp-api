@@ -1,53 +1,55 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
-        $schema->create('project_project_type', function ($table) {
+        Schema::create('project_project_type', function (Blueprint $table) {
             $table->foreignId('project_id')->constrained()->cascadeOnDelete();
             $table->foreignId('project_type_id')->constrained()->cascadeOnDelete();
             $table->primary(['project_id', 'project_type_id']);
         });
 
         // Migrate existing data
-        $projects = $schema->getConnection()->table('projects')
+        $projects = Schema::getConnection()->table('projects')
             ->whereNotNull('project_type_id')
             ->get();
 
         foreach ($projects as $project) {
-            $schema->getConnection()->table('project_project_type')->insert([
+            Schema::getConnection()->table('project_project_type')->insert([
                 'project_id' => $project->id,
                 'project_type_id' => $project->project_type_id,
             ]);
         }
 
-        $schema->table('projects', function ($table) {
+        Schema::table('projects', function (Blueprint $table) {
             $table->dropForeign(['project_type_id']);
             $table->dropColumn('project_type_id');
         });
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        $schema->table('projects', function ($table) {
+        Schema::table('projects', function (Blueprint $table) {
             $table->foreignId('project_type_id')->nullable()->constrained()->nullOnDelete();
         });
 
         // Restore project_type_id from pivot
-        $pivotRows = $schema->getConnection()->table('project_project_type')->get();
+        $pivotRows = Schema::getConnection()->table('project_project_type')->get();
         $processed = [];
         foreach ($pivotRows as $row) {
             if (! isset($processed[$row->project_id])) {
-                $schema->getConnection()->table('projects')
+                Schema::getConnection()->table('projects')
                     ->where('id', $row->project_id)
                     ->update(['project_type_id' => $row->project_type_id]);
                 $processed[$row->project_id] = true;
             }
         }
 
-        $schema->dropIfExists('project_project_type');
+        Schema::dropIfExists('project_project_type');
     }
 };

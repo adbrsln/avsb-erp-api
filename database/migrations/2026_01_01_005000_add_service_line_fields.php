@@ -1,12 +1,14 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema)
+    public function up(): void
     {
-        $schema->table('project_service_lines', function ($table) {
+        Schema::table('project_service_lines', function (Blueprint $table) {
             $table->string('status', 20)->default('pending')->after('total');
             $table->date('planned_start')->nullable()->after('status');
             $table->date('planned_end')->nullable()->after('planned_start');
@@ -15,9 +17,9 @@ return new class
         });
     }
 
-    public function down(Builder $schema)
+    public function down(): void
     {
-        $schema->table('project_service_lines', function ($table) {
+        Schema::table('project_service_lines', function (Blueprint $table) {
             $table->dropColumn(['status', 'planned_start', 'planned_end', 'actual_start', 'actual_end']);
         });
     }

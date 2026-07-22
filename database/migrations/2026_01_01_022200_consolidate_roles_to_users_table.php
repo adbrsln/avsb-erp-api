@@ -1,13 +1,15 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema)
+    public function up(): void
     {
         // ── Migrate staff_profiles.role to users.role ──
-        $db = $schema->getConnection();
+        $db = Schema::getConnection();
         $staffRows = $db->table('staff_profiles')->select('id', 'email', 'role')->get();
 
         foreach ($staffRows as $sp) {
@@ -34,14 +36,14 @@ return new class
         }
 
         // ── Drop role column from staff_profiles ──
-        $schema->table('staff_profiles', function ($table) {
+        Schema::table('staff_profiles', function (Blueprint $table) {
             $table->dropColumn('role');
         });
     }
 
-    public function down(Builder $schema)
+    public function down(): void
     {
-        $schema->table('staff_profiles', function ($table) {
+        Schema::table('staff_profiles', function (Blueprint $table) {
             $table->string('role', 50)->nullable()->after('employee_id');
         });
     }

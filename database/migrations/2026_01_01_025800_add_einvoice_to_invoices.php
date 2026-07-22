@@ -1,12 +1,14 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
-        $schema->table('invoices', function ($table) {
+        Schema::table('invoices', function (Blueprint $table) {
             $table->char('uuid', 36)->unique()->nullable();
             $table->string('submission_status', 20)->nullable();
             $table->string('submission_uid', 100)->nullable();
@@ -32,9 +34,9 @@ return new class
         });
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        $schema->table('invoices', function ($table) {
+        Schema::table('invoices', function (Blueprint $table) {
             $table->dropColumn([
                 'uuid', 'submission_status', 'submission_uid', 'long_id', 'qr_code_url',
                 'submitted_at', 'last_submission_attempt', 'submission_error', 'einvoice_type',

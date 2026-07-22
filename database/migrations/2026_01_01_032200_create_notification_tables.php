@@ -1,13 +1,15 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
-        if (! $schema->hasTable('notification_templates')) {
-            $schema->create('notification_templates', function ($table) {
+        if (! Schema::hasTable('notification_templates')) {
+            Schema::create('notification_templates', function (Blueprint $table) {
                 $table->id();
                 $table->string('event_type', 100)->unique();
                 $table->string('category', 50)->default('other');
@@ -17,8 +19,8 @@ return new class
             });
         }
 
-        if (! $schema->hasTable('notification_queue')) {
-            $schema->create('notification_queue', function ($table) {
+        if (! Schema::hasTable('notification_queue')) {
+            Schema::create('notification_queue', function (Blueprint $table) {
                 $table->id();
                 $table->string('event_type', 100)->index();
                 $table->string('recipient_email', 255);
@@ -40,8 +42,8 @@ return new class
             });
         }
 
-        if (! $schema->hasTable('notification_logs')) {
-            $schema->create('notification_logs', function ($table) {
+        if (! Schema::hasTable('notification_logs')) {
+            Schema::create('notification_logs', function (Blueprint $table) {
                 $table->id();
                 $table->bigInteger('queue_id')->nullable();
                 $table->string('event_type', 100)->index();
@@ -56,10 +58,10 @@ return new class
         }
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        $schema->dropIfExists('notification_logs');
-        $schema->dropIfExists('notification_queue');
-        $schema->dropIfExists('notification_templates');
+        Schema::dropIfExists('notification_logs');
+        Schema::dropIfExists('notification_queue');
+        Schema::dropIfExists('notification_templates');
     }
 };

@@ -1,19 +1,21 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema)
+    public function up(): void
     {
-        $schema->table('payroll_runs', function ($table) {
+        Schema::table('payroll_runs', function (Blueprint $table) {
             $table->string('status', 20)->default('draft')->comment('draft|completed|paid|failed')->change();
         });
     }
 
-    public function down(Builder $schema)
+    public function down(): void
     {
-        $schema->table('payroll_runs', function ($table) {
+        Schema::table('payroll_runs', function (Blueprint $table) {
             $table->string('status', 20)->default('processing')->comment('processing|completed|failed')->change();
         });
     }

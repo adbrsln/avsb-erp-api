@@ -1,12 +1,14 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema)
+    public function up(): void
     {
-        $schema->create('invoice_payments', function ($table) {
+        Schema::create('invoice_payments', function (Blueprint $table) {
             $table->id();
             $table->foreignId('invoice_id')->constrained()->cascadeOnDelete();
             $table->decimal('amount', 10, 2);
@@ -21,8 +23,8 @@ return new class
         // Add partially_paid to invoice status comment (already a string, no migration needed)
     }
 
-    public function down(Builder $schema)
+    public function down(): void
     {
-        $schema->dropIfExists('invoice_payments');
+        Schema::dropIfExists('invoice_payments');
     }
 };

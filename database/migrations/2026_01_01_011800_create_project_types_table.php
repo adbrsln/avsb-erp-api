@@ -1,12 +1,14 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema)
+    public function up(): void
     {
-        $schema->create('project_types', function ($table) {
+        Schema::create('project_types', function (Blueprint $table) {
             $table->id();
             $table->string('name');
             $table->string('code')->unique();
@@ -15,17 +17,17 @@ return new class
             $table->timestamps();
         });
 
-        $schema->table('projects', function ($table) {
+        Schema::table('projects', function (Blueprint $table) {
             $table->foreignId('project_type_id')->nullable()->constrained('project_types')->nullOnDelete();
         });
     }
 
-    public function down(Builder $schema)
+    public function down(): void
     {
-        $schema->table('projects', function ($table) {
+        Schema::table('projects', function (Blueprint $table) {
             $table->dropForeign(['project_type_id']);
             $table->dropColumn('project_type_id');
         });
-        $schema->dropIfExists('project_types');
+        Schema::dropIfExists('project_types');
     }
 };

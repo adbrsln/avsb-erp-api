@@ -1,19 +1,21 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
-        $schema->table('payroll_run_items', function ($table) {
+        Schema::table('payroll_run_items', function (Blueprint $table) {
             $table->decimal('socso_24h_employee', 10, 2)->default(0)->after('eis_employee');
         });
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        $schema->table('payroll_run_items', function ($table) {
+        Schema::table('payroll_run_items', function (Blueprint $table) {
             $table->dropColumn('socso_24h_employee');
         });
     }

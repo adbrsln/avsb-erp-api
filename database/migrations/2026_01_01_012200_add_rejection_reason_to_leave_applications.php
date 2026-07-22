@@ -1,19 +1,21 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema)
+    public function up(): void
     {
-        $schema->table('leave_applications', function ($table) {
+        Schema::table('leave_applications', function (Blueprint $table) {
             $table->text('rejection_reason')->nullable()->after('reason');
         });
     }
 
-    public function down(Builder $schema)
+    public function down(): void
     {
-        $schema->table('leave_applications', function ($table) {
+        Schema::table('leave_applications', function (Blueprint $table) {
             $table->dropColumn('rejection_reason');
         });
     }

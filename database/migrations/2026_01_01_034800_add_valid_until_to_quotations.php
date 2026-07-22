@@ -1,22 +1,24 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
-        if (! $schema->hasColumn('quotations', 'valid_until')) {
-            $schema->table('quotations', function ($table) {
+        if (! Schema::hasColumn('quotations', 'valid_until')) {
+            Schema::table('quotations', function (Blueprint $table) {
                 $table->date('valid_until')->nullable()->after('date');
             });
         }
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        if ($schema->hasColumn('quotations', 'valid_until')) {
-            $schema->table('quotations', function ($table) {
+        if (Schema::hasColumn('quotations', 'valid_until')) {
+            Schema::table('quotations', function (Blueprint $table) {
                 $table->dropColumn('valid_until');
             });
         }

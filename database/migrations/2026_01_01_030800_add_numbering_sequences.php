@@ -1,11 +1,12 @@
 <?php
 
-use Illuminate\Database\Capsule\Manager as Capsule;
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
         Capsule::table('numbering_sequences')->insert([
             [
@@ -35,7 +36,7 @@ return new class
         ]);
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
         Capsule::table('numbering_sequences')->whereIn('code', ['self_billed_invoice', 'subcontractor', 'subcontractor_claim'])->delete();
     }

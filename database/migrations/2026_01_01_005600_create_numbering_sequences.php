@@ -1,12 +1,14 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema)
+    public function up(): void
     {
-        $schema->create('numbering_sequences', function ($table) {
+        Schema::create('numbering_sequences', function (Blueprint $table) {
             $table->id();
             $table->string('code', 50)->unique();
             $table->string('prefix', 50);
@@ -18,8 +20,8 @@ return new class
         });
     }
 
-    public function down(Builder $schema)
+    public function down(): void
     {
-        $schema->dropIfExists('numbering_sequences');
+        Schema::dropIfExists('numbering_sequences');
     }
 };

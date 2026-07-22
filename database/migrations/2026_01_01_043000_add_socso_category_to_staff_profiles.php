@@ -1,19 +1,21 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
-        $schema->table('staff_profiles', function ($table) {
+        Schema::table('staff_profiles', function (Blueprint $table) {
             $table->string('socso_category', 10)->default('first')->after('socso_24h_enabled');
         });
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        $schema->table('staff_profiles', function ($table) {
+        Schema::table('staff_profiles', function (Blueprint $table) {
             $table->dropColumn('socso_category');
         });
     }

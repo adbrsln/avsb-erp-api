@@ -1,12 +1,14 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema)
+    public function up(): void
     {
-        $schema->table('staff_profiles', function ($table) {
+        Schema::table('staff_profiles', function (Blueprint $table) {
             $table->string('alternate_email')->nullable()->after('email');
             $table->string('identification_no', 50)->nullable()->after('phone');
             $table->string('employee_id', 50)->nullable()->after('identification_no');
@@ -46,9 +48,9 @@ return new class
         });
     }
 
-    public function down(Builder $schema)
+    public function down(): void
     {
-        $schema->table('staff_profiles', function ($table) {
+        Schema::table('staff_profiles', function (Blueprint $table) {
             $table->dropColumn([
                 'alternate_email', 'identification_no', 'employee_id',
                 'hire_date', 'joined_at', 'last_day', 'archive_reason',

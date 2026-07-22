@@ -1,17 +1,19 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
-        $schema->dropIfExists('project_service_lines');
+        Schema::dropIfExists('project_service_lines');
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        $schema->create('project_service_lines', function ($table) {
+        Schema::create('project_service_lines', function (Blueprint $table) {
             $table->id();
             $table->string('service_line_ref', 50)->unique();
             $table->foreignId('project_id')->constrained()->cascadeOnDelete();

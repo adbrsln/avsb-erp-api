@@ -1,19 +1,21 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema)
+    public function up(): void
     {
-        $schema->table('invoices', function ($table) {
+        Schema::table('invoices', function (Blueprint $table) {
             $table->string('payment_reference')->nullable()->after('processed_at');
         });
     }
 
-    public function down(Builder $schema)
+    public function down(): void
     {
-        $schema->table('invoices', function ($table) {
+        Schema::table('invoices', function (Blueprint $table) {
             $table->dropColumn('payment_reference');
         });
     }

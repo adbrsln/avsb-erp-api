@@ -1,31 +1,33 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
-        $schema->table('payroll_adjustments', function ($table) {
+        Schema::table('payroll_adjustments', function (Blueprint $table) {
             $table->dropForeign(['created_by']);
         });
-        $schema->table('payroll_adjustments', function ($table) {
+        Schema::table('payroll_adjustments', function (Blueprint $table) {
             $table->unsignedBigInteger('created_by')->nullable()->change();
         });
-        $schema->table('payroll_adjustments', function ($table) {
+        Schema::table('payroll_adjustments', function (Blueprint $table) {
             $table->foreign('created_by')->references('id')->on('staff_profiles')->nullOnDelete();
         });
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        $schema->table('payroll_adjustments', function ($table) {
+        Schema::table('payroll_adjustments', function (Blueprint $table) {
             $table->dropForeign(['created_by']);
         });
-        $schema->table('payroll_adjustments', function ($table) {
+        Schema::table('payroll_adjustments', function (Blueprint $table) {
             $table->unsignedBigInteger('created_by')->nullable(false)->change();
         });
-        $schema->table('payroll_adjustments', function ($table) {
+        Schema::table('payroll_adjustments', function (Blueprint $table) {
             $table->foreign('created_by')->references('id')->on('staff_profiles')->restrictOnDelete();
         });
     }

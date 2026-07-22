@@ -1,19 +1,21 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
-        if (! $schema->hasColumn('notification_queue', 'attachments')) {
-            $schema->table('notification_queue', function ($table) {
+        if (! Schema::hasColumn('notification_queue', 'attachments')) {
+            Schema::table('notification_queue', function (Blueprint $table) {
                 $table->json('attachments')->nullable()->after('context');
             });
         }
 
-        if (! $schema->hasTable('notification_preferences')) {
-            $schema->create('notification_preferences', function ($table) {
+        if (! Schema::hasTable('notification_preferences')) {
+            Schema::create('notification_preferences', function (Blueprint $table) {
                 $table->id();
                 $table->bigInteger('user_id');
                 $table->string('event_type', 100);
@@ -26,13 +28,13 @@ return new class
         }
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        if ($schema->hasColumn('notification_queue', 'attachments')) {
-            $schema->table('notification_queue', function ($table) {
+        if (Schema::hasColumn('notification_queue', 'attachments')) {
+            Schema::table('notification_queue', function (Blueprint $table) {
                 $table->dropColumn('attachments');
             });
         }
-        $schema->dropIfExists('notification_preferences');
+        Schema::dropIfExists('notification_preferences');
     }
 };

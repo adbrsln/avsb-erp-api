@@ -1,19 +1,21 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
-        $schema->table('attendance', function ($table) {
+        Schema::table('attendance', function (Blueprint $table) {
             $table->foreignId('project_id')->nullable()->constrained('projects')->nullOnDelete()->after('payroll_run_item_id');
         });
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        $schema->table('attendance', function ($table) {
+        Schema::table('attendance', function (Blueprint $table) {
             $table->dropConstrainedForeignId('project_id');
         });
     }

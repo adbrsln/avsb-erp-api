@@ -1,43 +1,45 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
-        $schema->table('projects', function ($table) {
+        Schema::table('projects', function (Blueprint $table) {
             $table->index('status');
         });
-        $schema->table('phases', function ($table) {
+        Schema::table('phases', function (Blueprint $table) {
             $table->index(['project_id', 'status']);
         });
-        $schema->table('tasks', function ($table) {
+        Schema::table('tasks', function (Blueprint $table) {
             $table->index(['phase_id', 'status']);
         });
-        $schema->table('invoices', function ($table) {
+        Schema::table('invoices', function (Blueprint $table) {
             $table->index(['project_id', 'status']);
         });
-        $schema->table('claims', function ($table) {
+        Schema::table('claims', function (Blueprint $table) {
             $table->index('status');
         });
-        $schema->table('leave_applications', function ($table) {
+        Schema::table('leave_applications', function (Blueprint $table) {
             $table->index('status');
         });
-        $schema->table('notification_queue', function ($table) {
+        Schema::table('notification_queue', function (Blueprint $table) {
             $table->index('status');
         });
-        $schema->table('journal_entries', function ($table) {
+        Schema::table('journal_entries', function (Blueprint $table) {
             $table->index(['reference_type', 'reference_id']);
         });
-        $schema->table('inventory_transactions', function ($table) {
+        Schema::table('inventory_transactions', function (Blueprint $table) {
             $table->index(['reference_type', 'reference_id']);
         });
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        $connection = $schema->getConnection();
+        $connection = Schema::getConnection();
         $schemaManager = $connection->getDoctrineSchemaManager();
 
         $tables = [

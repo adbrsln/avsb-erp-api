@@ -1,12 +1,14 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
-        $schema->table('company_settings', function ($table) {
+        Schema::table('company_settings', function (Blueprint $table) {
             $table->string('sst_registration_no', 20)->nullable();
             $table->string('tax_id_number', 20)->nullable();
             $table->string('msic_code', 10)->nullable();
@@ -16,9 +18,9 @@ return new class
         });
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        $schema->table('company_settings', function ($table) {
+        Schema::table('company_settings', function (Blueprint $table) {
             $table->dropColumn(['sst_registration_no', 'tax_id_number', 'msic_code', 'msic_description', 'business_phone', 'business_email']);
         });
     }

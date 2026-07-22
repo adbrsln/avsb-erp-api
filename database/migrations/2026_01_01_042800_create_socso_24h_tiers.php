@@ -1,12 +1,14 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
-        $schema->create('socso_24h_tiers', function ($table) {
+        Schema::create('socso_24h_tiers', function (Blueprint $table) {
             $table->id();
             $table->string('category', 10);
             $table->integer('phase')->default(1);
@@ -17,8 +19,8 @@ return new class
         });
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        $schema->dropIfExists('socso_24h_tiers');
+        Schema::dropIfExists('socso_24h_tiers');
     }
 };

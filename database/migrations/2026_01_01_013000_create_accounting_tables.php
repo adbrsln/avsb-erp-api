@@ -1,13 +1,15 @@
 <?php
 
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 use Carbon\Carbon;
-use Illuminate\Database\Schema\Builder;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema)
+    public function up(): void
     {
-        $schema->create('chart_of_accounts', function ($table) {
+        Schema::create('chart_of_accounts', function (Blueprint $table) {
             $table->id();
             $table->string('code', 20)->unique();
             $table->string('name');
@@ -19,7 +21,7 @@ return new class
             $table->timestamps();
         });
 
-        $schema->create('journal_entries', function ($table) {
+        Schema::create('journal_entries', function (Blueprint $table) {
             $table->id();
             $table->string('entry_number', 50)->unique();
             $table->date('entry_date');
@@ -32,7 +34,7 @@ return new class
             $table->timestamps();
         });
 
-        $schema->create('journal_entry_lines', function ($table) {
+        Schema::create('journal_entry_lines', function (Blueprint $table) {
             $table->id();
             $table->foreignId('journal_entry_id')->constrained()->cascadeOnDelete();
             $table->foreignId('account_id')->constrained('chart_of_accounts');
@@ -120,13 +122,13 @@ return new class
             'created_at' => $now,
             'updated_at' => $now,
         ], $a), $accounts);
-        $schema->getConnection()->table('chart_of_accounts')->insert($rows);
+        Schema::getConnection()->table('chart_of_accounts')->insert($rows);
     }
 
-    public function down(Builder $schema)
+    public function down(): void
     {
-        $schema->dropIfExists('journal_entry_lines');
-        $schema->dropIfExists('journal_entries');
-        $schema->dropIfExists('chart_of_accounts');
+        Schema::dropIfExists('journal_entry_lines');
+        Schema::dropIfExists('journal_entries');
+        Schema::dropIfExists('chart_of_accounts');
     }
 };

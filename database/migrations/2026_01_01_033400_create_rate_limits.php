@@ -1,12 +1,14 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
-        $schema->create('rate_limits', function ($table) {
+        Schema::create('rate_limits', function (Blueprint $table) {
             $table->id();
             $table->string('ip_hash', 64);
             $table->string('endpoint', 255)->default('/');
@@ -16,8 +18,8 @@ return new class
         });
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        $schema->dropIfExists('rate_limits');
+        Schema::dropIfExists('rate_limits');
     }
 };

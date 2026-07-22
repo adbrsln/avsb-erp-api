@@ -1,12 +1,14 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
-        $schema->create('subcontractors', function ($table) {
+        Schema::create('subcontractors', function (Blueprint $table) {
             $table->id();
             $table->string('subcontractor_code', 20)->unique();
             $table->string('company_name', 200);
@@ -29,8 +31,8 @@ return new class
         });
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        $schema->dropIfExists('subcontractors');
+        Schema::dropIfExists('subcontractors');
     }
 };

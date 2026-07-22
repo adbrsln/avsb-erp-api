@@ -1,12 +1,14 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema)
+    public function up(): void
     {
-        $schema->create('payroll_run_items', function ($table) {
+        Schema::create('payroll_run_items', function (Blueprint $table) {
             $table->id();
             $table->foreignId('payroll_run_id')->constrained()->cascadeOnDelete();
             $table->foreignId('employee_id')->constrained('staff_profiles')->restrictOnDelete();
@@ -23,8 +25,8 @@ return new class
         });
     }
 
-    public function down(Builder $schema)
+    public function down(): void
     {
-        $schema->dropIfExists('payroll_run_items');
+        Schema::dropIfExists('payroll_run_items');
     }
 };

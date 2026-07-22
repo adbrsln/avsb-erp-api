@@ -1,43 +1,45 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
         foreach (['quotations', 'contracts'] as $table) {
-            $apply = function ($t) use ($schema, $table) {
-                if (! $schema->hasColumn($table, 'buyer_tin')) {
+            $apply = function (Blueprint $t) use ($table) {
+                if (! Schema::hasColumn($table, 'buyer_tin')) {
                     $t->string('buyer_tin', 50)->nullable();
                 }
-                if (! $schema->hasColumn($table, 'buyer_reg_no')) {
+                if (! Schema::hasColumn($table, 'buyer_reg_no')) {
                     $t->string('buyer_reg_no', 50)->nullable();
                 }
-                if (! $schema->hasColumn($table, 'buyer_sst_reg_no')) {
+                if (! Schema::hasColumn($table, 'buyer_sst_reg_no')) {
                     $t->string('buyer_sst_reg_no', 20)->nullable();
                 }
-                if (! $schema->hasColumn($table, 'buyer_contact')) {
+                if (! Schema::hasColumn($table, 'buyer_contact')) {
                     $t->text('buyer_contact')->nullable();
                 }
-                if (! $schema->hasColumn($table, 'buyer_type')) {
+                if (! Schema::hasColumn($table, 'buyer_type')) {
                     $t->string('buyer_type', 20)->nullable();
                 }
-                if (! $schema->hasColumn($table, 'buyer_email')) {
+                if (! Schema::hasColumn($table, 'buyer_email')) {
                     $t->string('buyer_email', 255)->nullable();
                 }
-                if (! $schema->hasColumn($table, 'contact_phone')) {
+                if (! Schema::hasColumn($table, 'contact_phone')) {
                     $t->string('contact_phone', 50)->nullable();
                 }
             };
-            $schema->table($table, $apply);
+            Schema::table($table, $apply);
         }
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
         foreach (['quotations', 'contracts'] as $table) {
-            $schema->table($table, function ($t) {
+            Schema::table($table, function (Blueprint $t) {
                 $t->dropColumn(['buyer_tin', 'buyer_reg_no', 'buyer_sst_reg_no', 'buyer_contact', 'buyer_type', 'buyer_email', 'contact_phone']);
             });
         }

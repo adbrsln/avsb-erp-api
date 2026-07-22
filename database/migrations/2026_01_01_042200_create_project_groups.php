@@ -1,13 +1,15 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
         // 1. Create project_groups table
-        $schema->create('project_groups', function ($table) {
+        Schema::create('project_groups', function (Blueprint $table) {
             $table->id();
             $table->string('name', 255);
             $table->text('description')->nullable();
@@ -18,7 +20,7 @@ return new class
         });
 
         // 2. Create pivot table
-        $schema->create('project_project_group', function ($table) {
+        Schema::create('project_project_group', function (Blueprint $table) {
             $table->id();
             $table->foreignId('project_id')->constrained()->cascadeOnDelete();
             $table->foreignId('project_group_id')->constrained('project_groups')->cascadeOnDelete();
@@ -26,9 +28,9 @@ return new class
         });
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        $schema->dropIfExists('project_project_group');
-        $schema->dropIfExists('project_groups');
+        Schema::dropIfExists('project_project_group');
+        Schema::dropIfExists('project_groups');
     }
 };

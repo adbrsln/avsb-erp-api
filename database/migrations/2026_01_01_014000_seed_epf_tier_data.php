@@ -1,11 +1,13 @@
 <?php
 
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 use Carbon\Carbon;
-use Illuminate\Database\Schema\Builder;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema)
+    public function up(): void
     {
         // ─── Schedule Rules ──────────────────────────────────────────
         $rules = [
@@ -17,7 +19,7 @@ return new class
             ['schedule_code' => 'D', 'min_age' => 60, 'max_age' => null, 'citizenship' => 'citizen', 'is_pr' => 'any', 'elected_before_1998' => 'any', 'priority' => 2],
             ['schedule_code' => 'FLAT', 'min_age' => null, 'max_age' => null, 'citizenship' => 'non_citizen', 'is_pr' => 'no', 'elected_before_1998' => 'no', 'priority' => 0],
         ];
-        $schema->getConnection()->table('epf_schedule_rules')->insert($rules);
+        Schema::getConnection()->table('epf_schedule_rules')->insert($rules);
 
         // ─── Contribution Tiers ──────────────────────────────────────
         // [wage_from, wage_to, employer_amount, employee_amount] (KWSP official table)
@@ -426,7 +428,7 @@ return new class
         ];
 
         $now = Carbon::now();
-        $db = $schema->getConnection();
+        $db = Schema::getConnection();
 
         // Schedule A
         $rowsA = [];
@@ -450,9 +452,9 @@ return new class
         $db->table('epf_contribution_tiers')->insert($rowsD);
     }
 
-    public function down(Builder $schema)
+    public function down(): void
     {
-        $schema->getConnection()->table('epf_schedule_rules')->truncate();
-        $schema->getConnection()->table('epf_contribution_tiers')->truncate();
+        Schema::getConnection()->table('epf_schedule_rules')->truncate();
+        Schema::getConnection()->table('epf_contribution_tiers')->truncate();
     }
 };

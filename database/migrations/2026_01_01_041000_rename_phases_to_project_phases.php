@@ -1,20 +1,22 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
-        if ($schema->hasTable('phases')) {
-            $schema->rename('phases', 'project_phases');
+        if (Schema::hasTable('phases')) {
+            Schema::rename('phases', 'project_phases');
         }
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        if ($schema->hasTable('project_phases')) {
-            $schema->rename('project_phases', 'phases');
+        if (Schema::hasTable('project_phases')) {
+            Schema::rename('project_phases', 'phases');
         }
     }
 };

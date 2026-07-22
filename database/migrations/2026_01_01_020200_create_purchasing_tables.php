@@ -1,12 +1,14 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema)
+    public function up(): void
     {
-        $schema->create('vendors', function ($table) {
+        Schema::create('vendors', function (Blueprint $table) {
             $table->id();
             $table->string('vendor_code', 20)->unique();
             $table->string('company_name');
@@ -23,7 +25,7 @@ return new class
             $table->softDeletes();
         });
 
-        $schema->create('purchase_orders', function ($table) {
+        Schema::create('purchase_orders', function (Blueprint $table) {
             $table->id();
             $table->string('po_number', 50)->unique();
             $table->foreignId('vendor_id')->constrained()->restrictOnDelete();
@@ -37,7 +39,7 @@ return new class
             $table->timestamps();
         });
 
-        $schema->create('purchase_order_items', function ($table) {
+        Schema::create('purchase_order_items', function (Blueprint $table) {
             $table->id();
             $table->foreignId('purchase_order_id')->constrained()->cascadeOnDelete();
             $table->text('description');
@@ -48,7 +50,7 @@ return new class
             $table->foreignId('account_id')->nullable()->constrained('chart_of_accounts');
         });
 
-        $schema->create('bills', function ($table) {
+        Schema::create('bills', function (Blueprint $table) {
             $table->id();
             $table->string('bill_number', 50)->unique();
             $table->foreignId('vendor_id')->constrained()->restrictOnDelete();
@@ -66,7 +68,7 @@ return new class
             $table->timestamps();
         });
 
-        $schema->create('bill_items', function ($table) {
+        Schema::create('bill_items', function (Blueprint $table) {
             $table->id();
             $table->foreignId('bill_id')->constrained()->cascadeOnDelete();
             $table->text('description');
@@ -77,7 +79,7 @@ return new class
             $table->foreignId('account_id')->nullable()->constrained('chart_of_accounts');
         });
 
-        $schema->create('bill_payments', function ($table) {
+        Schema::create('bill_payments', function (Blueprint $table) {
             $table->id();
             $table->foreignId('bill_id')->constrained()->cascadeOnDelete();
             $table->decimal('amount', 12, 2);
@@ -89,7 +91,7 @@ return new class
             $table->timestamps();
         });
 
-        $schema->create('inventory_items', function ($table) {
+        Schema::create('inventory_items', function (Blueprint $table) {
             $table->id();
             $table->string('sku', 50)->unique();
             $table->string('name');
@@ -104,7 +106,7 @@ return new class
             $table->softDeletes();
         });
 
-        $schema->create('inventory_transactions', function ($table) {
+        Schema::create('inventory_transactions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('item_id')->constrained('inventory_items')->cascadeOnDelete();
             $table->string('type', 10); // in / out
@@ -118,12 +120,12 @@ return new class
         });
     }
 
-    public function down(Builder $schema)
+    public function down(): void
     {
         $tables = ['inventory_transactions', 'inventory_items', 'bill_payments', 'bill_items', 'bills',
             'purchase_order_items', 'purchase_orders', 'vendors'];
         foreach ($tables as $t) {
-            $schema->dropIfExists($t);
+            Schema::dropIfExists($t);
         }
     }
 };

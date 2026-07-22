@@ -1,34 +1,36 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema): void
+    public function up(): void
     {
-        $schema->table('invoices', function ($table) use ($schema) {
-            if (! $schema->hasColumn('invoices', 'client_id')) {
+        Schema::table('invoices', function (Blueprint $table) {
+            if (! Schema::hasColumn('invoices', 'client_id')) {
                 $table->unsignedBigInteger('client_id')->nullable()->after('client');
                 $table->foreign('client_id')->references('id')->on('clients')->onDelete('set null');
             }
-            if (! $schema->hasColumn('invoices', 'buyer_type')) {
+            if (! Schema::hasColumn('invoices', 'buyer_type')) {
                 $table->string('buyer_type', 20)->nullable()->after('buyer_tin');
             }
-            if (! $schema->hasColumn('invoices', 'buyer_email')) {
+            if (! Schema::hasColumn('invoices', 'buyer_email')) {
                 $table->string('buyer_email', 255)->nullable()->after('buyer_contact');
             }
-            if (! $schema->hasColumn('invoices', 'contact_phone')) {
+            if (! Schema::hasColumn('invoices', 'contact_phone')) {
                 $table->string('contact_phone', 50)->nullable()->after('buyer_email');
             }
-            if (! $schema->hasColumn('invoices', 'einvoice_status')) {
+            if (! Schema::hasColumn('invoices', 'einvoice_status')) {
                 $table->string('einvoice_status', 20)->nullable()->after('einvoice_type');
             }
         });
     }
 
-    public function down(Builder $schema): void
+    public function down(): void
     {
-        $schema->table('invoices', function ($table) {
+        Schema::table('invoices', function (Blueprint $table) {
             $table->dropForeign(['client_id']);
             $table->dropColumn(['client_id', 'buyer_type', 'buyer_email', 'contact_phone', 'einvoice_status']);
         });

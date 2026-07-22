@@ -1,12 +1,14 @@
 <?php
 
-use Illuminate\Database\Schema\Builder;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-return new class
+return new class extends Migration
 {
-    public function up(Builder $schema)
+    public function up(): void
     {
-        $schema->create('socso_contribution_tiers', function ($table) {
+        Schema::create('socso_contribution_tiers', function (Blueprint $table) {
             $table->id();
             $table->decimal('wage_from', 10, 2);
             $table->decimal('wage_to', 10, 2);
@@ -38,11 +40,11 @@ return new class
             $alt = 1 - $alt;
         }
 
-        $schema->getConnection()->table('socso_contribution_tiers')->insert($rows);
+        Schema::getConnection()->table('socso_contribution_tiers')->insert($rows);
     }
 
-    public function down(Builder $schema)
+    public function down(): void
     {
-        $schema->dropIfExists('socso_contribution_tiers');
+        Schema::dropIfExists('socso_contribution_tiers');
     }
 };
