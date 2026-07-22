@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Schema\Builder as SchemaBuilder;
 
 class MigrationRunner
@@ -17,8 +17,8 @@ class MigrationRunner
     {
         $this->schema = $schema;
         $this->ensureTrackingTable();
-        $this->batch = (int) Capsule::table('schema_migrations')->max('batch') + 1;
-        $this->applied = Capsule::table('schema_migrations')->pluck('migration')->all();
+        $this->batch = (int) DB::table('schema_migrations')->max('batch') + 1;
+        $this->applied = DB::table('schema_migrations')->pluck('migration')->all();
     }
 
     public function runUp(): array
@@ -49,14 +49,14 @@ class MigrationRunner
 
     public function rollbackLastBatch(): array
     {
-        $maxBatch = (int) Capsule::table('schema_migrations')->max('batch');
+        $maxBatch = (int) DB::table('schema_migrations')->max('batch');
         if ($maxBatch === 0) {
             echo "Nothing to roll back.\n";
 
             return [];
         }
 
-        $toRollback = Capsule::table('schema_migrations')
+        $toRollback = DB::table('schema_migrations')
             ->where('batch', $maxBatch)
             ->orderByDesc('migration')
             ->pluck('migration')
@@ -67,7 +67,7 @@ class MigrationRunner
             $file = __DIR__.'/../../database/migrations/'.$name;
             if (! file_exists($file)) {
                 echo "Skip: {$name} — file not found\n";
-                Capsule::table('schema_migrations')->where('migration', $name)->delete();
+                DB::table('schema_migrations')->where('migration', $name)->delete();
 
                 continue;
             }
@@ -76,7 +76,7 @@ class MigrationRunner
             echo "Rolling back: {$name}\n";
             try {
                 $migration->down($this->schema);
-                Capsule::table('schema_migrations')->where('migration', $name)->delete();
+                DB::table('schema_migrations')->where('migration', $name)->delete();
                 $results[] = ['file' => $name, 'status' => 'rolled_back'];
             } catch (\Exception $e) {
                 echo "Error: {$name} — {$e->getMessage()}\n";
@@ -89,7 +89,7 @@ class MigrationRunner
 
     public function rollbackAll(): array
     {
-        $all = Capsule::table('schema_migrations')
+        $all = DB::table('schema_migrations')
             ->orderByDesc('batch')
             ->orderByDesc('migration')
             ->pluck('migration')
@@ -106,7 +106,7 @@ class MigrationRunner
             $file = __DIR__.'/../../database/migrations/'.$name;
             if (! file_exists($file)) {
                 echo "Skip: {$name} — file not found\n";
-                Capsule::table('schema_migrations')->where('migration', $name)->delete();
+                DB::table('schema_migrations')->where('migration', $name)->delete();
 
                 continue;
             }
@@ -115,7 +115,7 @@ class MigrationRunner
             echo "Rolling back: {$name}\n";
             try {
                 $migration->down($this->schema);
-                Capsule::table('schema_migrations')->where('migration', $name)->delete();
+                DB::table('schema_migrations')->where('migration', $name)->delete();
                 $results[] = ['file' => $name, 'status' => 'rolled_back'];
             } catch (\Exception $e) {
                 echo "Error: {$name} — {$e->getMessage()}\n";
@@ -138,7 +138,7 @@ class MigrationRunner
 
         try {
             $migration->up($this->schema);
-            Capsule::table('schema_migrations')->insert([
+            DB::table('schema_migrations')->insert([
                 'migration' => $name,
                 'batch' => $this->batch,
             ]);
@@ -154,7 +154,7 @@ class MigrationRunner
                 str_contains($msg, 'Duplicate entry') ||
                 str_contains($msg, 'Base table or view already exists')
             ) {
-                Capsule::table('schema_migrations')->insert([
+                DB::table('schema_migrations')->insert([
                     'migration' => $name,
                     'batch' => $this->batch,
                 ]);

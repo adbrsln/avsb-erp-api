@@ -8,7 +8,7 @@ use App\Models\Project;
 use App\Models\ProjectType;
 use App\Models\StaffProfile;
 use App\Models\Task;
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Support\Facades\DB;
 
 class PivotSeeder
 {
@@ -37,7 +37,7 @@ class PivotSeeder
             $assigned = array_merge($assigned, $extra);
 
             foreach (array_unique($assigned) as $sid) {
-                Capsule::table('project_staff_pics')->updateOrInsert(
+                DB::table('project_staff_pics')->updateOrInsert(
                     ['project_id' => $p->id, 'staff_id' => $sid],
                     ['project_id' => $p->id, 'staff_id' => $sid]
                 );
@@ -49,7 +49,7 @@ class PivotSeeder
             $count = rand(1, 3);
             $randomStaff = $staff->random(min($count, $staff->count()));
             foreach ($randomStaff as $s) {
-                Capsule::table('phase_staff')->updateOrInsert(
+                DB::table('phase_staff')->updateOrInsert(
                     ['phase_id' => $ph->id, 'staff_id' => $s->id],
                     ['phase_id' => $ph->id, 'staff_id' => $s->id]
                 );
@@ -60,7 +60,7 @@ class PivotSeeder
         foreach ($tasks as $t) {
             $randomStaff = $staff->random(rand(1, 2));
             foreach ($randomStaff as $s) {
-                Capsule::table('task_staff')->updateOrInsert(
+                DB::table('task_staff')->updateOrInsert(
                     ['task_id' => $t->id, 'staff_id' => $s->id],
                     ['task_id' => $t->id, 'staff_id' => $s->id]
                 );
@@ -70,12 +70,12 @@ class PivotSeeder
         // project_type_phase_template — ensure all project types have templates linked
         if ($projectTypes->isNotEmpty() && $phaseTemplates->isNotEmpty()) {
             foreach ($projectTypes as $pt) {
-                $existing = Capsule::table('project_type_phase_template')
+                $existing = DB::table('project_type_phase_template')
                     ->where('project_type_id', $pt->id)->count();
                 if ($existing === 0) {
                     $templates = $phaseTemplates->random(min(4, $phaseTemplates->count()));
                     foreach ($templates as $idx => $tpl) {
-                        Capsule::table('project_type_phase_template')->insert([
+                        DB::table('project_type_phase_template')->insert([
                             'project_type_id' => $pt->id,
                             'phase_template_id' => $tpl->id,
                             'sort_order' => $idx + 1,

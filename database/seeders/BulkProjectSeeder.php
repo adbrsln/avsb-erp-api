@@ -10,7 +10,7 @@ use App\Models\ProjectType;
 use App\Models\StaffProfile;
 use App\Models\Task;
 use App\Services\NumberingService;
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Support\Facades\DB;
 
 class BulkProjectSeeder
 {
@@ -88,7 +88,7 @@ class BulkProjectSeeder
             // Assign staff to project
             $assignedStaff = $staff->random(rand(2, 5));
             foreach ($assignedStaff as $s) {
-                Capsule::table('project_staff_pics')->insert([
+                DB::table('project_staff_pics')->insert([
                     'project_id' => $project->id,
                     'staff_id' => $s->id,
                 ]);

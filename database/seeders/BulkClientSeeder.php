@@ -5,16 +5,16 @@ namespace Database\Seeders;
 use App\Helpers\MalaysianDataGenerator as G;
 use App\Models\Client;
 use App\Models\ClientPIC;
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Support\Facades\DB;
 
 class BulkClientSeeder
 {
     public function run(): void
     {
-        Capsule::connection()->statement('SET FOREIGN_KEY_CHECKS = 0');
+        DB::statement('SET FOREIGN_KEY_CHECKS = 0');
         Client::truncate();
         ClientPIC::truncate();
-        Capsule::connection()->statement('SET FOREIGN_KEY_CHECKS = 1');
+        DB::statement('SET FOREIGN_KEY_CHECKS = 1');
 
         $batch = [];
         $usedNames = [];

@@ -7,7 +7,7 @@ use App\Models\StaffLeaveBalance;
 use App\Models\StaffProfile;
 use App\Models\User;
 use App\Models\UserRole;
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Support\Facades\DB;
 
 class BulkStaffSeeder
 {
@@ -19,11 +19,11 @@ class BulkStaffSeeder
             return;
         }
 
-        Capsule::connection()->statement('SET FOREIGN_KEY_CHECKS = 0');
+        DB::statement('SET FOREIGN_KEY_CHECKS = 0');
         StaffProfile::truncate();
         User::truncate();
         UserRole::truncate();
-        Capsule::connection()->statement('SET FOREIGN_KEY_CHECKS = 1');
+        DB::statement('SET FOREIGN_KEY_CHECKS = 1');
 
         $staffBatch = G::generateStaffBatch(150);
 

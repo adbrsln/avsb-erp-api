@@ -4,15 +4,15 @@ namespace Database\Seeders;
 
 use App\Helpers\MalaysianDataGenerator as G;
 use App\Models\Vendor;
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Support\Facades\DB;
 
 class BulkVendorSeeder
 {
     public function run(): void
     {
-        Capsule::connection()->statement('SET FOREIGN_KEY_CHECKS = 0');
+        DB::statement('SET FOREIGN_KEY_CHECKS = 0');
         Vendor::truncate();
-        Capsule::connection()->statement('SET FOREIGN_KEY_CHECKS = 1');
+        DB::statement('SET FOREIGN_KEY_CHECKS = 1');
 
         $batch = [];
         for ($i = 0; $i < 150; $i++) {

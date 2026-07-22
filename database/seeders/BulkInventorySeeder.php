@@ -5,16 +5,16 @@ namespace Database\Seeders;
 use App\Helpers\MalaysianDataGenerator as G;
 use App\Models\InventoryItem;
 use App\Models\InventoryTransaction;
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Support\Facades\DB;
 
 class BulkInventorySeeder
 {
     public function run(): void
     {
-        Capsule::connection()->statement('SET FOREIGN_KEY_CHECKS = 0');
+        DB::statement('SET FOREIGN_KEY_CHECKS = 0');
         InventoryItem::truncate();
         InventoryTransaction::truncate();
-        Capsule::connection()->statement('SET FOREIGN_KEY_CHECKS = 1');
+        DB::statement('SET FOREIGN_KEY_CHECKS = 1');
 
         $categories = [
             'Asphalt & Bitumen' => ['ACW14 Asphalt', 'ACB28 Asphalt', 'Bitumen 60/70', 'Bitumen 80/100', 'Tack Coat', 'Prime Coat'],
