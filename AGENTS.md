@@ -205,11 +205,6 @@ Full migration from Slim 4 (avsb-erp/api/) to Laravel 13 (avsb-erp-api/).
 - MinIO (S3-compatible) at localhost:9000 via `FileStorageService`
 - Config vars: `STORAGE_DRIVER=r2`, `R2_ENDPOINT`, `R2_BUCKET=avsb-uploads`
 
-### Remaining Gaps
-- 2 Slim endpoints not ported: `/audit-logs/export`, `/payroll/me/download-payslip`
-- 3 Pest tests skipped (edge cases needing specific DB records)
-- StaffSeeder had schema mismatch — fixed (removed `role` from staff_profiles data, column migrated to user_roles)
-
 ### Post-Migration Fixes Applied
 - **Factories**: 28 Laravel factories created with Malaysian Faker data
 - **HasFactory**: added to all 79 models
@@ -217,12 +212,33 @@ Full migration from Slim 4 (avsb-erp/api/) to Laravel 13 (avsb-erp-api/).
 - **ClientSeeder**: `create` → `firstOrCreate` for idempotent re-runs
 - **RoadMarkingSeeder**: removed `status` from client data (column doesn't exist on clients table)
 - **FileStorageService**: `validateUpload` PSR-7 UploadedFileInterface → Laravel UploadedFile
+- **FileStorageService**: `$_ENV` → `config()` for all storage config (R2/MinIO)
+- **FileStorageService**: `use_path_style_endpoint` comparison fixed (was `=== 'true'`, now truthy check)
 - **ProjectAccess/StaffHelper traits**: PSR-7 ServerRequestInterface → Illuminate Request
 - **LogsErrors trait**: base Controller now has `logError()` + `errorResponse()` helpers
 - **Exception handler**: all API errors logged with context (url, method, user_id, ip)
-- **Route aliases**: added `/audit-logs`, `/settings/company`, `/payroll/me/payslips`, `/staff/me/*` for frontend compatibility
+- **Route aliases**: added `/audit-logs`, `/settings/company`, `/payroll/me/payslips`, `/staff/me/*`, `/projects/{id}/subcontractors` (GET), `/payments/pending` for frontend compatibility
 - **DatabaseSeeder**: Laravel wrapper delegates to AvsbSeeder orchestrator
 - **Seeders**: namespace `App\Seeds\*` → `Database\Seeders\*`, moved to `database/seeders/`
 - **Migrations**: all 138 converted from `return new class` to `extends Migration` with Schema facade
 - **Capsule references**: zero remaining in codebase (all replaced with DB facade)
+- **VAPID**: wired through `config/services.php` instead of `$_ENV`
+- **PushNotificationService**: installed `minishlink/web-push` v10.1, removed 6 abandoned packages
+- **PayrollProcessor**: fixed `$socso24` → `$socso24Amount` typo
+- **AttendanceController**: `servePhoto` return type `JsonResponse` → `mixed` (allowed binary Response)
+- **Multiple punches per day**: dropped unique(`staff_id`,`date`) on attendance, always creates new records
+- **Attendance photo route**: added `/{type}` param to match frontend expectation
+- **CI pipeline**: PHP 8.4, SQLite tests, deploy on pass, Telegram on failure
+- **Deployment**: nginx.conf, supervisor.conf, deploy README added
+
+### Test Suite
+- **125 Pest tests** across 10 files covering all domains
+- **TestDataSeeder**: minimal data for auth + core entities
+- **SQLite in-memory**: no MySQL dependency for tests
+- **Run**: `php artisan test` or `php artisan test --compact`
+- **Status**: 116 pass, 9 skip (no seed data), 0 fail
+
+### Production Fixes (applied)
+- **MinIO path style**: `env('R2_USE_PATH_STYLE')` returns boolean, `=== 'true'` comparison failed
+- **servePhoto TypeError**: binary response vs JsonResponse return type mismatch
 

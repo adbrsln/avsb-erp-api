@@ -109,7 +109,7 @@ class PayrollProcessor
                 'socso_employee' => $socso->employeeAmount,
                 'eis_employer' => $eis->employerAmount,
                 'eis_employee' => $eis->employeeAmount,
-                'socso_24h_employee' => $socso24['amount'],
+                'socso_24h_employee' => $socso24Amount,
             ];
         }
 
