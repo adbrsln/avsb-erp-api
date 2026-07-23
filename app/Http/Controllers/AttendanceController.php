@@ -89,7 +89,7 @@ class AttendanceController extends Controller
             ]);
         }
 
-        $existing = Attendance::where('staff_id', $staffId)->where('date', $today)->first();
+        $existing = Attendance::where('staff_id', $staffId)->where('date', $today)->latest()->first();
 
         if ($existing && ! $existing->clock_out) {
             return response()->json(['error' => 'Already clocked in today', 'attendance' => $existing->toArray()], 422);
@@ -113,28 +113,7 @@ class AttendanceController extends Controller
         $photoPath = 'uploads/attendance/'.date('Y').'/'.date('m').'/'.$filename;
         $this->storage->put($photoPath, file_get_contents($photo->getPathname()), $photo->getClientMimeType());
 
-        if ($existing) {
-            $record = $existing;
-            $record->update([
-                'clock_in' => $now,
-                'clock_out' => null,
-                'total_hours' => 0,
-                'clock_in_photo' => $photoPath,
-                'clock_in_latitude' => $lat,
-                'clock_in_longitude' => $lng,
-                'clock_in_ip' => $request->ip(),
-                'clock_out_ip' => null,
-                'clock_out_photo' => null,
-                'status' => 'present',
-                'flagged' => false,
-                'flagged_reason' => null,
-                'project_id' => $projectId,
-            ]);
-            $record->refresh();
-
-            return response()->json($record->toArray());
-        }
-
+        // Always create a new record — supports multiple punches per day
         $record = Attendance::create([
             'staff_id' => $staffId,
             'date' => $today,
@@ -268,7 +247,7 @@ class AttendanceController extends Controller
             return response()->json(['attendance' => null, 'staff' => null]);
         }
 
-        $today = Attendance::with('project:id,name')->where('staff_id', $staff->id)->where('date', date('Y-m-d'))->first();
+        $today = Attendance::with('project:id,name')->where('staff_id', $staff->id)->where('date', date('Y-m-d'))->latest()->first();
 
         return response()->json([
             'attendance' => $today ? $today->toArray() : null,

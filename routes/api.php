@@ -321,7 +321,7 @@ Route::prefix('v1')->group(function () {
         Route::get('attendance/summary', [AttendanceController::class, 'summary']);
         Route::get('attendance/export', [AttendanceController::class, 'exportCsv']);
         Route::post('attendance/{id}/clear-flag', [AttendanceController::class, 'clearFlag']);
-        Route::get('attendance/{id}/photo', [AttendanceController::class, 'servePhoto']);
+        Route::get('attendance/{id}/photo/{type}', [AttendanceController::class, 'servePhoto']);
 
         // ── Leave ──
         Route::get('leaves', [LeaveController::class, 'index']);
