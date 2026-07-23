@@ -85,6 +85,7 @@ Route::prefix('v1')->group(function () {
 
         // ── Auth ──
         Route::get('auth/me', [AuthController::class, 'me']);
+        Route::post('auth/verify', [AuthController::class, 'verify']);
         Route::post('auth/logout', [AuthController::class, 'logout']);
         Route::put('auth/change-password', [AuthController::class, 'changePassword']);
         Route::post('auth/verify-password', [AuthController::class, 'verifyPassword']);
@@ -296,6 +297,8 @@ Route::prefix('v1')->group(function () {
         Route::post('invoices/{id}/submit-einvoice', [InvoiceController::class, 'submitEInvoice']);
         Route::post('invoices/{id}/cancel-einvoice', [InvoiceController::class, 'cancelEInvoice']);
         Route::post('invoices/{id}/resubmit-einvoice', [InvoiceController::class, 'resubmitEInvoice']);
+        Route::post('invoices/{id}/revert-to-draft', [InvoiceController::class, 'restore']);
+        Route::get('invoices/{id}/einvoice-status', [EInvoiceController::class, 'submissionStatus']);
 
         // ── Self-Billed Invoices ──
         Route::get('self-billed-invoices', [SelfBilledInvoiceController::class, 'index']);
@@ -429,6 +432,7 @@ Route::prefix('v1')->group(function () {
         Route::put('purchase-orders/{id}', [PurchaseOrderController::class, 'update']);
         Route::delete('purchase-orders/{id}', [PurchaseOrderController::class, 'destroy']);
         Route::post('purchase-orders/{id}/receive', [PurchaseOrderController::class, 'receive']);
+        Route::post('purchase-orders/{id}/submit', [PurchaseOrderController::class, 'submit']);
         Route::get('bills', [BillController::class, 'index']);
         Route::post('bills', [BillController::class, 'store']);
         Route::get('bills/{id}', [BillController::class, 'show']);
@@ -570,6 +574,7 @@ Route::prefix('v1')->group(function () {
         Route::post('einvoice/tax-codes', [EInvoiceController::class, 'manageTaxCodes']);
         Route::post('einvoice/upload-cert', [EInvoiceController::class, 'uploadCert']);
         Route::post('einvoice/webhook', [EInvoiceController::class, 'webhook']);
+        Route::post('einvoice/batch-submit', [EInvoiceController::class, 'batchSubmit']);
 
         // ── Self-Billed E-Invoice ──
         Route::post('self-billed-invoices/{id}/submit-einvoice', [SelfBilledInvoiceController::class, 'submitEInvoice']);
