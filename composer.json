@@ -15,7 +15,8 @@
         "laravel/framework": "^13.8",
         "laravel/sanctum": "^4.3",
         "laravel/tinker": "^3.0",
-        "minishlink/web-push": "^10.1"
+        "minishlink/web-push": "^10.1",
+        "phpmailer/phpmailer": "*"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
