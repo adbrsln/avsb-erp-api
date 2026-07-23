@@ -106,7 +106,7 @@ class FileStorageService
                 'version' => 'latest',
                 'region' => $storage['r2_region'] ?? ($customEndpoint ? 'us-east-1' : 'auto'),
                 'endpoint' => $customEndpoint ?: $defaultEndpoint,
-                'use_path_style_endpoint' => ($storage['r2_use_path_style'] ?? 'true') === 'true',
+                'use_path_style_endpoint' => ($storage['r2_use_path_style'] ?? true) ? true : false,
                 'credentials' => [
                     'key' => $storage['r2_access_key_id'] ?? '',
                     'secret' => $storage['r2_secret_access_key'] ?? '',

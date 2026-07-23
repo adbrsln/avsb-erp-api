@@ -25,7 +25,7 @@ return [
         'r2_region' => env('R2_REGION', 'us-east-1'),
         'r2_access_key_id' => env('R2_ACCESS_KEY_ID', ''),
         'r2_secret_access_key' => env('R2_SECRET_ACCESS_KEY', ''),
-        'r2_use_path_style' => env('R2_USE_PATH_STYLE', 'true'),
+        'r2_use_path_style' => env('R2_USE_PATH_STYLE', true),
     ],
 
 ];
