@@ -11,11 +11,21 @@ use App\Models\InventoryTransaction;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use App\Models\Vendor;
+use Illuminate\Support\Facades\DB;
 
 class BulkPurchasingSeeder
 {
     public function run(): void
     {
+        // Truncate for idempotent re-runs
+        DB::statement('SET FOREIGN_KEY_CHECKS = 0');
+        BillPayment::truncate();
+        BillItem::truncate();
+        Bill::truncate();
+        PurchaseOrderItem::truncate();
+        PurchaseOrder::truncate();
+        DB::statement('SET FOREIGN_KEY_CHECKS = 1');
+
         $vendors = Vendor::all();
         $items = InventoryItem::all();
         $coa = ChartOfAccount::all();
