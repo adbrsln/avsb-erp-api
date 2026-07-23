@@ -90,25 +90,26 @@ class FileStorageService
 
     public function __construct()
     {
-        $this->driver = $_ENV['STORAGE_DRIVER'] ?? 'local';
-        $this->bucket = $_ENV['R2_BUCKET'] ?? 'avsb-erp';
+        $storage = config('services.storage');
+        $this->driver = $storage['driver'] ?? 'local';
+        $this->bucket = $storage['bucket'] ?? 'avsb-uploads';
         $this->localRoot = __DIR__.'/../../uploads';
 
         if ($this->driver === 'r2') {
-            $accountId = $_ENV['R2_ACCOUNT_ID'] ?? '';
+            $accountId = $storage['r2_account_id'] ?? '';
             $defaultEndpoint = $accountId
                 ? "https://{$accountId}.r2.cloudflarestorage.com"
                 : 'http://localhost:9000';
 
-            $hasCustomEndpoint = ! empty($_ENV['R2_ENDPOINT']);
+            $customEndpoint = $storage['r2_endpoint'] ?? '';
             $this->s3 = new S3Client([
                 'version' => 'latest',
-                'region' => $_ENV['R2_REGION'] ?? ($hasCustomEndpoint ? 'us-east-1' : 'auto'),
-                'endpoint' => $hasCustomEndpoint ? $_ENV['R2_ENDPOINT'] : $defaultEndpoint,
-                'use_path_style_endpoint' => ($_ENV['R2_USE_PATH_STYLE'] ?? '') === 'true',
+                'region' => $storage['r2_region'] ?? ($customEndpoint ? 'us-east-1' : 'auto'),
+                'endpoint' => $customEndpoint ?: $defaultEndpoint,
+                'use_path_style_endpoint' => ($storage['r2_use_path_style'] ?? 'true') === 'true',
                 'credentials' => [
-                    'key' => $_ENV['R2_ACCESS_KEY_ID'] ?? '',
-                    'secret' => $_ENV['R2_SECRET_ACCESS_KEY'] ?? '',
+                    'key' => $storage['r2_access_key_id'] ?? '',
+                    'secret' => $storage['r2_secret_access_key'] ?? '',
                 ],
             ]);
         }
