@@ -1,0 +1,77 @@
+name: Deploy Laravel via SSH
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ── Deploy via SSH ──
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script: |
+            set -e
+
+            cd /home/deployer/workspace/avsb-erp-api
+
+            # ── Pull latest code ──
+            git pull origin main
+
+            # ── Install PHP dependencies ──
+            composer install --no-dev --no-interaction --optimize-autoloader
+
+            # ── Run database migrations ──
+            php artisan migrate --force
+
+            # ── Cache Laravel config, routes, and views ──
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+
+            # ── Clear old cached views from previous deploys ──
+            php artisan optimize
+
+            # ── Restart queue worker (if using database queue) ──
+            php artisan queue:restart 2>/dev/null || true
+
+            # ── Set permissions (www-data for web server) ──
+            chown -R www-data:www-data storage bootstrap/cache 2>/dev/null || true
+            chmod -R 775 storage bootstrap/cache 2>/dev/null || true
+
+      # ── Send deployment notification ──
+      - name: Send Telegram Notification
+        if: always()
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script: |
+            STATUS="${{ job.status }}"
+            if [ "$STATUS" = "success" ]; then
+              ICON="✅"
+            elif [ "$STATUS" = "failure" ]; then
+              ICON="❌"
+            else
+              ICON="⚠️"
+            fi
+            MESSAGE="${ICON} *Deploy ${STATUS}*
+            📦 *Repository:* ${{ github.repository }}
+            🌿 *Branch:* \`${{ github.ref_name }}\`
+            🔗 ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            curl -s -X POST "https://bot.adbroslan.com/webhook.php" \
+              -H "Content-Type: application/json" \
+              -H "X-Telegram-Bot-Api-Secret-Token: ${{ secrets.WEBHOOK_BOT_UUID }}" \
+              -d "$(jq -n --arg cid '${{ secrets.WEBHOOK_BOT_CHAT_ID }}' --arg msg "$MESSAGE" '{chat_id: $cid, message: $msg}')"
