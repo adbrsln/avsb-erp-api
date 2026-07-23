@@ -27,13 +27,14 @@ class BulkAccountingSeeder
         for ($m = 1; $m <= 12; $m++) {
             $start = '2024-'.str_pad($m, 2, '0', STR_PAD_LEFT).'-01';
             $end = date('Y-m-t', strtotime($start));
-            FiscalPeriod::create([
-                'name' => date('F Y', strtotime($start)),
-                'start_date' => $start,
-                'end_date' => $end,
-                'type' => 'month',
-                'status' => $m <= 6 ? 'closed' : 'open',
-            ]);
+            FiscalPeriod::firstOrCreate(
+                ['start_date' => $start, 'end_date' => $end],
+                [
+                    'name' => date('F Y', strtotime($start)),
+                    'type' => 'month',
+                    'status' => $m <= 6 ? 'closed' : 'open',
+                ]
+            );
         }
 
         $jeDescriptions = [
