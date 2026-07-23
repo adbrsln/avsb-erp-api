@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Helpers\MalaysianDataGenerator as G;
 use App\Models\PayrollAdjustment;
 use App\Models\PayrollPeriod;
 use App\Models\PayrollRunItem;
@@ -17,7 +16,6 @@ class BulkPayrollSeeder
             return;
         }
 
-        // 12 monthly periods
         $periods = [];
         for ($m = 1; $m <= 12; $m++) {
             $start = '2024-'.str_pad($m, 2, '0', STR_PAD_LEFT).'-01';
@@ -32,8 +30,6 @@ class BulkPayrollSeeder
             ]);
         }
 
-        // Run items for each staff × 6 closed months = up to 900 items
-        // But we want ~150, so do first 2 months for all staff (300 items) or sample
         $closedPeriods = array_slice($periods, 0, 2);
         $itemCount = 0;
 
@@ -42,7 +38,7 @@ class BulkPayrollSeeder
                 if ($itemCount >= 180) {
                     break 2;
                 }
-                $salary = $s->basic_salary ?: G::randomAmount(2500, 7000);
+                $salary = $s->basic_salary ?: fake()->randomFloat(2, 2500, 7000);
 
                 PayrollRunItem::create([
                     'period_id' => $period->id,
@@ -70,7 +66,6 @@ class BulkPayrollSeeder
             }
         }
 
-        // Add adjustments for ~60 items
         $items = PayrollRunItem::all();
         $adjCount = 0;
         foreach ($items as $item) {
@@ -82,7 +77,7 @@ class BulkPayrollSeeder
                     'payroll_run_item_id' => $item->id,
                     'type' => 'earnings',
                     'label' => 'Overtime Allowance',
-                    'amount' => G::randomAmount(50, 500),
+                    'amount' => fake()->randomFloat(2, 50, 500),
                     'created_by' => 1,
                 ]);
                 $adjCount++;
@@ -92,7 +87,7 @@ class BulkPayrollSeeder
                     'payroll_run_item_id' => $item->id,
                     'type' => 'deductions',
                     'label' => 'Late Deduction',
-                    'amount' => G::randomAmount(10, 100),
+                    'amount' => fake()->randomFloat(2, 10, 100),
                     'created_by' => 1,
                 ]);
                 $adjCount++;

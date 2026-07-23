@@ -25,7 +25,7 @@ class BulkActivitySeeder
         ];
 
         $batch = [];
-        for ($i = 0; $i < 200; $i++) {
+        for ($i = 0; $i < 500; $i++) {
             $subjectType = $subjects[array_rand($subjects)];
             $ts = date('Y-m-d H:i:s', strtotime('2024-01-01 +'.rand(0, 364).' days '.rand(8, 18).':'.rand(0, 59).':00'));
 

@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Helpers\MalaysianDataGenerator as G;
 use App\Models\ChartOfAccount;
 use App\Models\Contract;
 use App\Models\FiscalPeriod;
@@ -21,11 +20,7 @@ class BulkAccountingSeeder
 
         $cashAcct = $coa->where('code', '1102')->first();
         $receivableAcct = $coa->where('code', '1104')->first();
-        $revenueAcct = $coa->where('code', '4101')->first();
-        $sstPayableAcct = $coa->where('code', '2107')->first();
-        $expenseAcct = $coa->where('code', '6203')->first();
 
-        // Fiscal periods (monthly 2024)
         for ($m = 1; $m <= 12; $m++) {
             $start = '2024-'.str_pad($m, 2, '0', STR_PAD_LEFT).'-01';
             $end = date('Y-m-t', strtotime($start));
@@ -38,7 +33,6 @@ class BulkAccountingSeeder
             ]);
         }
 
-        // ~50 Journal Entries
         $jeDescriptions = [
             'Revenue recognition', 'Operating expenses', 'Payroll processing',
             'Material purchase', 'Equipment acquisition', 'Client payment received',
@@ -66,13 +60,12 @@ class BulkAccountingSeeder
                     'posted_at' => $entryDate.' 17:00:00',
                 ]);
 
-                // 2-3 lines per JE
                 $numLines = rand(2, 3);
                 $totalDebit = 0;
                 $lines = [];
                 for ($l = 0; $l < $numLines; $l++) {
                     $acct = $allAccounts[array_rand($allAccounts)];
-                    $amount = G::randomAmount(1000, 50000);
+                    $amount = fake()->randomFloat(2, 1000, 50000);
                     $isDebit = $l === 0 || ($l < $numLines - 1 && rand(0, 1));
 
                     $lines[] = [
@@ -89,28 +82,26 @@ class BulkAccountingSeeder
             }
         }
 
-        // Invoice payments for existing invoices (~50)
         $invoices = Invoice::all();
         foreach ($invoices as $inv) {
             if ($cashAcct && $receivableAcct) {
                 InvoicePayment::create([
                     'invoice_id' => $inv->id,
                     'amount' => $inv->total,
-                    'payment_date' => G::randomDate('2024-01-01', '2024-12-31'),
+                    'payment_date' => fake()->dateTimeBetween('2024-01-01', '2024-12-31'),
                     'debit_account_id' => $cashAcct->id,
                     'credit_account_id' => $receivableAcct->id,
                     'payment_reference' => 'TT-BULK-'.str_pad(rand(1000, 9999), 4, '0', STR_PAD_LEFT),
                     'notes' => 'Bulk generated payment',
                 ]);
 
-                $inv->update(['status' => 'paid', 'processed_at' => date('Y-m-d H:i:s')]);
+                $inv->update(['status' => 'paid', 'processed_at' => now()]);
 
                 if ($inv->contract_id) {
                     $contract = Contract::find($inv->contract_id);
                     if ($contract && $contract->billing_milestones) {
                         $milestones = is_array($contract->billing_milestones) ? $contract->billing_milestones : (json_decode($contract->billing_milestones ?? '[]', true) ?: []);
                         $changed = false;
-                        // First try marking billed milestones as paid
                         $foundBilled = false;
                         foreach ($milestones as $idx => $m) {
                             if (($m['status'] ?? '') === 'billed') {
@@ -119,7 +110,6 @@ class BulkAccountingSeeder
                                 $foundBilled = true;
                             }
                         }
-                        // If no billed milestones found, mark first pending as paid
                         if (! $foundBilled) {
                             foreach ($milestones as $idx => $m) {
                                 if (($m['status'] ?? '') === 'pending') {

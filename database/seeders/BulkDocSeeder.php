@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Helpers\MalaysianDataGenerator as G;
 use App\Models\InventoryItem;
 use App\Models\Project;
 use App\Models\ProjectClaim;
@@ -23,7 +22,6 @@ class BulkDocSeeder
         }
         $uploader = $staff->first()?->id ?? 1;
 
-        // ~150 Project Documents
         $categories = ['photo', 'report', 'drawing', 'certificate', 'correspondence', 'photo', 'other'];
         $extensions = ['.jpg', '.pdf', '.pdf', '.pdf', '.pdf', '.png', '.xlsx'];
         $mimes = ['image/jpeg', 'application/pdf', 'application/pdf', 'application/pdf', 'application/pdf', 'image/png', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
@@ -50,11 +48,10 @@ class BulkDocSeeder
             ProjectDocument::insert($chunk);
         }
 
-        // ~50 Project Claims with documents
         for ($i = 0; $i < 50; $i++) {
             $p = $projects->random();
-            $amount = G::randomAmount(10000, 200000);
-            $status = ['submitted', 'approved', 'paid', 'submitted'][array_rand([0, 1, 2, 3])];
+            $amount = fake()->randomFloat(2, 10000, 200000);
+            $status = fake()->randomElement(['submitted', 'approved', 'paid', 'submitted']);
 
             $claim = ProjectClaim::create([
                 'claim_number' => 'PC-BULK-'.str_pad($i + 1, 4, '0', STR_PAD_LEFT),
@@ -65,9 +62,9 @@ class BulkDocSeeder
                 'status' => $status,
                 'submitted_by' => $uploader,
                 'approved_by' => $status !== 'submitted' ? 1 : null,
-                'submitted_at' => G::randomDate('2024-01-01', '2024-12-31').' 10:00:00',
-                'approved_at' => $status !== 'submitted' ? G::randomDate('2024-02-01', '2024-12-31').' 14:00:00' : null,
-                'items' => json_encode([['description' => 'Work done', 'amount' => $amount * 0.8], ['description' => 'Materials', 'amount' => $amount * 0.2]]),
+                'submitted_at' => fake()->dateTimeBetween('2024-01-01', '2024-12-31'),
+                'approved_at' => $status !== 'submitted' ? fake()->dateTimeBetween('2024-02-01', '2024-12-31') : null,
+                'items' => [['description' => 'Work done', 'amount' => $amount * 0.8], ['description' => 'Materials', 'amount' => $amount * 0.2]],
             ]);
 
             if (rand(0, 1)) {
@@ -84,7 +81,6 @@ class BulkDocSeeder
             }
         }
 
-        // ~50 Material usage records
         $inventoryItemIds = InventoryItem::pluck('id')->toArray();
         if (! empty($inventoryItemIds)) {
             for ($i = 0; $i < 50; $i++) {
@@ -93,7 +89,7 @@ class BulkDocSeeder
                     'project_id' => $p->id,
                     'item_id' => $inventoryItemIds[array_rand($inventoryItemIds)],
                     'qty' => rand(5, 200),
-                    'unit_cost' => G::randomAmount(10, 300),
+                    'unit_cost' => fake()->randomFloat(2, 10, 300),
                     'total_cost' => 0,
                     'notes' => 'Material issued for project works',
                     'created_by' => $uploader,

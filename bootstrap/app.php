@@ -29,7 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
         );
 
         // Log all API exceptions with request context
-        $exceptions->reportable(function (\Throwable $e) {
+        $exceptions->reportable(function (Throwable $e) {
             try {
                 $req = request();
                 if ($req && $req->is('api/*')) {
@@ -43,7 +43,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 } else {
                     logger()->error($e->getMessage());
                 }
-            } catch (\Throwable) {
+            } catch (Throwable) {
                 // Fallback: log without context
                 logger()->error($e->getMessage());
             }
