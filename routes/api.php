@@ -168,6 +168,7 @@ Route::prefix('v1')->group(function () {
         Route::post('project-phases/reorder', [PhaseController::class, 'reorder']);
         Route::post('project-phases/reorder-batch', [PhaseController::class, 'reorderBatch']);
         Route::get('project-phases/{id}/comments', [PhaseController::class, 'comments']);
+        Route::get('project-phases/{phaseId}/tasks', [TaskController::class, 'index']);
         Route::post('project-phases/{id}/comments', [PhaseController::class, 'addComment']);
         Route::get('project-phases/{id}/checklist-items', [PhaseController::class, 'checklistItems']);
         Route::get('project-phases/{id}/checklist-results', [PhaseController::class, 'checklistResults']);
@@ -228,6 +229,8 @@ Route::prefix('v1')->group(function () {
         Route::post('subcontractors/{subcontractorId}/pics', [SubcontractorPICController::class, 'store']);
         Route::put('subcontractor-pics/{id}', [SubcontractorPICController::class, 'update']);
         Route::delete('subcontractor-pics/{id}', [SubcontractorPICController::class, 'destroy']);
+        Route::get('subcontractor-pics', [SubcontractorPICController::class, 'index']);
+        Route::get('subcontractor-pics/{id}', [SubcontractorPICController::class, 'show']);
 
         // ── Subcontractor Claims ──
         Route::get('subcontractor-claims', [SubcontractorClaimController::class, 'listAll']);
@@ -249,7 +252,9 @@ Route::prefix('v1')->group(function () {
         Route::get('project-subcontractors/{id}', [ProjectSubcontractorController::class, 'show']);
         Route::get('projects/{projectId}/subcontractors', [ProjectSubcontractorController::class, 'index']);
         Route::post('projects/{projectId}/subcontractors', [ProjectSubcontractorController::class, 'store']);
+        Route::get('projects/{projectId}/subcontractors/{id}', [ProjectSubcontractorController::class, 'show']);
         Route::delete('project-subcontractors/{id}', [ProjectSubcontractorController::class, 'destroy']);
+        Route::get('project-subcontractors/{id}/claims', [SubcontractorClaimController::class, 'index']);
 
         // ── Quotations ──
         Route::get('quotations', [QuoteController::class, 'index']);
@@ -517,6 +522,7 @@ Route::prefix('v1')->group(function () {
         Route::post('clients/{clientId}/pics', [ClientPICController::class, 'store']);
         Route::put('client-pics/{id}', [ClientPICController::class, 'update']);
         Route::delete('client-pics/{id}', [ClientPICController::class, 'destroy']);
+        Route::get('client-pics', [ClientPICController::class, 'index']);
 
         // ── Project Staff PICs ──
         Route::get('projects/{projectId}/staff-pics', [ProjectStaffPicController::class, 'index']);
