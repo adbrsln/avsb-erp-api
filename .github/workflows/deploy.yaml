@@ -1,4 +1,4 @@
-name: Deploy Laravel via SSH
+name: CI + Deploy
 
 on:
   push:
@@ -6,13 +6,50 @@ on:
       - main
 
 jobs:
-  deploy:
+  ci:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # ── Deploy via SSH ──
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_sqlite, bcmath, gd
+          tools: composer
+
+      - name: Get composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Create .env for CI
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          # CI uses SQLite in-memory (phpunit.xml already sets this)
+
+      - name: Run tests
+        run: php artisan test --compact
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: ci
+    if: success()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.2.0
         with:
@@ -22,36 +59,27 @@ jobs:
           port: ${{ secrets.SSH_PORT || 22 }}
           script: |
             set -e
-
             cd /home/deployer/workspace/avsb-erp-api
-
-            # ── Pull latest code ──
             git pull origin main
-
-            # ── Install PHP dependencies ──
             composer install --no-dev --no-interaction --optimize-autoloader
-
-            # ── Run database migrations ──
             php artisan migrate --force
-
-            # ── Cache Laravel config, routes, and views ──
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
-
-            # ── Clear old cached views from previous deploys ──
             php artisan optimize
-
-            # ── Restart queue worker (if using database queue) ──
             php artisan queue:restart 2>/dev/null || true
-
-            # ── Set permissions (www-data for web server) ──
             chown -R www-data:www-data storage bootstrap/cache 2>/dev/null || true
             chmod -R 775 storage bootstrap/cache 2>/dev/null || true
 
-      # ── Send deployment notification ──
+  notify:
+    runs-on: ubuntu-latest
+    needs: [ci, deploy]
+    if: always()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Send Telegram Notification
-        if: always()
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -59,15 +87,30 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT || 22 }}
           script: |
-            STATUS="${{ job.status }}"
-            if [ "$STATUS" = "success" ]; then
-              ICON="✅"
-            elif [ "$STATUS" = "failure" ]; then
+            CI_STATUS="${{ needs.ci.result }}"
+            DEPLOY_STATUS="${{ needs.deploy.result }}"
+
+            if [ "$CI_STATUS" = "failure" ]; then
               ICON="❌"
-            else
+              STATUS="CI failed"
+            elif [ "$CI_STATUS" = "cancelled" ]; then
               ICON="⚠️"
+              STATUS="CI cancelled"
+            elif [ "$DEPLOY_STATUS" = "failure" ]; then
+              ICON="❌"
+              STATUS="CI passed, deploy failed"
+            elif [ "$DEPLOY_STATUS" = "cancelled" ]; then
+              ICON="⚠️"
+              STATUS="CI passed, deploy skipped"
+            elif [ "$DEPLOY_STATUS" = "success" ]; then
+              ICON="✅"
+              STATUS="CI passed, deployed"
+            else
+              ICON="❓"
+              STATUS="unknown"
             fi
-            MESSAGE="${ICON} *Deploy ${STATUS}*
+
+            MESSAGE="${ICON} *${STATUS}*
             📦 *Repository:* ${{ github.repository }}
             🌿 *Branch:* \`${{ github.ref_name }}\`
             🔗 ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
