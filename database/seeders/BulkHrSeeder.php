@@ -114,7 +114,7 @@ class BulkHrSeeder
         }
         if (! empty($attendanceBatch)) {
             foreach (array_chunk($attendanceBatch, 100) as $chunk) {
-                Attendance::insert($chunk);
+                Attendance::upsert($chunk, ['staff_id', 'date'], ['clock_in', 'clock_out', 'total_hours', 'status', 'project_id']);
             }
         }
 
