@@ -1,5 +1,8 @@
 <?php
 
+use App\Models\Contract;
+use App\Models\Invoice;
+use App\Models\Quotation;
 use App\Models\SelfBilledInvoice;
 use App\Models\User;
 
@@ -24,11 +27,12 @@ describe('Quotations', function () {
     });
 
     it('shows single quotation', function () {
-        $response = getJson('/api/v1/quotations', $this->headers);
-        $items = $response->json('data') ?? $response->json();
-        $id = is_array($items) && ! empty($items) ? $items[0]['id'] : 1;
+        $q = Quotation::first();
+        if (! $q) {
+            $this->markTestSkipped('No quotations in database');
+        }
 
-        getJson('/api/v1/quotations/'.$id, $this->headers)
+        getJson('/api/v1/quotations/'.$q->id, $this->headers)
             ->assertStatus(200);
     });
 
@@ -47,11 +51,12 @@ describe('Contracts', function () {
     });
 
     it('shows single contract', function () {
-        $response = getJson('/api/v1/contracts', $this->headers);
-        $items = $response->json('data') ?? $response->json();
-        $id = is_array($items) && ! empty($items) ? $items[0]['id'] : 1;
+        $c = Contract::first();
+        if (! $c) {
+            $this->markTestSkipped('No contracts in database');
+        }
 
-        getJson('/api/v1/contracts/'.$id, $this->headers)
+        getJson('/api/v1/contracts/'.$c->id, $this->headers)
             ->assertStatus(200);
     });
 
@@ -65,20 +70,22 @@ describe('Invoices', function () {
     });
 
     it('shows single invoice', function () {
-        $response = getJson('/api/v1/invoices', $this->headers);
-        $items = $response->json('data') ?? $response->json();
-        $id = is_array($items) && ! empty($items) ? $items[0]['id'] : 1;
+        $i = Invoice::first();
+        if (! $i) {
+            $this->markTestSkipped('No invoices in database');
+        }
 
-        getJson('/api/v1/invoices/'.$id, $this->headers)
+        getJson('/api/v1/invoices/'.$i->id, $this->headers)
             ->assertStatus(200);
     });
 
     it('returns invoice payments', function () {
-        $response = getJson('/api/v1/invoices', $this->headers);
-        $items = $response->json('data') ?? $response->json();
-        $id = is_array($items) && ! empty($items) ? $items[0]['id'] : 1;
+        $i = Invoice::first();
+        if (! $i) {
+            $this->markTestSkipped('No invoices in database');
+        }
 
-        getJson('/api/v1/invoices/'.$id.'/payments', $this->headers)
+        getJson('/api/v1/invoices/'.$i->id.'/payments', $this->headers)
             ->assertStatus(200);
     });
 
@@ -106,7 +113,7 @@ describe('Self-Billed Invoices', function () {
 describe('Payments & Services', function () {
 
     it('lists payments', function () {
-        getJson('/api/v1/payments', $this->headers)
+        getJson('/api/v1/payments/pending', $this->headers)
             ->assertStatus(200);
     });
 

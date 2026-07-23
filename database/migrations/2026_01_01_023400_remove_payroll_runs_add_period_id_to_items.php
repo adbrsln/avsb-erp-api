@@ -18,7 +18,12 @@ return new class extends Migration
             });
         }
 
-        $db->statement('UPDATE payroll_periods SET month = MONTH(start_date), year = YEAR(start_date) WHERE month IS NULL');
+        $driver = $db->getDriverName();
+        if ($driver === 'sqlite') {
+            $db->statement("UPDATE payroll_periods SET month = CAST(strftime('%m', start_date) AS INTEGER), year = CAST(strftime('%Y', start_date) AS INTEGER) WHERE month IS NULL");
+        } else {
+            $db->statement('UPDATE payroll_periods SET month = MONTH(start_date), year = YEAR(start_date) WHERE month IS NULL');
+        }
 
         Schema::table('payroll_periods', function (Blueprint $table) {
             $table->tinyInteger('month')->unsigned()->nullable(false)->change();
@@ -32,7 +37,12 @@ return new class extends Migration
             });
         }
 
-        $db->statement('UPDATE payroll_run_items i JOIN payroll_runs r ON r.id = i.payroll_run_id SET i.period_id = r.period_id WHERE i.period_id IS NULL');
+        $driver = $db->getDriverName();
+        if ($driver === 'sqlite') {
+            $db->statement('UPDATE payroll_run_items SET period_id = (SELECT r.period_id FROM payroll_runs r WHERE r.id = payroll_run_items.payroll_run_id) WHERE period_id IS NULL');
+        } else {
+            $db->statement('UPDATE payroll_run_items i JOIN payroll_runs r ON r.id = i.payroll_run_id SET i.period_id = r.period_id WHERE i.period_id IS NULL');
+        }
 
         // 3. Remove duplicates — keep the best item per (period_id, employee_id)
         $duplicates = $db->select('

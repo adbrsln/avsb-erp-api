@@ -1,5 +1,7 @@
 <?php
 
+use Database\Seeders\TestDataSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /*
@@ -9,7 +11,13 @@ use Tests\TestCase;
 */
 
 pest()->extend(TestCase::class)
+    ->use(RefreshDatabase::class)
     ->in('Feature');
+
+// Seed minimal data before each Feature test
+uses()->beforeEach(function () {
+    (new TestDataSeeder)->run();
+})->in('Feature');
 
 /*
 |--------------------------------------------------------------------------

@@ -17,6 +17,7 @@ use App\Models\Subcontractor;
 use App\Models\SubcontractorClaim;
 use App\Models\SubcontractorPIC;
 use App\Models\Task;
+use App\Models\User;
 use App\Models\Vendor;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
@@ -27,6 +28,39 @@ class TestDataSeeder extends Seeder
     public function run(): void
     {
         $now = Carbon::now();
+
+        // Ensure admin user + staff profile exist for auth tests
+        if (User::where('email', 'superadmin@azamventures.com')->doesntExist()) {
+            $user = User::create([
+                'name' => 'Super Admin',
+                'email' => 'superadmin@azamventures.com',
+                'password' => password_hash('secret', PASSWORD_BCRYPT),
+            ]);
+            $user->syncRoles(['super_admin']);
+        }
+
+        if (StaffProfile::where('email', 'superadmin@azamventures.com')->doesntExist()) {
+            StaffProfile::create([
+                'name' => 'Super Admin',
+                'email' => 'superadmin@azamventures.com',
+                'employee_id' => 'AD-001',
+                'is_active' => true,
+                'basic_salary' => 5000,
+                'epf_contributing' => true,
+                'eis_contributing' => false,
+                'date_of_birth' => '1990-01-01',
+                'nationality' => 'Malaysian',
+                'gender' => 'male',
+                'marital_status' => 'single',
+                'race' => 'Other',
+                'residential_status' => 'resident',
+                'salary_wage_frequency' => 'monthly',
+                'payment_method' => 'bank_transfer',
+                'bank_name' => 'Maybank',
+                'bank_account_no' => '0000-0000-0000',
+            ]);
+        }
+
         $pm = StaffProfile::first();
         $pmId = $pm?->id ?? 1;
 
@@ -40,7 +74,6 @@ class TestDataSeeder extends Seeder
                 'buyer_type' => 'company',
                 'phone' => '03-12345678',
                 'email' => 'test@testclient.com',
-                'status' => 'active',
             ]);
             ClientPIC::create([
                 'client_id' => $client->id,

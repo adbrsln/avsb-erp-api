@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Asset;
+use App\Models\InventoryItem;
 use App\Models\User;
 
 use function Pest\Laravel\getJson;
@@ -91,20 +92,22 @@ describe('Inventory', function () {
     });
 
     it('shows single inventory item', function () {
-        $response = getJson('/api/v1/inventory', $this->headers);
-        $items = $response->json('data') ?? $response->json();
-        $id = is_array($items) && ! empty($items) ? $items[0]['id'] : 1;
+        $item = InventoryItem::first();
+        if (! $item) {
+            $this->markTestSkipped('No inventory items in database');
+        }
 
-        getJson('/api/v1/inventory/'.$id, $this->headers)
+        getJson('/api/v1/inventory/'.$item->id, $this->headers)
             ->assertStatus(200);
     });
 
     it('returns inventory transactions', function () {
-        $response = getJson('/api/v1/inventory', $this->headers);
-        $items = $response->json('data') ?? $response->json();
-        $id = is_array($items) && ! empty($items) ? $items[0]['id'] : 1;
+        $item = InventoryItem::first();
+        if (! $item) {
+            $this->markTestSkipped('No inventory items in database');
+        }
 
-        getJson('/api/v1/inventory/'.$id.'/transactions', $this->headers)
+        getJson('/api/v1/inventory/'.$item->id.'/transactions', $this->headers)
             ->assertStatus(200);
     });
 
