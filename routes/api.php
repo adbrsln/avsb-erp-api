@@ -76,7 +76,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->group(function () {
 
     // ── Public Auth Routes (with rate limiting) ──
-    Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:10,60');
+    Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:60,60');
     Route::post('auth/register', [AuthController::class, 'register'])->middleware('throttle:5,3600');
     Route::post('auth/verify-password', [AuthController::class, 'verifyPassword'])->middleware('throttle:5,60');
 
