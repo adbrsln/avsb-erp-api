@@ -10,7 +10,7 @@ use Illuminate\Console\Command;
 
 class ImportStaff extends Command
 {
-    protected $signature = 'cron:import-staff
+    protected $signature = 'app:import-staff
         {--file= : Path to CSV file (default: database/data/avsb-staff-migration.csv)}
         {--dry-run : Preview only, no changes made}
         {--force : Skip confirmation prompt}';
