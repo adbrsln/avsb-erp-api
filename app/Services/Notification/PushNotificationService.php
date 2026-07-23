@@ -16,9 +16,9 @@ class PushNotificationService
         if ($this->webPush === null) {
             $auth = [
                 'VAPID' => [
-                    'subject' => $_ENV['VAPID_SUBJECT'] ?? 'mailto:admin@azamventures.com',
-                    'publicKey' => $_ENV['VAPID_PUBLIC_KEY'] ?? '',
-                    'privateKey' => $_ENV['VAPID_PRIVATE_KEY'] ?? '',
+                    'subject' => config('services.vapid.subject', 'mailto:admin@azamventures.com'),
+                    'publicKey' => config('services.vapid.public_key', ''),
+                    'privateKey' => config('services.vapid.private_key', ''),
                 ],
             ];
             $this->webPush = new WebPush($auth);
@@ -30,7 +30,10 @@ class PushNotificationService
 
     public function sendToUser(User $user, string $title, string $body, ?string $url = null): array
     {
-        if (empty($_ENV['VAPID_PUBLIC_KEY']) || empty($_ENV['VAPID_PRIVATE_KEY'])) {
+        $publicKey = config('services.vapid.public_key');
+        $privateKey = config('services.vapid.private_key');
+
+        if (empty($publicKey) || empty($privateKey)) {
             return ['sent' => 0, 'failed' => 0, 'reason' => 'VAPID not configured'];
         }
 
