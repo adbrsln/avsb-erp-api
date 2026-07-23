@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Vendor;
+use App\Services\NumberingService;
 use Illuminate\Support\Facades\DB;
 
 class BulkVendorSeeder
@@ -13,9 +14,13 @@ class BulkVendorSeeder
         Vendor::truncate();
         DB::statement('SET FOREIGN_KEY_CHECKS = 1');
 
+        $numService = new NumberingService;
+
         Vendor::factory()
             ->count(150)
-            ->sequence(fn ($seq) => ['vendor_code' => 'V-'.str_pad($seq->index + 1, 4, '0', STR_PAD_LEFT)])
+            ->sequence(function () use ($numService) {
+                return ['vendor_code' => $numService->generate('vendor')];
+            })
             ->create();
     }
 }

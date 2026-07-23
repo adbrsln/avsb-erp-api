@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Client;
+use App\Services\NumberingService;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -15,7 +16,7 @@ class ClientFactory extends Factory
         $name = fake()->company();
 
         return [
-            'client_code' => 'CLT-'.fake()->unique()->numerify('####'),
+            'client_code' => app(NumberingService::class)->generate('client'),
             'company_name' => $name,
             'registration_no' => fake()->numerify('########-X'),
             'phone' => '03-'.fake()->numerify('########'),

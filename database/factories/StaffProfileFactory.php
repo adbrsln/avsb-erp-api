@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\StaffProfile;
+use App\Services\NumberingService;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -24,7 +25,7 @@ class StaffProfileFactory extends Factory
             'name' => $name,
             'email' => fake()->unique()->safeEmail(),
             'phone' => '012-'.fake()->numerify('#######'),
-            'employee_id' => 'EMP-'.fake()->unique()->numerify('####'),
+            'employee_id' => app(NumberingService::class)->generate('staff'),
             'identification_no' => fake()->numerify('######-##-####'),
             'is_active' => true,
             'basic_salary' => fake()->numberBetween(3000, 15000),

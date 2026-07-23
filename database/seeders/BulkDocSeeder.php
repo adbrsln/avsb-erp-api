@@ -9,6 +9,7 @@ use App\Models\ProjectClaimDocument;
 use App\Models\ProjectDocument;
 use App\Models\ProjectMaterialUsage;
 use App\Models\StaffProfile;
+use App\Services\NumberingService;
 
 class BulkDocSeeder
 {
@@ -21,6 +22,8 @@ class BulkDocSeeder
             return;
         }
         $uploader = $staff->first()?->id ?? 1;
+
+        $numService = new NumberingService;
 
         $categories = ['photo', 'report', 'drawing', 'certificate', 'correspondence', 'photo', 'other'];
         $extensions = ['.jpg', '.pdf', '.pdf', '.pdf', '.pdf', '.png', '.xlsx'];
@@ -54,7 +57,7 @@ class BulkDocSeeder
             $status = fake()->randomElement(['submitted', 'approved', 'paid', 'submitted']);
 
             $claim = ProjectClaim::create([
-                'claim_number' => 'PC-BULK-'.str_pad($i + 1, 4, '0', STR_PAD_LEFT),
+                'claim_number' => 'PC-'.uniqid(),
                 'project_id' => $p->id,
                 'title' => 'Progress Claim - Phase '.rand(1, 5),
                 'description' => 'Progress claim for '.$p->name,

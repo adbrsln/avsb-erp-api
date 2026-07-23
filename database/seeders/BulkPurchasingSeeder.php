@@ -11,6 +11,7 @@ use App\Models\InventoryTransaction;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use App\Models\Vendor;
+use App\Services\NumberingService;
 use Illuminate\Support\Facades\DB;
 
 class BulkPurchasingSeeder
@@ -37,6 +38,8 @@ class BulkPurchasingSeeder
             return;
         }
 
+        $numService = new NumberingService;
+
         $poStatuses = ['pending', 'pending', 'received', 'pending', 'received', 'cancelled'];
         $billStatuses = ['unpaid', 'paid', 'unpaid', 'paid', 'overdue'];
 
@@ -47,7 +50,7 @@ class BulkPurchasingSeeder
             $tax = round($subtotal * 0.08, 2);
 
             $po = PurchaseOrder::create([
-                'po_number' => 'PO-BULK-'.str_pad($i + 1, 4, '0', STR_PAD_LEFT),
+                'po_number' => $numService->generate('po'),
                 'vendor_id' => $vendor->id,
                 'order_date' => fake()->dateTimeBetween('2024-01-01', '2024-12-31'),
                 'delivery_date' => fake()->dateTimeBetween('2024-02-01', '2025-01-31'),
@@ -78,7 +81,7 @@ class BulkPurchasingSeeder
                 $paidAmount = $billStatus === 'paid' ? round($subtotal + $tax, 2) : 0;
 
                 $bill = Bill::create([
-                    'bill_number' => 'BILL-BULK-'.str_pad($i + 1, 4, '0', STR_PAD_LEFT),
+                    'bill_number' => $numService->generate('bill'),
                     'vendor_id' => $vendor->id,
                     'purchase_order_id' => $po->id,
                     'vendor_bill_no' => 'INV-'.str_pad(rand(1000, 9999), 4, '0', STR_PAD_LEFT),

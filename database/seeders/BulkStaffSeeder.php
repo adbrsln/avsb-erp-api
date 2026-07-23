@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\StaffLeaveBalance;
 use App\Models\StaffProfile;
 use App\Models\User;
+use App\Services\NumberingService;
 use Illuminate\Support\Facades\DB;
 
 class BulkStaffSeeder
@@ -22,6 +23,8 @@ class BulkStaffSeeder
         User::truncate();
         DB::table('user_roles')->truncate();
         DB::statement('SET FOREIGN_KEY_CHECKS = 1');
+
+        $numService = new NumberingService;
 
         $rolePool = ['staff', 'staff', 'staff', 'staff', 'staff', 'pm', 'pm', 'hr', 'admin'];
         $leaveTypes = ['annual' => 14, 'medical' => 14, 'emergency' => 3, 'unpaid' => 0, 'marriage' => 3];
@@ -64,7 +67,7 @@ class BulkStaffSeeder
             ['email' => 'superadmin@azamventures.com'],
             [
                 'name' => 'Super Admin',
-                'employee_id' => 'AD-001',
+                'employee_id' => $numService->generate('staff'),
                 'is_active' => true,
                 'basic_salary' => 0,
                 'gender' => 'male',

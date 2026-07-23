@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Models\Asset;
 use App\Models\StaffProfile;
+use App\Services\NumberingService;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -36,7 +37,7 @@ class AssetFactory extends Factory
         $purchaseCost = fake()->randomFloat(2, 50000, 1500000);
 
         return [
-            'asset_code' => 'AST-'.fake()->unique()->numerify('######'),
+            'asset_code' => app(NumberingService::class)->generate('asset'),
             'name' => $name,
             'asset_type' => fake()->randomElement(['Equipment', 'Vehicle', 'Tool']),
             'make' => $make,

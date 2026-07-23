@@ -9,6 +9,7 @@ use App\Models\LeaveApplication;
 use App\Models\Project;
 use App\Models\StaffProfile;
 use App\Models\Timecard;
+use App\Services\NumberingService;
 
 class BulkHrSeeder
 {
@@ -20,6 +21,8 @@ class BulkHrSeeder
         if ($staff->isEmpty()) {
             return;
         }
+
+        $numService = new NumberingService;
 
         $leaveTypes = ['annual', 'medical', 'emergency', 'unpaid', 'annual', 'annual', 'medical', 'marriage', 'paternity'];
         $leaveStatuses = ['approved', 'approved', 'approved', 'pending', 'rejected', 'approved', 'pending'];
@@ -33,7 +36,7 @@ class BulkHrSeeder
             $endDate = fake()->dateTimeBetween($startDate, '+5 days');
 
             LeaveApplication::create([
-                'leave_ref' => 'LV-BULK-'.str_pad($i + 1, 4, '0', STR_PAD_LEFT),
+                'leave_ref' => $numService->generate('leave'),
                 'staff_id' => $s->id,
                 'type' => $type,
                 'start_date' => $startDate,
@@ -56,7 +59,7 @@ class BulkHrSeeder
             $title = $claimTitles[array_rand($claimTitles)];
 
             $claim = ExpenseClaim::create([
-                'claim_ref' => 'CLM-BULK-'.str_pad($i + 1, 4, '0', STR_PAD_LEFT),
+                'claim_ref' => $numService->generate('claim'),
                 'staff_id' => $s->id,
                 'title' => $title.' - '.fake()->address(),
                 'description' => $title.' for site visit',

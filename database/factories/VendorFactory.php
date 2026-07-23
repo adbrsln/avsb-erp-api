@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Vendor;
+use App\Services\NumberingService;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -15,7 +16,7 @@ class VendorFactory extends Factory
         $name = fake()->company();
 
         return [
-            'vendor_code' => 'VEN-'.fake()->unique()->numerify('####'),
+            'vendor_code' => app(NumberingService::class)->generate('vendor'),
             'company_name' => $name,
             'registration_no' => fake()->numerify('########-X'),
             'tax_id' => 'TIN'.fake()->numerify('########'),

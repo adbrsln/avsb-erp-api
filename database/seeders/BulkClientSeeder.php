@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Client;
 use App\Models\ClientPIC;
+use App\Services\NumberingService;
 use Illuminate\Support\Facades\DB;
 
 class BulkClientSeeder
@@ -15,9 +16,13 @@ class BulkClientSeeder
         ClientPIC::truncate();
         DB::statement('SET FOREIGN_KEY_CHECKS = 1');
 
+        $numService = new NumberingService;
+
         $clients = Client::factory()
             ->count(150)
-            ->sequence(fn ($seq) => ['client_code' => 'CLT-'.str_pad($seq->index + 1, 4, '0', STR_PAD_LEFT)])
+            ->sequence(function () use ($numService) {
+                return ['client_code' => $numService->generate('client')];
+            })
             ->create();
 
         foreach ($clients as $client) {

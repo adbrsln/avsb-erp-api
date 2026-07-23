@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\InventoryItem;
+use App\Services\NumberingService;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -34,7 +35,7 @@ class InventoryItemFactory extends Factory
         [$name, $unit] = self::$roadMaterials[$sku];
 
         return [
-            'sku' => $sku.'-'.fake()->numerify('###'),
+            'sku' => app(NumberingService::class)->generate('inventory'),
             'name' => $name,
             'category' => fake()->randomElement(['Asphalt', 'Aggregate', 'Paint', 'Chemicals', 'Safety', 'Tools']),
             'unit' => $unit,

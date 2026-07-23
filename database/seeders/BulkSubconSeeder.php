@@ -9,6 +9,7 @@ use App\Models\StaffProfile;
 use App\Models\Subcontractor;
 use App\Models\SubcontractorClaim;
 use App\Models\SubcontractorClaimDocument;
+use App\Services\NumberingService;
 
 class BulkSubconSeeder
 {
@@ -21,6 +22,8 @@ class BulkSubconSeeder
         if ($projects->isEmpty() || $subs->isEmpty()) {
             return;
         }
+
+        $numService = new NumberingService;
 
         for ($i = 0; $i < 50; $i++) {
             $project = $projects->random();
@@ -50,7 +53,7 @@ class BulkSubconSeeder
 
             $sc = SubcontractorClaim::create([
                 'project_subcontractor_id' => $ps->id,
-                'claim_number' => 'SC-BULK-'.str_pad($i + 1, 4, '0', STR_PAD_LEFT),
+                'claim_number' => 'SC-'.uniqid(),
                 'claim_date' => fake()->dateTimeBetween('2024-01-01', '2024-12-31'),
                 'period_start' => fake()->dateTimeBetween('2024-01-01', '2024-06-30'),
                 'period_end' => fake()->dateTimeBetween('2024-07-01', '2024-12-31'),
@@ -95,7 +98,7 @@ class BulkSubconSeeder
             $retention = round($subtotal * 0.05, 2);
 
             SelfBilledInvoice::create([
-                'invoice_number' => 'SI-BULK-'.str_pad($i + 1, 4, '0', STR_PAD_LEFT),
+                'invoice_number' => $numService->generate('self_billed'),
                 'supplier_id' => $sub->id,
                 'project_id' => $project->id,
                 'date' => fake()->dateTimeBetween('2024-01-01', '2024-12-31'),

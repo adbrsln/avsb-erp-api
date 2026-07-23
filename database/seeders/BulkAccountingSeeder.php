@@ -10,6 +10,7 @@ use App\Models\InvoicePayment;
 use App\Models\JournalEntry;
 use App\Models\JournalEntryLine;
 use App\Models\User;
+use App\Services\NumberingService;
 
 class BulkAccountingSeeder
 {
@@ -20,6 +21,8 @@ class BulkAccountingSeeder
 
         $cashAcct = $coa->where('code', '1102')->first();
         $receivableAcct = $coa->where('code', '1104')->first();
+
+        $numService = new NumberingService;
 
         for ($m = 1; $m <= 12; $m++) {
             $start = '2024-'.str_pad($m, 2, '0', STR_PAD_LEFT).'-01';
@@ -50,7 +53,7 @@ class BulkAccountingSeeder
                 $entryDate = '2024-'.str_pad($m, 2, '0', STR_PAD_LEFT).'-'.str_pad(rand(1, 28), 2, '0', STR_PAD_LEFT);
 
                 $je = JournalEntry::create([
-                    'entry_number' => 'JE-BULK-'.str_pad($jeCount + 1, 4, '0', STR_PAD_LEFT),
+                    'entry_number' => $numService->generate('journal'),
                     'entry_date' => $entryDate,
                     'description' => $desc.' - '.date('F Y', strtotime($entryDate)),
                     'reference_type' => null,
