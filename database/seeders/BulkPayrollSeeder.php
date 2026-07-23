@@ -6,11 +6,18 @@ use App\Models\PayrollAdjustment;
 use App\Models\PayrollPeriod;
 use App\Models\PayrollRunItem;
 use App\Models\StaffProfile;
+use Illuminate\Support\Facades\DB;
 
 class BulkPayrollSeeder
 {
     public function run(): void
     {
+        DB::statement('SET FOREIGN_KEY_CHECKS = 0');
+        PayrollAdjustment::truncate();
+        PayrollRunItem::truncate();
+        PayrollPeriod::truncate();
+        DB::statement('SET FOREIGN_KEY_CHECKS = 1');
+
         $staff = StaffProfile::all();
         if ($staff->isEmpty()) {
             return;
