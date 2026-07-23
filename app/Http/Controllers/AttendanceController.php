@@ -13,8 +13,6 @@ use App\Traits\PaginatedResponse;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
-
 class AttendanceController extends Controller
 {
     use PaginatedResponse;
@@ -395,7 +393,7 @@ class AttendanceController extends Controller
         ]);
     }
 
-    public function servePhoto(Request $request, int $id, string $type): JsonResponse
+    public function servePhoto(Request $request, int $id, string $type): mixed
     {
         $record = Attendance::find($id);
         if (! $record) {
