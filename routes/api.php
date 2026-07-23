@@ -373,8 +373,8 @@ Route::prefix('v1')->group(function () {
         Route::get('payroll/calculate', [PayrollController::class, 'calculate']);
         Route::get('payroll/periods', [PayrollController::class, 'listPeriods']);
         Route::post('payroll/periods', [PayrollController::class, 'createPeriod']);
-        Route::get('payroll/periods/{id}', [PayrollController::class, 'getPeriodItem']);
         Route::get('payroll/periods/{id}/items', [PayrollController::class, 'getPeriodItems']);
+        Route::get('payroll/periods/{id}/items/{itemId}', [PayrollController::class, 'getPeriodItem']);
         Route::post('payroll/periods/{id}/process', [PayrollController::class, 'processPeriod']);
         Route::post('payroll/periods/{id}/process-part-time', [PayrollController::class, 'processPartTime']);
         Route::put('payroll/periods/{id}/close', [PayrollController::class, 'closePeriod']);
