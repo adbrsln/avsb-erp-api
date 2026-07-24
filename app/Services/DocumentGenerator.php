@@ -71,7 +71,7 @@ class DocumentGenerator
             $desc = htmlspecialchars($item['description'] ?? $item['name'] ?? '');
             $unit = htmlspecialchars($item['unit'] ?? '');
             $qty = $item['quantity'] ?? $item['qty'] ?? 0;
-            $rate = $item['unit_rate'] ?? $item['rate'] ?? $item['unitRate'] ?? 0;
+            $rate = $item['unit_price'] ?? $item['unit_rate'] ?? $item['rate'] ?? $item['unitRate'] ?? 0;
             $total = $item['total'] ?? r2($qty * $rate);
             $itemsHtml .= "<tr>
                 <td>{$i}</td>
