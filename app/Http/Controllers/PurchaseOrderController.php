@@ -372,14 +372,17 @@ class PurchaseOrderController extends Controller
         $po = PurchaseOrder::with('vendor', 'items')->findOrFail($id);
         $pdf = (new DocumentGenerator)->purchaseOrder($po);
 
-        $storage = new FileStorageService;
-        $path = 'documents/purchase-orders/'.$po->id.'.pdf';
-        $storage->put($path, $pdf, 'application/pdf');
+        try {
+            $storage = new FileStorageService;
+            $path = 'documents/purchase-orders/'.$po->id.'.pdf';
+            $storage->put($path, $pdf, 'application/pdf');
 
-        if ($storage->getPresignedUrl($path)) {
             $url = $storage->getPresignedUrl($path);
-
-            return response()->json(['url' => $url, 'filename' => $po->po_number.'.pdf']);
+            if ($url) {
+                return response()->json(['url' => $url, 'filename' => $po->po_number.'.pdf']);
+            }
+        } catch (\Throwable) {
+            // Storage unavailable — fall through to binary response
         }
 
         return response($pdf, 200, [

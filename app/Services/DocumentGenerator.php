@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\CompanySetting;
 use App\Models\Contract;
 use App\Models\Invoice;
+use App\Models\PurchaseOrder;
 use App\Models\Quotation;
 use App\Models\Receipt;
 use App\Models\SelfBilledInvoice;
