@@ -377,9 +377,10 @@ class PurchaseOrderController extends Controller
             $path = 'documents/purchase-orders/'.$po->id.'.pdf';
             $storage->put($path, $pdf, 'application/pdf');
 
-            $url = $storage->getPresignedUrl($path);
+            $filename = $po->po_number.'.pdf';
+            $url = $storage->getPresignedUrl($path, 5, $filename);
             if ($url) {
-                return response()->json(['url' => $url, 'filename' => $po->po_number.'.pdf']);
+                return response()->json(['url' => $url, 'filename' => $filename]);
             }
         } catch (\Throwable) {
             // Storage unavailable — fall through to binary response
