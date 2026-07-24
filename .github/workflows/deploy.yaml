@@ -87,7 +87,7 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT || 22 }}
           script: |
-            CI_STATUS="${{ needs.ci.result }}"
+            CI_STATUS="${{ needs.test.result }}"
             DEPLOY_STATUS="${{ needs.deploy.result }}"
 
             if [ "$CI_STATUS" = "failure" ]; then
