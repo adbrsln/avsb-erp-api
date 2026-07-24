@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Bill;
+use App\Models\BillItem;
 use App\Models\ChartOfAccount;
 use App\Models\InventoryItem;
 use App\Models\InventoryTransaction;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
+use App\Models\Vendor;
 use App\Services\Notification\NotificationEvent;
 use App\Services\Notification\NotificationRecipientResolver;
 use App\Services\Notification\NotificationService;
@@ -88,7 +91,7 @@ class PurchaseOrderController extends Controller
 
     public function show(Request $request, int $id): JsonResponse
     {
-        $po = PurchaseOrder::with('vendor', 'items', 'items.account')->findOrFail($id);
+        $po = PurchaseOrder::with('vendor', 'items', 'items.account', 'bill')->findOrFail($id);
 
         return response()->json($po);
     }
@@ -248,5 +251,116 @@ class PurchaseOrderController extends Controller
         }
 
         return response()->json($po);
+    }
+
+    public function fromInventory(Request $request): JsonResponse
+    {
+        $data = $request->all();
+
+        if (empty($data['vendor_id']) || empty($data['items']) || ! is_array($data['items'])) {
+            return response()->json(['error' => 'vendor_id and items array are required'], 422);
+        }
+
+        $vendor = Vendor::find($data['vendor_id']);
+        if (! $vendor) {
+            return response()->json(['error' => 'Vendor not found'], 404);
+        }
+
+        $poItems = [];
+        $subtotal = 0;
+
+        foreach ($data['items'] as $selection) {
+            $itemId = (int) ($selection['item_id'] ?? 0);
+            $qty = (float) ($selection['qty'] ?? 1);
+
+            $invItem = InventoryItem::find($itemId);
+            if (! $invItem) {
+                return response()->json(['error' => "Inventory item #{$itemId} not found"], 404);
+            }
+
+            $unitPrice = (float) ($selection['unit_price'] ?? $invItem->unit_cost);
+            $total = round($qty * $unitPrice, 2);
+            $subtotal += $total;
+
+            $poItems[] = [
+                'description' => $invItem->name,
+                'unit' => $invItem->unit ?? 'Lot',
+                'quantity' => $qty,
+                'unit_price' => $unitPrice,
+                'total' => $total,
+            ];
+        }
+
+        $tax = (float) ($data['tax'] ?? 0);
+        $poData = [
+            'vendor_id' => $vendor->id,
+            'po_number' => (new NumberingService)->generate('purchase_order'),
+            'order_date' => $data['order_date'] ?? date('Y-m-d'),
+            'delivery_date' => $data['delivery_date'] ?? null,
+            'status' => 'draft',
+            'subtotal' => round($subtotal, 2),
+            'tax' => round($tax, 2),
+            'total' => round($subtotal + $tax, 2),
+            'notes' => $data['notes'] ?? null,
+        ];
+
+        $po = PurchaseOrder::create(fillableData(new PurchaseOrder, $poData));
+
+        foreach ($poItems as $pi) {
+            PurchaseOrderItem::create(array_merge($pi, ['purchase_order_id' => $po->id]));
+        }
+
+        $po->load('vendor', 'items');
+
+        return response()->json($po, 201);
+    }
+
+    public function generateBill(Request $request, int $id): JsonResponse
+    {
+        $po = PurchaseOrder::with('items', 'vendor')->findOrFail($id);
+
+        if ($po->status !== 'received') {
+            return response()->json(['error' => 'Only received purchase orders can generate bills'], 422);
+        }
+
+        if ($po->bill) {
+            return response()->json(['error' => 'A bill already exists for this purchase order', 'bill' => $po->bill], 422);
+        }
+
+        if (! $po->vendor) {
+            return response()->json(['error' => 'Purchase order has no vendor'], 422);
+        }
+
+        $billData = [
+            'bill_number' => (new NumberingService)->generate('bill'),
+            'vendor_id' => $po->vendor_id,
+            'purchase_order_id' => $po->id,
+            'bill_date' => date('Y-m-d'),
+            'due_date' => date('Y-m-d', strtotime('+30 days')),
+            'status' => 'unpaid',
+            'subtotal' => $po->subtotal,
+            'tax' => $po->tax,
+            'total' => $po->total,
+            'paid_amount' => 0,
+            'balance' => $po->total,
+        ];
+
+        $bill = Bill::create(fillableData(new Bill, $billData));
+
+        foreach ($po->items as $poItem) {
+            BillItem::create([
+                'bill_id' => $bill->id,
+                'description' => $poItem->description,
+                'unit' => $poItem->unit,
+                'quantity' => $poItem->quantity,
+                'unit_price' => $poItem->unit_price,
+                'total' => $poItem->total,
+                'account_id' => $poItem->account_id,
+            ]);
+        }
+
+        $bill->load('vendor', 'purchaseOrder', 'items');
+
+        return response()->json($bill, 201);
     }
 }

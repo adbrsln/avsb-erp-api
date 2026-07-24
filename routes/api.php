@@ -438,6 +438,8 @@ Route::prefix('v1')->group(function () {
         Route::delete('purchase-orders/{id}', [PurchaseOrderController::class, 'destroy']);
         Route::post('purchase-orders/{id}/receive', [PurchaseOrderController::class, 'receive']);
         Route::post('purchase-orders/{id}/submit', [PurchaseOrderController::class, 'submit']);
+        Route::post('purchase-orders/from-inventory', [PurchaseOrderController::class, 'fromInventory']);
+        Route::post('purchase-orders/{id}/generate-bill', [PurchaseOrderController::class, 'generateBill']);
         Route::get('bills', [BillController::class, 'index']);
         Route::post('bills', [BillController::class, 'store']);
         Route::get('bills/{id}', [BillController::class, 'show']);
@@ -571,6 +573,8 @@ Route::prefix('v1')->group(function () {
         // ── Bill Payments ──
         Route::get('bills/{billId}/payments', [BillPaymentController::class, 'index']);
         Route::post('bills/{billId}/payments', [BillPaymentController::class, 'store']);
+        Route::post('bills/{id}/link-po', [BillController::class, 'linkPo']);
+        Route::delete('bills/{id}/unlink-po', [BillController::class, 'unlinkPo']);
 
         // ── E-Invoice ──
         Route::get('einvoice/settings', [EInvoiceController::class, 'settings']);

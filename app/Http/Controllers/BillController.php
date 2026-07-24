@@ -9,6 +9,7 @@ use App\Models\InventoryItem;
 use App\Models\InventoryTransaction;
 use App\Models\JournalEntry;
 use App\Models\JournalEntryLine;
+use App\Models\PurchaseOrder;
 use App\Services\NumberingService;
 use App\Traits\PaginatedResponse;
 use Carbon\Carbon;
@@ -161,7 +162,7 @@ class BillController extends Controller
 
     public function show(Request $request, int $id): JsonResponse
     {
-        $bill = Bill::with('vendor', 'items', 'items.account', 'payments', 'payments.debitAccount', 'payments.creditAccount')->findOrFail($id);
+        $bill = Bill::with('vendor', 'purchaseOrder', 'items', 'items.account', 'payments', 'payments.debitAccount', 'payments.creditAccount')->findOrFail($id);
 
         return response()->json($bill);
     }
@@ -228,5 +229,36 @@ class BillController extends Controller
         $bill->delete();
 
         return response()->json(null, 204);
+    }
+
+    public function linkPo(Request $request, int $id): JsonResponse
+    {
+        $bill = Bill::findOrFail($id);
+        $data = $request->all();
+
+        $poId = (int) ($data['purchase_order_id'] ?? 0);
+        $po = PurchaseOrder::find($poId);
+        if (! $po) {
+            return response()->json(['error' => 'Purchase order not found'], 404);
+        }
+
+        // Check if PO already has a bill linked
+        $existingBill = Bill::where('purchase_order_id', $poId)->where('id', '!=', $bill->id)->first();
+        if ($existingBill) {
+            return response()->json(['error' => 'This purchase order is already linked to another bill'], 422);
+        }
+
+        $bill->update(['purchase_order_id' => $poId]);
+        $bill->load('purchaseOrder');
+
+        return response()->json($bill);
+    }
+
+    public function unlinkPo(Request $request, int $id): JsonResponse
+    {
+        $bill = Bill::findOrFail($id);
+        $bill->update(['purchase_order_id' => null]);
+
+        return response()->json($bill);
     }
 }
