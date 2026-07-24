@@ -117,4 +117,4 @@ jobs:
             curl -s -X POST "https://bot.adbroslan.com/webhook.php" \
               -H "Content-Type: application/json" \
               -H "X-Telegram-Bot-Api-Secret-Token: ${{ secrets.WEBHOOK_BOT_UUID }}" \
-              -d "$(jq -n --arg cid '${{ secrets.WEBHOOK_BOT_CHAT_ID }}' --arg msg "$MESSAGE" '{chat_id: $cid, message: $msg}')"
+              -d "$(jq -n --arg msg "$MESSAGE" '{topic: AVSB, message: $msg}')"
