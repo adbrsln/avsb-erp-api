@@ -17,13 +17,13 @@ class MailService
     public function __construct(?array $config = null)
     {
         $this->config = $config ?? [
-            'host'       => config('mail.mailers.smtp.host', 'localhost'),
-            'port'       => (int) config('mail.mailers.smtp.port', 587),
-            'username'   => config('mail.mailers.smtp.username', ''),
-            'password'   => config('mail.mailers.smtp.password', ''),
+            'host' => config('mail.mailers.smtp.host', 'localhost'),
+            'port' => (int) config('mail.mailers.smtp.port', 587),
+            'username' => config('mail.mailers.smtp.username', ''),
+            'password' => config('mail.mailers.smtp.password', ''),
             'encryption' => config('mail.mailers.smtp.encryption', ''),
             'from_email' => config('mail.from.address', 'noreply@avsb.com'),
-            'from_name'  => config('mail.from.name', 'AVSB ERP'),
+            'from_name' => config('mail.from.name', 'AVSB ERP'),
         ];
         $this->mailer = new PHPMailer(true);
         $this->configure();
