@@ -10,6 +10,8 @@ use App\Models\InventoryTransaction;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use App\Models\Vendor;
+use App\Services\DocumentGenerator;
+use App\Services\FileStorageService;
 use App\Services\Notification\NotificationEvent;
 use App\Services\Notification\NotificationRecipientResolver;
 use App\Services\Notification\NotificationService;
@@ -17,6 +19,7 @@ use App\Services\NumberingService;
 use App\Traits\PaginatedResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 class PurchaseOrderController extends Controller
 {
@@ -362,5 +365,26 @@ class PurchaseOrderController extends Controller
         $bill->load('vendor', 'purchaseOrder', 'items');
 
         return response()->json($bill, 201);
+    }
+
+    public function download(Request $request, int $id): JsonResponse|Response
+    {
+        $po = PurchaseOrder::with('vendor', 'items')->findOrFail($id);
+        $pdf = (new DocumentGenerator)->purchaseOrder($po);
+
+        $storage = new FileStorageService;
+        $path = 'documents/purchase-orders/'.$po->id.'.pdf';
+        $storage->put($path, $pdf, 'application/pdf');
+
+        if ($storage->getPresignedUrl($path)) {
+            $url = $storage->getPresignedUrl($path);
+
+            return response()->json(['url' => $url, 'filename' => $po->po_number.'.pdf']);
+        }
+
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$po->po_number.'.pdf"',
+        ]);
     }
 }

@@ -88,6 +88,11 @@ class DocumentGenerator
         $totalFmt = $this->fmt($data['total'] ?? 0);
         $sstRate = $data['sst_rate'] ?? 0;
         $retenRate = $data['retention_pct'] ?? $data['retention_rate'] ?? 0;
+        $sstRowHtml = $sstRate > 0 ? '<tr><td class="label">SST ('.htmlspecialchars((string) $sstRate).'%)</td><td class="r">RM '.$sstFmt.'</td></tr>' : '';
+        $retentionRowHtml = $retenRate > 0 ? '<tr><td class="label">Retention ('.htmlspecialchars((string) $retenRate).'%)</td><td class="r">(RM '.$retentionFmt.')</td></tr>' : '';
+        $taxAmt = $data['tax'] ?? 0;
+        $taxFmt = $this->fmt($taxAmt);
+        $taxRowHtml = (float) $taxAmt > 0 ? '<tr><td class="label">Tax</td><td class="r">RM '.$taxFmt.'</td></tr>' : '';
         $buyerTin = htmlspecialchars($buyerInfo['tin'] ?? '');
         $buyerRegNo = htmlspecialchars($buyerInfo['reg_no'] ?? '');
         $buyerSstRegNo = htmlspecialchars($buyerInfo['sst_reg_no'] ?? '');
@@ -229,8 +234,9 @@ td.r { text-align: right; }
 </table>
 <table class="summary">
     <tr><td class="label">Subtotal</td><td class="r">RM {$subtotalFmt}</td></tr>
-    <tr><td class="label">SST ({$sstRate}%)</td><td class="r">RM {$sstFmt}</td></tr>
-    <tr><td class="label">Retention ({$retenRate}%)</td><td class="r">(RM {$retentionFmt})</td></tr>
+    {$sstRowHtml}
+    {$retentionRowHtml}
+    {$taxRowHtml}
     {$extraRows}
     <tr class="total"><td class="label">TOTAL</td><td class="r">RM {$totalFmt}</td></tr>
 </table>
@@ -248,6 +254,32 @@ HTML;
         $dompdf->render();
 
         return $dompdf->output();
+    }
+
+    public function purchaseOrder(PurchaseOrder $po): string
+    {
+        $items = $po->items->toArray();
+        $vendorName = $po->vendor?->company_name ?? '';
+
+        return $this->render('PURCHASE ORDER', [
+            'number' => $po->po_number,
+            'client' => $vendorName,
+            'date' => $po->order_date ? Carbon::parse($po->order_date)->format('d F Y') : date('d F Y'),
+            'status' => strtoupper($po->status ?? 'DRAFT'),
+            'items' => $items,
+            'subtotal' => $po->subtotal,
+            'sst' => 0,
+            'sst_rate' => 0,
+            'retention_amount' => 0,
+            'retention_pct' => 0,
+            'tax' => $po->tax,
+            'total' => $po->total,
+            'notes' => $po->notes,
+        ], accent: '#ca2316', clientLabel: 'Vendor', buyerInfo: [
+            'address' => $po->vendor?->address ?? '',
+            'email' => $po->vendor?->email ?? '',
+            'phone' => $po->vendor?->phone ?? '',
+        ]);
     }
 
     public function quotation(Quotation $q): string
