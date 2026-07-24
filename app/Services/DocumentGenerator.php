@@ -141,6 +141,13 @@ class DocumentGenerator
         $docNumber = htmlspecialchars($data['number'] ?? '');
         $docDate = htmlspecialchars($data['date'] ?? '');
         $docStatus = htmlspecialchars($data['status'] ?? '');
+        $docValidUntil = ! empty($data['valid_until']) ? htmlspecialchars(Carbon::parse($data['valid_until'])->format('d F Y')) : '';
+        $validUntilHtml = '';
+        if ($docValidUntil) {
+            $expired = Carbon::parse($data['valid_until'])->isPast();
+            $expiredTag = $expired ? ' <span style="color:#dc2626;font-weight:bold;">(EXPIRED)</span>' : '';
+            $validUntilHtml = '<p><strong>Valid Until:</strong> '.$docValidUntil.$expiredTag.'</p>';
+        }
         $docNotes = htmlspecialchars($data['notes'] ?? '');
         $paymentRef = htmlspecialchars($data['payment_reference'] ?? '');
         $companyName = htmlspecialchars($c['name']);
@@ -224,6 +231,7 @@ td.r { text-align: right; }
     <div class="left">
         {$clientLineHtml}
         <p><strong>Date:</strong> {$docDate}</p>
+        {$validUntilHtml}
     </div>
     <div class="right">
         <p><strong>Status:</strong> {$docStatus}</p>
@@ -291,6 +299,7 @@ HTML;
             'number' => $q->quote_number,
             'client' => $q->client,
             'date' => $q->date ? Carbon::parse($q->date)->format('d F Y') : date('d F Y'),
+            'valid_until' => $q->valid_until,
             'status' => strtoupper($q->status ?? 'DRAFT'),
             'items' => $items,
             'subtotal' => $q->subtotal,
