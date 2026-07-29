@@ -72,6 +72,7 @@ describe('Payroll', function () {
             ->assertJsonStructure([
                 'data',
                 'employee' => [
+                    'identification_no', 'department', 'job_title',
                     'epf_no', 'socso_no', 'tax_no', 'bank_name', 'bank_account_no',
                 ],
             ]);
@@ -88,6 +89,7 @@ describe('Payroll', function () {
         getJson("/api/v1/payroll/periods/{$period->id}/items/{$item->id}", $this->headers)
             ->assertStatus(200)
             ->assertJsonStructure([
+                'identification_no', 'department', 'job_title',
                 'epf_no', 'socso_no', 'tax_no', 'bank_name', 'bank_account_no',
             ]);
     });
