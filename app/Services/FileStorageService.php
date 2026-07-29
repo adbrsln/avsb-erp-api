@@ -129,7 +129,16 @@ class FileStorageService
             }
         }
         $clean = '/'.implode('/', $resolved);
-        $root = rtrim($this->localRoot, '/');
+        $rootParts = array_filter(explode('/', $this->localRoot), fn ($p) => $p !== '' && $p !== '.');
+        $rootResolved = [];
+        foreach ($rootParts as $part) {
+            if ($part === '..') {
+                array_pop($rootResolved);
+            } else {
+                $rootResolved[] = $part;
+            }
+        }
+        $root = '/'.implode('/', $rootResolved);
         if ($clean !== $root && ! str_starts_with($clean, $root.'/')) {
             throw new \RuntimeException('Path traversal blocked');
         }

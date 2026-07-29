@@ -13,12 +13,13 @@ trait PaginatedResponse
         $perPage = min(100, max(1, intval($params['per_page'] ?? 15)));
 
         $sortable = $extra['sortable'] ?? ['created_at'];
-        $sortBy = $params['sort_by'] ?? 'created_at';
+        $defaultSort = $extra['default_sort'] ?? 'created_at';
+        $sortBy = $params['sort_by'] ?? $defaultSort;
         $sortDir = strtolower($params['sort_dir'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
         if (in_array($sortBy, $sortable)) {
             $query->orderBy($sortBy, $sortDir);
         } else {
-            $query->orderBy('created_at', 'desc');
+            $query->orderBy($defaultSort, 'desc');
         }
 
         $total = $query->count();

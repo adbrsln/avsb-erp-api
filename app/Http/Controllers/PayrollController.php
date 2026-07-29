@@ -20,6 +20,7 @@ use App\Traits\PaginatedResponse;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 class PayrollController extends Controller
 {
@@ -157,8 +158,16 @@ class PayrollController extends Controller
     {
         $item = PayrollRunItem::with('adjustments', 'period')
             ->join('staff_profiles', 'payroll_run_items.employee_id', '=', 'staff_profiles.id')
-            ->select('payroll_run_items.*', 'staff_profiles.name as employee_name', 'staff_profiles.employee_id as employee_code')
-            ->where('payroll_run_items.id', $itemId)
+            ->select(
+                'payroll_run_items.*',
+                'staff_profiles.name as employee_name',
+                'staff_profiles.employee_id as employee_code',
+                'staff_profiles.epf_no',
+                'staff_profiles.socso_no',
+                'staff_profiles.tax_no',
+                'staff_profiles.bank_name',
+                'staff_profiles.bank_account_no',
+            )->where('payroll_run_items.id', $itemId)
             ->first();
 
         if (! $item) {
@@ -545,11 +554,18 @@ class PayrollController extends Controller
             'employee' => [
                 'name' => $staff->name,
                 'employee_id' => $staff->employee_id,
+                'epf_no' => $staff->epf_no,
+                'socso_no' => $staff->socso_no,
+                'tax_no' => $staff->tax_no,
+                'bank_name' => $staff->bank_name,
+                'bank_account_no' => $staff->bank_account_no,
             ],
+            'default_sort' => 'payroll_run_items.id',
+            'sortable' => ['payroll_run_items.id', 'payroll_periods.start_date'],
         ]);
     }
 
-    public function downloadPayslip(Request $request, int $periodId = 0, int $itemId = 0): JsonResponse
+    public function downloadPayslip(Request $request, int $periodId = 0, int $itemId = 0): Response|JsonResponse
     {
         // Support both: /payroll/payslips/{itemId} and /payroll/periods/{id}/items/{itemId}
         $actualItemId = $itemId ?: $periodId;
@@ -570,7 +586,7 @@ class PayrollController extends Controller
             return response()->json(['error' => 'Forbidden'], 403);
         }
 
-        $storagePath = 'uploads/payslips/'.$item->period_id.'/'.$item->id.'.pdf';
+        $storagePath = 'payslips/'.$item->period_id.'/'.$item->id.'.pdf';
         $storage = new FileStorageService;
 
         if (! $storage->exists($storagePath)) {

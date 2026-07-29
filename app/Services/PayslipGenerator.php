@@ -40,7 +40,7 @@ class PayslipGenerator
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
 
-        $path = 'uploads/payslips/'.$item->period_id.'/'.$item->id.'.pdf';
+        $path = 'payslips/'.$item->period_id.'/'.$item->id.'.pdf';
         $storage = new FileStorageService;
         $storage->put($path, $dompdf->output(), 'application/pdf');
 
@@ -61,22 +61,22 @@ class PayslipGenerator
         float $adjEarningsTotal = 0,
         float $adjDeductionsTotal = 0,
     ): string {
-        $cName = htmlspecialchars($company->company_name ?? '');
-        $cAddr = htmlspecialchars($company->address ?? '');
-        $cReg = htmlspecialchars($company->reg_no ?? '');
-        $cEpf = htmlspecialchars($company->epf_no ?? '');
-        $cSocso = htmlspecialchars($company->socso_no ?? '');
-        $cEis = htmlspecialchars($company->eis_no ?? '');
+        $cName = htmlspecialchars($company?->company_name ?? '');
+        $cAddr = htmlspecialchars($company?->address ?? '');
+        $cReg = htmlspecialchars($company?->reg_no ?? '');
+        $cEpf = htmlspecialchars($company?->epf_no ?? '');
+        $cSocso = htmlspecialchars($company?->socso_no ?? '');
+        $cEis = htmlspecialchars($company?->eis_no ?? '');
         $periodCode = htmlspecialchars($item->period->code ?? '');
-        $empName = htmlspecialchars($employee->name ?? $item->employee_name);
-        $empCode = htmlspecialchars($employee->employee_id ?? $item->employee_code);
-        $empIc = htmlspecialchars($employee->identification_no ?? '—');
-        $empDept = htmlspecialchars($employee->department ?? '—');
-        $empPos = htmlspecialchars($employee->job_title ?? '—');
-        $empEpf = htmlspecialchars($employee->epf_no ?? '—');
-        $empSocso = htmlspecialchars($employee->socso_no ?? '—');
-        $empBank = htmlspecialchars($employee->bank_name ?? '—');
-        $empAcc = htmlspecialchars($employee->bank_account_no ?? '—');
+        $empName = htmlspecialchars($employee?->name ?? $item->employee_name);
+        $empCode = htmlspecialchars($employee?->employee_id ?? $item->employee_code);
+        $empIc = htmlspecialchars($employee?->identification_no ?? '—');
+        $empDept = htmlspecialchars($employee?->department ?? '—');
+        $empPos = htmlspecialchars($employee?->job_title ?? '—');
+        $empEpf = htmlspecialchars($employee?->epf_no ?? '—');
+        $empSocso = htmlspecialchars($employee?->socso_no ?? '—');
+        $empBank = htmlspecialchars($employee?->bank_name ?? '—');
+        $empAcc = htmlspecialchars($employee?->bank_account_no ?? '—');
 
         $salary = number_format($item->salary, 2);
         $epfEr = number_format($item->epf_employer, 2);
