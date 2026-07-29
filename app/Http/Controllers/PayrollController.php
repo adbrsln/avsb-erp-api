@@ -607,16 +607,13 @@ class PayrollController extends Controller
             return response()->json(['error' => 'Payslip file not found'], 404);
         }
 
-        $params = $request->query();
-        if (isset($params['presign']) && $params['presign'] === '1') {
-            $url = $storage->getPresignedUrl($storagePath);
-            if ($url) {
-                return response()->json(['url' => $url, 'filename' => 'Payslip_'.$item->id.'.pdf']);
-            }
+        $filename = 'Payslip_'.$item->id.'.pdf';
+        $url = $storage->getPresignedUrl($storagePath, 5, $filename);
+        if ($url) {
+            return response()->json(['url' => $url, 'filename' => $filename]);
         }
 
         $pdfContent = $storage->get($storagePath);
-        $filename = 'Payslip_'.$item->id.'.pdf';
 
         return response($pdfContent, 200, [
             'Content-Type' => 'application/pdf',
