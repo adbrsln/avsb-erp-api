@@ -6,6 +6,7 @@ use App\Models\LeaveApplication;
 use App\Models\StaffLeaveBalance;
 use App\Models\StaffProfile;
 use App\Services\FileStorageService;
+use App\Services\HolidayService;
 use App\Services\Notification\NotificationEvent;
 use App\Services\Notification\NotificationRecipientResolver;
 use App\Services\Notification\NotificationService;
@@ -109,6 +110,22 @@ class LeaveController extends Controller
 
         $maxDays = self::TYPE_MAX_DAYS[$type] ?? null;
         $requestedDays = LeaveApplication::workingDaysCount(Carbon::parse($startDate), Carbon::parse($endDate), $isHalfDay);
+
+        if (! $isHalfDay) {
+            $holidays = HolidayService::holidaysBetween(Carbon::parse($startDate), Carbon::parse($endDate));
+            $rawWorkingDays = 0;
+            $cursor = Carbon::parse($startDate);
+            while ($cursor->lte(Carbon::parse($endDate))) {
+                if (! $cursor->isWeekend() && ! isset($holidays[$cursor->format('Y-m-d')])) {
+                    $rawWorkingDays++;
+                }
+                $cursor->addDay();
+            }
+            if ($rawWorkingDays === 0) {
+                $errors[] = 'Selected dates are all public holidays or weekends';
+            }
+        }
+
         if ($maxDays !== null && $requestedDays > $maxDays) {
             $errors[] = "Maximum {$maxDays} working days allowed for {$type} leave (requested: {$requestedDays})";
         }

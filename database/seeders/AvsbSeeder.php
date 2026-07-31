@@ -25,6 +25,7 @@ class AvsbSeeder
             170 => StaffSeeder::class,
             180 => LeaveGroupSeeder::class,
             190 => LeaveBalanceSeeder::class,
+            195 => PublicHolidaySeeder::class,
             200 => NotificationPrefSeeder::class,
             235 => Socso24hTierSeeder::class,
             240 => InventoryItemSeeder::class,

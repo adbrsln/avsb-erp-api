@@ -48,6 +48,7 @@ use App\Http\Controllers\ProjectMaterialController;
 use App\Http\Controllers\ProjectStaffPicController;
 use App\Http\Controllers\ProjectSubcontractorController;
 use App\Http\Controllers\ProjectTypeController;
+use App\Http\Controllers\PublicHolidayController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\QuoteController;
@@ -358,6 +359,13 @@ Route::prefix('v1')->group(function () {
         Route::get('leave-groups/{id}/entitlements', [LeaveGroupController::class, 'entitlements']);
         Route::delete('leave-group-entitlements/{id}', [LeaveGroupController::class, 'deleteEntitlement']);
         Route::post('leave-balances/{id}/adjust', [LeaveGroupController::class, 'adjustBalance']);
+
+        // ── Public Holidays ──
+        Route::get('public-holidays', [PublicHolidayController::class, 'index']);
+        Route::post('public-holidays', [PublicHolidayController::class, 'store']);
+        Route::get('public-holidays/{id}', [PublicHolidayController::class, 'show']);
+        Route::put('public-holidays/{id}', [PublicHolidayController::class, 'update']);
+        Route::delete('public-holidays/{id}', [PublicHolidayController::class, 'destroy']);
 
         // ── Claims ──
         Route::get('claims/categories', [ClaimController::class, 'categories']);

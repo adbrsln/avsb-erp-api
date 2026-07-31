@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\HolidayService;
 use App\Traits\Auditable;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -51,17 +52,8 @@ class LeaveApplication extends Model
         if ($this->is_half_day) {
             return 0.5;
         }
-        $count = 0;
-        $current = $this->start_date->copy();
-        $end = $this->end_date->copy();
-        while ($current->lte($end)) {
-            if (! $current->isWeekend()) {
-                $count++;
-            }
-            $current->addDay();
-        }
 
-        return max(1, $count);
+        return self::workingDaysCount($this->start_date, $this->end_date);
     }
 
     public static function workingDaysCount(Carbon $start, Carbon $end, bool $isHalfDay = false): float
@@ -69,10 +61,13 @@ class LeaveApplication extends Model
         if ($isHalfDay) {
             return 0.5;
         }
+
+        $holidays = HolidayService::holidaysBetween($start, $end);
+
         $count = 0;
         $current = $start->copy();
         while ($current->lte($end)) {
-            if (! $current->isWeekend()) {
+            if (! $current->isWeekend() && ! isset($holidays[$current->format('Y-m-d')])) {
                 $count++;
             }
             $current->addDay();
