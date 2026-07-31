@@ -20,7 +20,9 @@ class Attendance extends Model
         'clock_in_photo', 'clock_out_photo',
         'clock_in_ip', 'clock_out_ip', 'status', 'note',
         'payroll_run_item_id', 'project_id',
+        'geofence_id', 'clock_out_geofence_id',
         'flagged', 'flagged_reason', 'flagged_cleared_by', 'flagged_cleared_at',
+        'schedule_flagged', 'schedule_flag_reason',
     ];
 
     protected $casts = [
@@ -29,6 +31,7 @@ class Attendance extends Model
         'clock_out' => 'datetime',
         'total_hours' => 'float',
         'flagged' => 'boolean',
+        'schedule_flagged' => 'boolean',
         'flagged_cleared_at' => 'datetime',
     ];
 
@@ -50,5 +53,15 @@ class Attendance extends Model
     public function project()
     {
         return $this->belongsTo(Project::class, 'project_id');
+    }
+
+    public function geofence()
+    {
+        return $this->belongsTo(Geofence::class, 'geofence_id');
+    }
+
+    public function clockOutGeofence()
+    {
+        return $this->belongsTo(Geofence::class, 'clock_out_geofence_id');
     }
 }

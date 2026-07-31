@@ -18,5 +18,6 @@ class CompanySetting extends Model
         'sst_registration_no', 'tax_id_number', 'msic_code',
         'msic_description', 'business_phone', 'business_email',
         'socso_24h_phase', 'logo_path',
+        'work_start_time', 'work_end_time',
     ];
 }

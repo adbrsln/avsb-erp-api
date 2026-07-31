@@ -8,6 +8,7 @@ use App\Models\ChartOfAccount;
 use App\Models\Client;
 use App\Models\ClientPIC;
 use App\Models\ExpenseClaim;
+use App\Models\Geofence;
 use App\Models\LeaveApplication;
 use App\Models\Phase;
 use App\Models\Project;
@@ -180,6 +181,18 @@ class TestDataSeeder extends Seeder
                 'retention' => 50,
                 'total' => 1030,
                 'created_by' => $pmId,
+            ]);
+        }
+
+        // ── Geofences ──
+        if (Geofence::count() === 0) {
+            Geofence::create([
+                'name' => 'Test Site — KL',
+                'description' => 'Test geofenced site in Kuala Lumpur',
+                'latitude' => 3.139,
+                'longitude' => 101.6869,
+                'radius_meters' => 500,
+                'is_active' => true,
             ]);
         }
 

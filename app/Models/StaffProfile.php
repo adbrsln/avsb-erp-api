@@ -30,6 +30,7 @@ class StaffProfile extends Model
         'payroll_policy', 'payroll_cycle',
         'spouse', 'address', 'emergency_contact', 'dependent_children',
         'leave_group_id', 'socso_24h_enabled', 'socso_category',
+        'work_start_time', 'work_end_time',
     ];
 
     protected $casts = [

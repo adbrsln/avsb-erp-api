@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Attendance;
+use App\Models\CompanySetting;
+use App\Models\Geofence;
 use App\Models\Project;
 use App\Models\StaffProfile;
 use App\Services\FileStorageService;
+use App\Services\GeofenceService;
 use App\Services\Notification\NotificationEvent;
 use App\Services\Notification\NotificationRecipientResolver;
 use App\Services\Notification\NotificationService;
@@ -36,6 +39,133 @@ class AttendanceController extends Controller
         $staff = StaffProfile::where('email', $user->email)->first();
 
         return $staff ? (int) $staff->id : null;
+    }
+
+    private function isPmPlus(Request $request): bool
+    {
+        $user = $request->user();
+        if (! $user) {
+            return false;
+        }
+
+        return (bool) array_intersect($user->getRoleNames(), ['admin', 'pm', 'super_admin']);
+    }
+
+    private function isHrPlus(Request $request): bool
+    {
+        $user = $request->user();
+        if (! $user) {
+            return false;
+        }
+
+        return (bool) array_intersect($user->getRoleNames(), ['admin', 'hr', 'super_admin']);
+    }
+
+    private function canViewSummary(Request $request): bool
+    {
+        $user = $request->user();
+        if (! $user) {
+            return false;
+        }
+
+        return (bool) array_intersect($user->getRoleNames(), ['admin', 'pm', 'hr', 'finance', 'super_admin']);
+    }
+
+    private function validateCoords(mixed $lat, mixed $lng): ?string
+    {
+        if ($lat === null && $lng === null) {
+            return null;
+        }
+
+        if ($lat === null || $lng === null) {
+            return 'Both latitude and longitude are required together.';
+        }
+
+        if (! is_numeric($lat) || ! is_numeric($lng)) {
+            return 'Latitude and longitude must be numeric.';
+        }
+
+        $latValue = (float) $lat;
+        $lngValue = (float) $lng;
+
+        if ($latValue < -90 || $latValue > 90) {
+            return 'Latitude must be between -90 and 90.';
+        }
+
+        if ($lngValue < -180 || $lngValue > 180) {
+            return 'Longitude must be between -180 and 180.';
+        }
+
+        return null;
+    }
+
+    /**
+     * Validates GPS accuracy and returns the containing active geofence, or a 422 response.
+     */
+    private function enforceGeofence(mixed $lat, mixed $lng, mixed $accuracy): Geofence|JsonResponse
+    {
+        if ($lat === null || $lng === null) {
+            return response()->json(['error' => 'Location is required to punch.'], 422);
+        }
+
+        $accuracyError = GeofenceService::accuracyError($accuracy);
+        if ($accuracyError) {
+            return response()->json(['error' => $accuracyError], 422);
+        }
+
+        $geofence = GeofenceService::findContaining((float) $lat, (float) $lng);
+        if ($geofence) {
+            return $geofence;
+        }
+
+        $hasActive = Geofence::where('is_active', true)->exists();
+
+        return response()->json([
+            'error' => $hasActive
+                ? 'Location is outside all geofenced sites.'
+                : 'No active geofenced sites are configured. Contact an administrator.',
+        ], 422);
+    }
+
+    /**
+     * Returns a schedule-flag reason when the punch falls outside the staff's
+     * allocated working window (±15 min grace), or null when it does not apply.
+     *
+     * Window resolution: staff override → company default. No window configured,
+     * or part-time worker → null (no enforcement).
+     */
+    private function scheduleFlagReason(StaffProfile $staff, Carbon $punchTime, string $type): ?string
+    {
+        if ($staff->worker_status === 'part_time') {
+            return null;
+        }
+
+        $start = $staff->work_start_time ?: CompanySetting::value('work_start_time');
+        $end = $staff->work_end_time ?: CompanySetting::value('work_end_time');
+
+        if (! $start || ! $end) {
+            return null;
+        }
+
+        $graceMinutes = 15;
+        $windowStart = strtotime($start);
+        $windowEnd = strtotime($end);
+        $startMin = ((int) date('G', $windowStart)) * 60 + (int) date('i', $windowStart) - $graceMinutes;
+        $endMin = ((int) date('G', $windowEnd)) * 60 + (int) date('i', $windowEnd) + $graceMinutes;
+        $punchMinutes = ((int) $punchTime->format('G')) * 60 + (int) $punchTime->format('i');
+
+        if ($endMin <= $startMin) {
+            // Overnight shift: window crosses midnight
+            $inWindow = $punchMinutes >= $startMin || $punchMinutes <= $endMin;
+        } else {
+            $inWindow = $punchMinutes >= $startMin && $punchMinutes <= $endMin;
+        }
+
+        if ($inWindow) {
+            return null;
+        }
+
+        return ucfirst($type).' outside scheduled window ('.date('H:i', $windowStart).'–'.date('H:i', $windowEnd).').';
     }
 
     public function clockIn(Request $request): JsonResponse
@@ -98,6 +228,18 @@ class AttendanceController extends Controller
         $lat = $body['latitude'] ?? null;
         $lng = $body['longitude'] ?? null;
 
+        $coordError = $this->validateCoords($lat, $lng);
+        if ($coordError) {
+            return response()->json(['error' => $coordError], 422);
+        }
+
+        $accuracy = $body['accuracy'] ?? null;
+        $geofenceResult = $this->enforceGeofence($lat, $lng, $accuracy);
+        if ($geofenceResult instanceof JsonResponse) {
+            return $geofenceResult;
+        }
+        $geofence = $geofenceResult;
+
         $photo = $request->file('photo');
         if (! $photo || ! $photo->isValid()) {
             return response()->json(['error' => 'A site photo is required to clock in.'], 422);
@@ -113,6 +255,8 @@ class AttendanceController extends Controller
         $photoPath = 'uploads/attendance/'.date('Y').'/'.date('m').'/'.$filename;
         $this->storage->put($photoPath, file_get_contents($photo->getPathname()), $photo->getClientMimeType());
 
+        $scheduleReason = $this->scheduleFlagReason($staffProfile, $now, 'clock-in');
+
         // Always create a new record — supports multiple punches per day
         $record = Attendance::create([
             'staff_id' => $staffId,
@@ -124,9 +268,12 @@ class AttendanceController extends Controller
             'clock_in_ip' => $request->ip(),
             'status' => 'present',
             'project_id' => $projectId,
+            'geofence_id' => $geofence->id,
+            'schedule_flagged' => $scheduleReason !== null,
+            'schedule_flag_reason' => $scheduleReason,
         ]);
 
-        return response()->json($record->toArray(), 201);
+        return response()->json($record->load('geofence:id,name')->toArray(), 201);
     }
 
     public function clockOut(Request $request, int $id): JsonResponse
@@ -146,6 +293,22 @@ class AttendanceController extends Controller
         }
 
         $now = Carbon::now();
+
+        $body = $request->all();
+        $outLat = $body['latitude'] ?? null;
+        $outLng = $body['longitude'] ?? null;
+
+        $coordError = $this->validateCoords($outLat, $outLng);
+        if ($coordError) {
+            return response()->json(['error' => $coordError], 422);
+        }
+
+        $accuracy = $body['accuracy'] ?? null;
+        $geofenceResult = $this->enforceGeofence($outLat, $outLng, $accuracy);
+        if ($geofenceResult instanceof JsonResponse) {
+            return $geofenceResult;
+        }
+        $geofence = $geofenceResult;
 
         $photo = $request->file('photo');
         if (! $photo || ! $photo->isValid()) {
@@ -169,9 +332,8 @@ class AttendanceController extends Controller
             $flagged = true;
         }
 
-        $body = $request->all();
-        $outLat = $body['latitude'] ?? null;
-        $outLng = $body['longitude'] ?? null;
+        $staffProfile = StaffProfile::find($record->staff_id);
+        $scheduleReason = $staffProfile ? $this->scheduleFlagReason($staffProfile, $now, 'clock-out') : null;
 
         $record->update([
             'clock_out' => $now,
@@ -180,8 +342,11 @@ class AttendanceController extends Controller
             'clock_out_latitude' => $outLat,
             'clock_out_longitude' => $outLng,
             'clock_out_ip' => $request->ip(),
+            'clock_out_geofence_id' => $geofence->id,
             'flagged' => $flagged,
             'flagged_reason' => $flagged ? "Shift of {$totalHours}h exceeds 14h limit." : null,
+            'schedule_flagged' => (bool) $record->schedule_flagged || $scheduleReason !== null,
+            'schedule_flag_reason' => $scheduleReason ?? $record->schedule_flag_reason,
         ]);
 
         if ($flagged) {
@@ -210,17 +375,21 @@ class AttendanceController extends Controller
 
         $record->refresh();
 
-        return response()->json($record->toArray());
+        return response()->json($record->load('geofence:id,name', 'clockOutGeofence:id,name')->toArray());
     }
 
     public function clearFlag(Request $request, int $id): JsonResponse
     {
+        if (! $this->isPmPlus($request) && ! $this->isHrPlus($request)) {
+            return response()->json(['error' => 'Forbidden'], 403);
+        }
+
         $record = Attendance::find($id);
         if (! $record) {
             return response()->json(['error' => 'Attendance record not found'], 404);
         }
 
-        if (! $record->flagged) {
+        if (! $record->flagged && ! $record->schedule_flagged) {
             return response()->json(['error' => 'Record is not flagged'], 422);
         }
 
@@ -232,6 +401,8 @@ class AttendanceController extends Controller
             'flagged_reason' => null,
             'flagged_cleared_by' => $staff ? $staff->id : null,
             'flagged_cleared_at' => Carbon::now(),
+            'schedule_flagged' => false,
+            'schedule_flag_reason' => null,
         ]);
 
         return response()->json($record->toArray());
@@ -247,7 +418,7 @@ class AttendanceController extends Controller
             return response()->json(['attendance' => null, 'staff' => null]);
         }
 
-        $today = Attendance::with('project:id,name')->where('staff_id', $staff->id)->where('date', date('Y-m-d'))->latest()->first();
+        $today = Attendance::with('project:id,name', 'geofence:id,name', 'clockOutGeofence:id,name')->where('staff_id', $staff->id)->where('date', date('Y-m-d'))->latest()->first();
 
         return response()->json([
             'attendance' => $today ? $today->toArray() : null,
@@ -281,6 +452,10 @@ class AttendanceController extends Controller
 
     public function records(Request $request): JsonResponse
     {
+        if (! $this->isPmPlus($request)) {
+            return response()->json(['error' => 'Forbidden'], 403);
+        }
+
         $params = $request->query();
         $query = Attendance::with('staff');
 
@@ -296,11 +471,19 @@ class AttendanceController extends Controller
 
         $query->orderByDesc('date')->orderByDesc('clock_in');
 
+        if (! empty($params['all']) && $params['all'] === 'true') {
+            return response()->json(['data' => $query->get()]);
+        }
+
         return $this->paginate($query, $params);
     }
 
-    public function exportCsv(Request $request): Response
+    public function exportCsv(Request $request): Response|JsonResponse
     {
+        if (! $this->isPmPlus($request)) {
+            return response()->json(['error' => 'Forbidden'], 403);
+        }
+
         $params = $request->query();
         $query = Attendance::with('staff');
 
@@ -324,7 +507,8 @@ class AttendanceController extends Controller
         fputcsv($handle, [
             'Staff Name', 'Employee ID', 'Department', 'Date',
             'Clock In', 'Clock Out', 'Total Hours', 'Status',
-            'Latitude', 'Longitude', 'Flagged', 'Flagged Reason',
+            'Clock-In Lat', 'Clock-In Lng', 'Clock-Out Lat', 'Clock-Out Lng',
+            'Flagged', 'Flagged Reason', 'Schedule Flagged', 'Schedule Flag Reason',
         ]);
 
         foreach ($records as $r) {
@@ -338,10 +522,14 @@ class AttendanceController extends Controller
                 $r->clock_out ?? '',
                 number_format((float) $r->total_hours, 2),
                 $r->status ?? '',
-                $r->latitude ?? '',
-                $r->longitude ?? '',
+                $r->clock_in_latitude ?? '',
+                $r->clock_in_longitude ?? '',
+                $r->clock_out_latitude ?? '',
+                $r->clock_out_longitude ?? '',
                 $r->flagged ? 'Yes' : 'No',
                 $r->flagged_reason ?? '',
+                $r->schedule_flagged ? 'Yes' : 'No',
+                $r->schedule_flag_reason ?? '',
             ]);
         }
 
@@ -358,6 +546,10 @@ class AttendanceController extends Controller
 
     public function summary(Request $request): JsonResponse
     {
+        if (! $this->canViewSummary($request)) {
+            return response()->json(['error' => 'Forbidden'], 403);
+        }
+
         $params = $request->query();
         $staffId = ! empty($params['staff_id']) ? (int) $params['staff_id'] : null;
         $dateFrom = $params['date_from'] ?? date('Y-m-01');
@@ -370,7 +562,7 @@ class AttendanceController extends Controller
 
         $records = $query->get();
         $totalHours = $records->sum('total_hours');
-        $totalDays = $records->count();
+        $totalDays = $records->pluck('date')->unique()->count();
 
         $byStaff = $records->groupBy('staff_id')->map(function ($items, $sid) {
             $staff = StaffProfile::find($sid);
@@ -381,7 +573,7 @@ class AttendanceController extends Controller
                 'name' => $staff->name ?? 'Unknown',
                 'hourly_rate' => $staff->hourly_rate ?? 0,
                 'total_hours' => round($hours, 2),
-                'total_days' => $items->count(),
+                'total_days' => $items->pluck('date')->unique()->count(),
                 'gross_pay' => round($hours * ($staff->hourly_rate ?? 0), 2),
             ];
         })->values();

@@ -49,6 +49,8 @@ class CompanySettingController extends Controller
                 'socso_no' => $body['socso_no'] ?? $settings->socso_no,
                 'eis_no' => $body['eis_no'] ?? $settings->eis_no,
                 'socso_24h_phase' => $body['socso_24h_phase'] ?? $settings->socso_24h_phase ?? 1,
+                'work_start_time' => $body['work_start_time'] ?? $settings->work_start_time,
+                'work_end_time' => $body['work_end_time'] ?? $settings->work_end_time,
             ]));
         }
 

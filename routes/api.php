@@ -25,6 +25,7 @@ use App\Http\Controllers\EisController;
 use App\Http\Controllers\EPFController;
 use App\Http\Controllers\FiscalPeriodController;
 use App\Http\Controllers\GeocodeController;
+use App\Http\Controllers\GeofenceController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\LeaveController;
@@ -321,8 +322,8 @@ Route::prefix('v1')->group(function () {
         Route::post('payments/mark-paid', [PaymentController::class, 'markPaid']);
 
         // ── Attendance ──
-        Route::post('attendance/clock-in', [AttendanceController::class, 'clockIn']);
-        Route::post('attendance/clock-out/{id}', [AttendanceController::class, 'clockOut']);
+        Route::post('attendance/clock-in', [AttendanceController::class, 'clockIn'])->middleware('throttle:20,60');
+        Route::post('attendance/clock-out/{id}', [AttendanceController::class, 'clockOut'])->middleware('throttle:20,60');
         Route::get('attendance/today', [AttendanceController::class, 'today']);
         Route::get('attendance/my-projects', [AttendanceController::class, 'myProjects']);
         Route::get('attendance/records', [AttendanceController::class, 'records']);
@@ -330,6 +331,13 @@ Route::prefix('v1')->group(function () {
         Route::get('attendance/export', [AttendanceController::class, 'exportCsv']);
         Route::post('attendance/{id}/clear-flag', [AttendanceController::class, 'clearFlag']);
         Route::get('attendance/{id}/photo/{type}', [AttendanceController::class, 'servePhoto']);
+
+        // ── Geofences ──
+        Route::get('geofences', [GeofenceController::class, 'index']);
+        Route::post('geofences', [GeofenceController::class, 'store']);
+        Route::get('geofences/{id}', [GeofenceController::class, 'show']);
+        Route::put('geofences/{id}', [GeofenceController::class, 'update']);
+        Route::delete('geofences/{id}', [GeofenceController::class, 'destroy']);
 
         // ── Leave ──
         Route::get('leaves', [LeaveController::class, 'index']);

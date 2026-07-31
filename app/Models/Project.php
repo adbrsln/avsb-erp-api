@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\GeofenceService;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -13,18 +14,30 @@ class Project extends Model
 
     protected $table = 'projects';
 
+    protected static function booted(): void
+    {
+        static::saved(function (Project $project) {
+            GeofenceService::syncFromProject($project);
+        });
+
+        static::deleted(function (Project $project) {
+            Geofence::where('project_id', $project->id)->update(['is_active' => false]);
+        });
+    }
+
     protected $fillable = [
         'name', 'project_code', 'po_number', 'client', 'location', 'status', 'contract_id',
         'client_id', 'client_pic_id',
         'budget_amount', 'project_manager_id',
         'start_date', 'end_date', 'service_type_id', 'description',
-        'latitude', 'longitude',
+        'latitude', 'longitude', 'radius_meters',
     ];
 
     protected $casts = [
         'start_date' => 'date',
         'end_date' => 'date',
         'budget_amount' => 'float',
+        'radius_meters' => 'integer',
     ];
 
     public function phases()
