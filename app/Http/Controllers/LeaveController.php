@@ -255,6 +255,74 @@ class LeaveController extends Controller
         return response()->json(null, 204);
     }
 
+    public function cancel(Request $request, int $id): JsonResponse
+    {
+        $item = LeaveApplication::with('staff')->findOrFail($id);
+        if (! $this->canModifyLeave($request, $item)) {
+            return response()->json(['error' => 'Forbidden'], 403);
+        }
+
+        if (! in_array($item->status, ['pending', 'approved'])) {
+            return response()->json(['errors' => ['Leave is already '.$item->status]], 422);
+        }
+
+        $user = $request->user();
+        $email = $user->email ?? '';
+        $canceller = $email ? StaffProfile::where('email', $email)->first() : null;
+
+        if ($item->status === 'approved') {
+            if ($item->start_date->lt(Carbon::today())) {
+                return response()->json(['errors' => ['Approved leave that has already started cannot be withdrawn']], 422);
+            }
+
+            $year = $item->start_date->year;
+            $balance = StaffLeaveBalance::where('staff_id', $item->staff_id)
+                ->where('type', $item->type)
+                ->where('year', $year)
+                ->first();
+            if ($balance) {
+                $newUsed = max(0, $balance->used - $item->days);
+                $balance->update([
+                    'used' => $newUsed,
+                    'balance' => $balance->entitled - $newUsed + $balance->adjusted,
+                ]);
+            }
+        }
+
+        $item->update([
+            'status' => 'cancelled',
+            'cancelled_by' => $canceller ? $canceller->id : null,
+            'cancelled_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        $days = $item->days;
+
+        try {
+            $staff = $item->staff()->first();
+            if ($staff) {
+                NotificationService::queue(
+                    NotificationEvent::LEAVE_CANCELLED,
+                    $staff->email,
+                    $staff->name,
+                    [
+                        'leave_type' => $item->type,
+                        'date_range' => $item->start_date->format('Y-m-d').' to '.$item->end_date->format('Y-m-d'),
+                        'days' => $days,
+                        'url' => '/leaves',
+                    ],
+                    'App\\Models\\LeaveApplication',
+                    $item->id
+                );
+            }
+        } catch (\Throwable $e) {
+            logger()->error('Notification failed: leave.cancelled', ['leave_id' => $item->id, 'error' => $e->getMessage()]);
+        }
+
+        $item->load('staff', 'approver', 'cancelledBy');
+
+        return response()->json($item);
+    }
+
     public function approve(Request $request, int $id): JsonResponse
     {
         $item = LeaveApplication::with('staff')->findOrFail($id);

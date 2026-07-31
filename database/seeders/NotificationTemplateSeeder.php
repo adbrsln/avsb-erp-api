@@ -28,6 +28,12 @@ class NotificationTemplateSeeder
                 'subject_template' => 'Leave Rejected — {{leave_type}} ({{date_range}})',
                 'body_template' => '<p>Your <strong>{{leave_type}}</strong> leave application for <strong>{{date_range}}</strong> has been <strong style="color:red">rejected</strong>.</p><p><strong>Reason:</strong> {{reason}}</p><p><a href="{{url}}">View in AVSB ERP</a></p>',
             ],
+            [
+                'event_type' => 'leave.cancelled',
+                'category' => 'status',
+                'subject_template' => 'Leave Cancelled — {{leave_type}} ({{date_range}})',
+                'body_template' => '<p>Your <strong>{{leave_type}}</strong> leave application for <strong>{{date_range}}</strong> ({{days}} day(s)) has been <strong style="color:#ca2316">cancelled</strong>.</p><p><a href="{{url}}">View in AVSB ERP</a></p>',
+            ],
 
             // ── Expense Claims ──
             [

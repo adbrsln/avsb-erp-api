@@ -19,12 +19,14 @@ class LeaveApplication extends Model
         'leave_ref', 'staff_id', 'type', 'start_date', 'end_date',
         'is_half_day', 'reason', 'rejection_reason', 'status',
         'approver_id', 'approved_at', 'mc_document_path',
+        'cancelled_at', 'cancelled_by',
     ];
 
     protected $casts = [
         'start_date' => 'date',
         'end_date' => 'date',
         'approved_at' => 'datetime',
+        'cancelled_at' => 'datetime',
         'is_half_day' => 'boolean',
     ];
 
@@ -45,6 +47,11 @@ class LeaveApplication extends Model
     public function approver()
     {
         return $this->belongsTo(StaffProfile::class, 'approver_id');
+    }
+
+    public function cancelledBy()
+    {
+        return $this->belongsTo(StaffProfile::class, 'cancelled_by');
     }
 
     public function getDaysAttribute(): float

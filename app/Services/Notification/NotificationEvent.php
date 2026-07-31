@@ -10,6 +10,8 @@ class NotificationEvent
 
     const LEAVE_REJECTED = 'leave.rejected';
 
+    const LEAVE_CANCELLED = 'leave.cancelled';
+
     const CLAIM_SUBMITTED = 'claim.submitted';
 
     const CLAIM_APPROVED = 'claim.approved';

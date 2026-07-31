@@ -348,6 +348,7 @@ Route::prefix('v1')->group(function () {
         Route::delete('leaves/{id}', [LeaveController::class, 'destroy']);
         Route::post('leaves/{id}/approve', [LeaveController::class, 'approve']);
         Route::post('leaves/{id}/reject', [LeaveController::class, 'reject']);
+        Route::post('leaves/{id}/cancel', [LeaveController::class, 'cancel']);
         Route::get('leaves/{id}/mc-document', [LeaveController::class, 'serveMcDocument']);
 
         // ── Leave Groups ──
