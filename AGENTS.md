@@ -242,3 +242,54 @@ Full migration from Slim 4 (avsb-erp/api/) to Laravel 13 (avsb-erp-api/).
 - **MinIO path style**: `env('R2_USE_PATH_STYLE')` returns boolean, `=== 'true'` comparison failed
 - **servePhoto TypeError**: binary response vs JsonResponse return type mismatch
 
+---
+
+## Session Memory — Jul 31, 2026 — Attendance Geofence, Schedule Windows, Holidays, Leave Withdraw
+
+### Geofence Punch Gating
+- **Migration** `2026_07_31_000000_create_geofences_table.php` — `geofences` (name, description, lat/lng decimal(10,7), radius_meters default 100, is_active, created_by FK) + `attendance.geofence_id` + `clock_out_geofence_id`
+- **Geofence model** (Auditable) + **GeofenceService** — `distanceMeters()` haversine, `findContaining()` (nearest active geofence ≤ radius), `accuracyError()` (50m max)
+- **GeofenceController** — full CRUD; admin/super_admin write only; read open to all auth'd (punch gate needs it)
+- **AttendanceController** — `enforceGeofence()` on clock-in + clock-out: accuracy required ≤50m, lat/lng required, zero active geofences → 422 "No active geofenced sites are configured", outside → 422 "Location is outside all geofenced sites". Proxy punches enforced too. Stores `geofence_id`/`clock_out_geofence_id`. `?presign=1` responses eager-load geofence names
+- **Frontend**: `lib/geo.ts` (`haversineMeters`, `findContainingGeofence`, `MAX_PUNCH_ACCURACY_METERS=50`); `GeofencesPage.tsx` admin CRUD (MapPicker center, radius, project badge); Punch.tsx gates photo capture + button behind geofence containment + 50m accuracy
+- **Geo validation order in clockOut**: coords → accuracy → geofence → photo (coord/geofence errors precede photo requirement)
+
+### Auto-Geofence from Projects
+- **Migration** `2026_07_31_000100_add_radius_to_projects_and_link_geofences.php` — `projects.radius_meters` (default 100) + `geofences.project_id` FK + backfill for existing coords-bearing projects
+- **Project model `booted()`**: `saved` → `GeofenceService::syncFromProject()`, `deleted` → deactivate linked geofence. Fires from ALL status paths (ProjectController, PhaseController auto-complete/reopen, seeders)
+- **syncFromProject**: coords present → firstOrCreate(project_id), updates lat/lng/name + `is_active = (status === 'active')`; **radius only set on create** (admin edits preserved); no coords → deactivate but keep record
+- **Frontend**: ProjectFormPage/ProjectFormDialog radius input; GeofencesPage project-linked geofences show "Project" badge, only radius+description editable
+
+### Schedule Window Detection
+- **Migration** `2026_07_31_000200_add_work_schedule_fields.php` — `company_settings.work_start_time/work_end_time` (default), `staff_profiles.work_start_time/work_end_time` (override), `attendance.schedule_flagged` + `schedule_flag_reason`
+- **AttendanceController::scheduleFlagReason()** — staff override → company default; no config → no enforcement (opt-in); part-time skipped; ±15m grace; overnight shift support (`end < start` crosses midnight); clock-out preserves clock-in flag (OR)
+- **clearFlag** clears schedule flags too; **exportCsv** adds Clock-In/Out Lat/Lng + Schedule Flagged columns
+- **Frontend**: StaffFormDialog work start/end time inputs; CompanySettings Statutory default hours; Punch + Attendance orange "Schedule" flag chips
+- **`records` endpoint**: added `?all=true` (was silently capped at 100 rows by PaginatedResponse — monthly view dropped records)
+
+### Public Holiday Blocking
+- **PublicHoliday model** — `isOn(Carbon)`: recurring matches month-day any year (anchor year 2000), non-recurring exact date+year. Table existed (migration 040400) but was dead code
+- **HolidayService** — `holidaysBetween(start, end): array<Y-m-d=>name>` (recurring expansion across year boundary), `isHoliday(date)`
+- **LeaveApplication** — `workingDaysCount()` + `getDaysAttribute()` exclude holidays (weekends + holidays skipped, `max(1, count)`)
+- **LeaveController::store()** — 422 "Selected dates are all public holidays or weekends" when raw working days = 0 (computed separately since workingDaysCount floors at 1)
+- **PublicHolidayController** — CRUD, admin/super_admin write, all-auth read, `year` filter + `all=true`; unique check uses `whereDate` (date cast `2026-07-15 00:00:00` vs string mismatch)
+- **PublicHolidaySeeder** — 5 recurring (New Year/Labour/National/Malaysia Day/Christmas, dates anchored 2000) + 4 fixed 2026
+- **Frontend**: PublicHolidaysPage admin CRUD; LeaveApplicationDialog fetches holidays, excludes from count, "Holiday: {name}" notices, blocks all-holiday submit (native date inputs can't grey dates — notice-based approach)
+
+### `holidays:fetch` Command
+- **FetchPublicHolidays** — `holidays:fetch {--year=} {--state=kuala-lumpur}` scrapes `publicholidays.com.my/{state}/` (browser UA, 30s timeout). Source: publicholidays.com.my — only reliable free MY source (Nager.Date + OpenHolidays lack Malaysia; Google Calendar ICS 500)
+- Parses `id="{year}-public-holidays"` table → `Carbon::parse("1 Jan {year}")` + name; upsert-only (`whereDate(date)` + year + non-recurring); **merges shared-date holidays** ("Thaipusam & Federal Territory Day" — 1 Feb 2026)
+- Scheduled `yearlyOn(12, 31, '14:00')` (22:00 MY) fetches next year via closure `Artisan::call('holidays:fetch', ['--year' => now()->addYear()->year])`
+- Note: `rtk` bash wrapper mangles grep/curl output — use dedicated tools
+
+### Leave Withdraw
+- **Migration** `2026_07_31_000300_add_cancel_to_leave_applications.php` — `cancelled_at` + `cancelled_by` FK
+- **LeaveController::cancel()** — `POST /leaves/{id}/cancel`: pending → `cancelled` (no balance change); approved → guard `start_date >= today` (else 422 "already started"), restore balance (`used -= days`, `balance = entitled - used + adjusted`), then cancel. Owner or HR/admin only. `LEAVE_CANCELLED` notification
+- **NotificationEvent::LEAVE_CANCELLED** constant added (was vestigial in NotificationPrefSeeder) + `leave.cancelled` email template
+- **Frontend**: UI copy unified to "Withdraw" (pending row button, drawer button, modal, toasts); `cancelled` status badge secondary
+
+### Deploy Notes
+- `php artisan migrate` applies 000100/000200/000300 (000000 ran earlier; 000100+ were missing on live DB causing "Column not found: work_start_time" on punch-out)
+- `php artisan db:seed --class=PublicHolidaySeeder` for default holiday list (smoke run already populated 2026 KL holidays)
+- Live DB already has 2026 KL holidays from smoke run of `holidays:fetch --year=2026`
+
