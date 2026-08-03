@@ -463,7 +463,8 @@ class AttendanceController extends Controller
         }
 
         $params = $request->query();
-        $query = Attendance::with('staff');
+        $query = Attendance::with('staff')
+            ->whereDoesntHave('staff.user.roles', fn ($q) => $q->where('role', 'super_admin'));
 
         if (! empty($params['staff_id'])) {
             $query->where('staff_id', (int) $params['staff_id']);
@@ -491,7 +492,8 @@ class AttendanceController extends Controller
         }
 
         $params = $request->query();
-        $query = Attendance::with('staff');
+        $query = Attendance::with('staff')
+            ->whereDoesntHave('staff.user.roles', fn ($q) => $q->where('role', 'super_admin'));
 
         if (! empty($params['staff_id'])) {
             $query->where('staff_id', (int) $params['staff_id']);
@@ -561,7 +563,8 @@ class AttendanceController extends Controller
         $dateFrom = $params['date_from'] ?? date('Y-m-01');
         $dateTo = $params['date_to'] ?? date('Y-m-t');
 
-        $query = Attendance::whereDate('date', '>=', $dateFrom)->whereDate('date', '<=', $dateTo);
+        $query = Attendance::whereDate('date', '>=', $dateFrom)->whereDate('date', '<=', $dateTo)
+            ->whereDoesntHave('staff.user.roles', fn ($q) => $q->where('role', 'super_admin'));
         if ($staffId) {
             $query->where('staff_id', $staffId);
         }

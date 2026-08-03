@@ -236,6 +236,118 @@ describe('Attendance CSV export', function () {
 
 });
 
+describe('Attendance super_admin exclusion', function () {
+
+    it('excludes super_admin staff from records listing', function () {
+        $pm = makeStaffUser('pm');
+        $super = makeStaffUser('super_admin');
+        $normal = makeStaffUser('staff');
+
+        Attendance::factory()->create(['staff_id' => $super['staff']->id]);
+        Attendance::factory()->create(['staff_id' => $normal['staff']->id]);
+
+        $response = getJson('/api/v1/attendance/records?all=true', $pm['headers'])
+            ->assertStatus(200);
+
+        $staffIds = collect($response->json('data'))->pluck('staff_id');
+        expect($staffIds)->not->toContain($super['staff']->id);
+        expect($staffIds)->toContain($normal['staff']->id);
+    });
+
+    it('excludes super_admin staff from summary totals', function () {
+        $pm = makeStaffUser('pm');
+        $super = makeStaffUser('super_admin');
+        $normal = makeStaffUser('staff');
+
+        Attendance::factory()->create(['staff_id' => $super['staff']->id, 'total_hours' => 8]);
+        Attendance::factory()->create(['staff_id' => $normal['staff']->id, 'total_hours' => 6]);
+
+        $dateFrom = now()->subMonths(3)->toDateString();
+        $dateTo = now()->toDateString();
+
+        $response = getJson('/api/v1/attendance/summary?date_from='.$dateFrom.'&date_to='.$dateTo, $pm['headers'])
+            ->assertStatus(200);
+
+        $byStaff = collect($response->json('by_staff'));
+        expect($byStaff)->toHaveCount(1);
+        expect($byStaff->first()['staff_id'])->toBe($normal['staff']->id);
+        expect($response->json('total_hours'))->toBe(6);
+    });
+
+    it('excludes super_admin staff from CSV export', function () {
+        $pm = makeStaffUser('pm');
+        $super = makeStaffUser('super_admin');
+        $normal = makeStaffUser('staff');
+
+        Attendance::factory()->create(['staff_id' => $super['staff']->id]);
+        Attendance::factory()->create(['staff_id' => $normal['staff']->id]);
+
+        $response = get('/api/v1/attendance/export', $pm['headers']);
+        $response->assertStatus(200);
+
+        $csv = $response->getContent();
+        expect($csv)->not->toContain($super['staff']->name);
+        expect($csv)->toContain($normal['staff']->name);
+    });
+
+    it('excludes super_admin staff from dashboard punched-today counts', function () {
+        $pm = makeStaffUser('pm');
+        $super = makeStaffUser('super_admin');
+        $normal = makeStaffUser('staff');
+
+        Attendance::factory()->create([
+            'staff_id' => $super['staff']->id,
+            'date' => now()->toDateString(),
+            'clock_in' => now(),
+            'clock_out' => now(),
+            'total_hours' => 8,
+        ]);
+        Attendance::factory()->create([
+            'staff_id' => $normal['staff']->id,
+            'date' => now()->toDateString(),
+            'clock_in' => now(),
+            'clock_out' => now(),
+            'total_hours' => 8,
+        ]);
+
+        $response = getJson('/api/v1/dashboard/summary', $pm['headers'])
+            ->assertStatus(200);
+
+        expect($response->json('presentToday'))->toBe(1);
+    });
+
+    it('excludes super_admin staff from project labor cost', function () {
+        $pm = makeStaffUser('pm');
+        $super = makeStaffUser('super_admin');
+        $normal = makeStaffUser('staff');
+        $project = Project::first() ?? Project::create([
+            'name' => 'Labor Cost Test Project',
+            'project_code' => 'LABOR-PRJ-001',
+            'status' => 'active',
+        ]);
+
+        Attendance::factory()->create([
+            'staff_id' => $super['staff']->id,
+            'project_id' => $project->id,
+            'total_hours' => 8,
+        ]);
+        Attendance::factory()->create([
+            'staff_id' => $normal['staff']->id,
+            'project_id' => $project->id,
+            'total_hours' => 4,
+        ]);
+
+        $super['staff']->update(['hourly_rate' => 100]);
+        $normal['staff']->update(['hourly_rate' => 50]);
+
+        $response = getJson('/api/v1/projects/'.$project->id.'/cost-summary', $pm['headers'])
+            ->assertStatus(200);
+
+        expect($response->json('costs.labor'))->toBe(200);
+    });
+
+});
+
 describe('Attendance schedule window detection', function () {
 
     it('flags clock-in before company default window start', function () {

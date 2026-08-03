@@ -101,6 +101,7 @@ class ProjectController extends Controller
 
         $labor = (float) Attendance::where('project_id', $project->id)
             ->whereNotNull('clock_out')
+            ->whereDoesntHave('staff.user.roles', fn ($q) => $q->where('role', 'super_admin'))
             ->join('staff_profiles', 'attendance.staff_id', '=', 'staff_profiles.id')
             ->selectRaw('COALESCE(SUM(attendance.total_hours * staff_profiles.hourly_rate), 0) as total')
             ->pluck('total')

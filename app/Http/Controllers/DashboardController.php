@@ -25,7 +25,9 @@ class DashboardController extends Controller
             : '0%';
 
         $tasksDue = Task::whereNotIn('status', ['completed', 'cancelled'])->count();
-        $teamMembers = StaffProfile::where('is_active', true)->count();
+        $teamMembers = StaffProfile::where('is_active', true)
+            ->whereDoesntHave('user.roles', fn ($q) => $q->where('role', 'super_admin'))
+            ->count();
 
         $taskStatus = [
             'todo' => Task::where('status', 'todo')->count(),
@@ -57,7 +59,9 @@ class DashboardController extends Controller
         }
 
         $today = date('Y-m-d');
-        $todayRecords = Attendance::whereDate('date', $today)->get();
+        $todayRecords = Attendance::whereDate('date', $today)
+            ->whereDoesntHave('staff.user.roles', fn ($q) => $q->where('role', 'super_admin'))
+            ->get();
         $presentToday = $todayRecords->whereNotNull('clock_out')->count();
         $activeNow = $todayRecords->whereNull('clock_out')->count();
         $staffWithRecord = $todayRecords->pluck('staff_id')->toArray();
