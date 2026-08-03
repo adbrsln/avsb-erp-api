@@ -11,7 +11,7 @@ class ClientSeeder
     {
         $clients = [
             [
-                'client_code' => 'CLT-TNB-001',
+                'client_code' => 'TNB',
                 'company_name' => 'Tenaga Nasional Berhad',
                 'registration_no' => '200866-V',
                 'phone' => '1-300-88-5454',
