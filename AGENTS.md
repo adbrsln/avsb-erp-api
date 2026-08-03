@@ -321,3 +321,15 @@ Full migration from Slim 4 (avsb-erp/api/) to Laravel 13 (avsb-erp-api/).
 - **Tests** — `LegacyInvoiceImportTest` 10 tests: fields/no-JE, dup number 422, auto-number, invalid status/amount 422, PDF store+download, e-invoice 422, generateForProject on legacy-only project, CSV import, dry-run no-op, missing-project skip. Note: `post()` has no files param — use `call('POST', ...)` with `HTTP_AUTHORIZATION` server var; fake `UploadedFile` rejected by finfo — write real minimal PDF bytes
 - **Verification**: 214 tests / 205 pass / 9 skip / 0 fail; pint clean; `tsc --noEmit` clean
 
+## Session Memory — Aug 3, 2026 — Superadmin Attendance Exclusion
+
+### Hide super_admin from attendance + counts
+- **Root**: `StaffController::index()` already filtered superadmin staff, but `AttendanceController::records()/exportCsv()/summary()` returned all punches — superadmin clock-ins showed in attendance listing
+- **Filter pattern** (matches StaffController): `whereDoesntHave('staff.user.roles', fn ($q) => $q->where('role', 'super_admin'))` on the `Attendance` query (relation chain attendance→staff→user→user_roles)
+- Applied: `records()`, `exportCsv()`, `summary()` (so `by_staff` grouping + `total_hours` exclude superadmin)
+- **DashboardController** — `teamMembers` count + `todayRecords` (presentToday/activeNow) exclude superadmin via same filter; keeps absent/available math coherent
+- **ProjectController::costSummary()** + **InvoiceController::calculateProjectCosts()** — labor-cost sums exclude superadmin (add `whereDoesntHave` BEFORE the raw `join('staff_profiles', ...)` — subquery on attendance rows is join-safe)
+- **Not touched**: `today()`/self-service, clockIn/clockOut (superadmin can still punch), role-gating (`isPmPlus`/`canViewSummary`), PartTimeController (per-staff detail)
+- **Tests** — AttendanceTest `Attendance super_admin exclusion` describe, 5 tests: records?all=true listing, summary by_staff count + total_hours, CSV export lacks name, dashboard presentToday, project labor cost. Float-strict gotcha: PHP json returns int `6`/`200` not `6.0`/`200.0` — assert ints
+- **Verification**: 219 tests / 210 pass / 9 skip / 0 fail; pint clean
+
