@@ -364,3 +364,16 @@ Full migration from Slim 4 (avsb-erp/api/) to Laravel 13 (avsb-erp-api/).
 - **Dev DB**: `php artisan migrate` was pending locally (source column + geofence toggle) — tests use in-memory SQLite so unaffected; dev MySQL needed migration for manual testing
 - **Verification**: 230 tests / 221 pass / 9 skip / 0 fail; pint clean; tsc clean
 
+## Session Memory — Aug 3, 2026 — Project Numbering with Client Code
+
+### Project code format change
+- **New format** (with linked client): `AV-{client_code}-{YY}{MM}-{SEQ:4}` e.g. `AV-CLT-0001-2608-0001`; fallback (no client match): old `AV-{YY}-{MM}-{SEQ:4}` e.g. `AV-26-08-0001`
+- **`NumberingService::generate(string $code, ?string $prefix = null, ?string $pattern = null)`** — added optional overrides, backward compatible (all existing callers unchanged). `{PREFIX}` uses `$prefix ?? $seq->prefix`, pattern `$pattern ?? $seq->pattern`. Counter/reset logic untouched → **global sequence across clients** (no per-client reset)
+- **New `NumberingService::generateProject(?string $clientCode)`** — helper; passes `AV-{code}-` prefix + `{PREFIX}{YEAR}{MONTH}-{SEQ:4}` pattern when client present, explicit `AV-` + `{PREFIX}{YEAR}-{MONTH}-{SEQ:4}` fallback otherwise. **Important**: fallback MUST pass explicit `'AV-'` prefix — auto-created sequence row uses `defaultPrefix()` = `PRO-` (from `strtoupper(substr('project',0,3))`), giving `PRO-26-08-0001` otherwise
+- **`ProjectController::store()`** — resolves `$clientCode` from `client_id` (find) or `client` name (company_name match) BEFORE generating code (was generated before client resolution); uses `generateProject`
+- **Seeders updated**: `BulkProjectSeeder`, `MillPaveSeeder` (TNB), `RoadMarkingSeeder` (reordered: client firstOrCreate BEFORE project code gen), `ExtraProjectSeeder` (nullable client → fallback path). `NumberingSequenceSeeder` project description updated
+- **Client codes**: `clients.client_code` nullable; some seeded manual (`TNB`, `CLT-MBPJ-001`) — flow into prefix as-is. `project_code` col len 50 — new format 20 chars, safe
+- **Not affected**: frontend (project_code display-only), legacy-invoice CSV import (matches user-entered codes), reset-projects `--project=` filter
+- **Tests** — ProjectTest `Project numbering` describe, 4 tests: client-id format regex `^AV-{code}-\d{4}-\d{4}$` (YYMM = 4 digits!), name-match client, legacy fallback `^AV-\d{2}-\d{2}-\d{4}$`, global counter distinct per client + increments
+- **Verification**: 234 tests / 225 pass / 9 skip / 0 fail; pint clean
+
