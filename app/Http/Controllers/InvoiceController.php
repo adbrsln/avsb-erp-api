@@ -17,6 +17,7 @@ use App\Models\Receipt;
 use App\Models\TaxCode;
 use App\Services\DocumentGenerator;
 use App\Services\FileStorageService;
+use App\Services\LegacyInvoiceImporter;
 use App\Services\Notification\NotificationEvent;
 use App\Services\Notification\NotificationService;
 use App\Services\NumberingService;
@@ -101,6 +102,35 @@ class InvoiceController extends Controller
         ]);
 
         $this->syncClientBuyerFields($invoice, $data['client'] ?? '');
+        $invoice->load('project');
+
+        return response()->json($invoice, 201);
+    }
+
+    public function import(Request $request): JsonResponse
+    {
+        $data = $request->all();
+
+        if (empty(trim($data['client'] ?? ''))) {
+            return response()->json(['error' => 'Client is required'], 422);
+        }
+        if ((float) ($data['amount'] ?? 0) <= 0) {
+            return response()->json(['error' => 'Amount must be greater than 0'], 422);
+        }
+        if (! empty($data['status']) && ! in_array($data['status'], LegacyInvoiceImporter::ALLOWED_STATUSES, true)) {
+            return response()->json(['error' => 'Status must be one of: '.implode(', ', LegacyInvoiceImporter::ALLOWED_STATUSES)], 422);
+        }
+
+        try {
+            $invoice = (new LegacyInvoiceImporter)->import($data, $request->file('document'));
+        } catch (\RuntimeException $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            Log::error('Legacy invoice import failed', ['error' => $e->getMessage()]);
+
+            return response()->json(['error' => 'Failed to import invoice'], 500);
+        }
+
         $invoice->load('project');
 
         return response()->json($invoice, 201);
@@ -754,7 +784,7 @@ class InvoiceController extends Controller
     {
         $project = Project::findOrFail($id);
 
-        $existing = Invoice::where('project_id', $project->id)->first();
+        $existing = Invoice::where('project_id', $project->id)->where('source', 'system')->first();
         if ($existing) {
             return response()->json(['error' => 'Invoice already exists for this project', 'invoice' => $existing], 422);
         }
@@ -830,6 +860,27 @@ class InvoiceController extends Controller
     public function download(Request $request, int $id): Response|JsonResponse
     {
         $i = Invoice::findOrFail($id);
+
+        if ($i->source === 'legacy' && ! empty($i->legacy_document_path)) {
+            $filename = $i->legacy_document_filename ?: $i->invoice_number.'.pdf';
+
+            $url = $this->storage->getPresignedUrl($i->legacy_document_path, 5, $filename);
+            if ($url) {
+                return response()->json(['url' => $url, 'filename' => $filename]);
+            }
+
+            $pdf = $this->storage->get($i->legacy_document_path);
+            if ($pdf === null) {
+                return response()->json(['error' => 'Document not found'], 404);
+            }
+
+            return response($pdf, 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+                'Content-Length' => strlen($pdf),
+            ]);
+        }
+
         $filename = $i->invoice_number.'.pdf';
         $path = 'documents/invoices/'.$i->id.'.pdf';
 

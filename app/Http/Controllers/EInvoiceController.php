@@ -61,6 +61,15 @@ class EInvoiceController extends Controller
 
     private function submitInvoice(Invoice $invoice): array
     {
+        if ($invoice->source === 'legacy') {
+            return [
+                'success' => false,
+                'error' => 'Legacy imported invoices cannot be submitted for e-invoicing',
+                'invoice' => $invoice,
+                'http_status' => 422,
+            ];
+        }
+
         if (! in_array($invoice->status, ['unpaid', 'partially_paid', 'paid'])) {
             return [
                 'success' => false,

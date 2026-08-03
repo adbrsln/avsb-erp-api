@@ -375,7 +375,7 @@ class PhaseController extends Controller
             }
 
             try {
-                if ($project && ($project->budget_amount ?? 0) > 0 && ! Invoice::where('project_id', $project->id)->exists()) {
+                if ($project && ($project->budget_amount ?? 0) > 0 && ! Invoice::where('project_id', $project->id)->where('source', 'system')->exists()) {
                     $budget = (float) $project->budget_amount;
                     $clientName = $project->client ?? ($project->clientRelation->company_name ?? '');
                     $invoice = Invoice::create([

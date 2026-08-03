@@ -292,6 +292,7 @@ Route::prefix('v1')->group(function () {
         // ── Invoices ──
         Route::get('invoices', [InvoiceController::class, 'index']);
         Route::post('invoices', [InvoiceController::class, 'store']);
+        Route::post('invoices/import', [InvoiceController::class, 'import']);
         Route::get('invoices/{id}', [InvoiceController::class, 'show']);
         Route::put('invoices/{id}', [InvoiceController::class, 'update']);
         Route::delete('invoices/{id}', [InvoiceController::class, 'destroy']);
@@ -301,7 +302,7 @@ Route::prefix('v1')->group(function () {
         Route::post('invoices/{id}/credit-note', [InvoiceController::class, 'creditNote']);
         Route::post('invoices/{id}/restore', [InvoiceController::class, 'restore']);
         Route::get('invoices/{id}/payments', [InvoiceController::class, 'payments']);
-        Route::post('invoices/{id}/submit-einvoice', [InvoiceController::class, 'submitEInvoice']);
+        Route::post('invoices/{id}/submit-einvoice', [EInvoiceController::class, 'submit']);
         Route::post('invoices/{id}/cancel-einvoice', [InvoiceController::class, 'cancelEInvoice']);
         Route::post('invoices/{id}/resubmit-einvoice', [InvoiceController::class, 'resubmitEInvoice']);
         Route::post('invoices/{id}/revert-to-draft', [InvoiceController::class, 'restore']);

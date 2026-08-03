@@ -26,6 +26,7 @@ class Invoice extends Model
         'seller_tin', 'seller_sst_reg_no', 'classification_code',
         'country', 'currency', 'einvoice_notes', 'einvoice_validated_at',
         'einvoice_xml',
+        'source', 'legacy_document_path', 'legacy_document_filename', 'legacy_paid_date',
     ];
 
     protected $hidden = ['einvoice_xml'];
@@ -43,6 +44,7 @@ class Invoice extends Model
         'submitted_at' => 'datetime',
         'last_submission_attempt' => 'datetime',
         'einvoice_validated_at' => 'datetime',
+        'legacy_paid_date' => 'date',
     ];
 
     public function contract()
