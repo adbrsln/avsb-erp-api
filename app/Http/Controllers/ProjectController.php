@@ -138,14 +138,21 @@ class ProjectController extends Controller
             return response()->json(['error' => 'invalid status, allowed: '.implode(', ', $allowed)], 422);
         }
 
-        $data['project_code'] = (new NumberingService)->generate('project');
-
         if (! empty($data['client_id']) && empty($data['client'])) {
             $client = Client::find($data['client_id']);
             if ($client) {
                 $data['client'] = $client->company_name;
             }
         }
+
+        $clientCode = null;
+        if (! empty($data['client_id'])) {
+            $clientCode = Client::find($data['client_id'])?->client_code;
+        } elseif (! empty($data['client'])) {
+            $clientCode = Client::where('company_name', $data['client'])->first()?->client_code;
+        }
+
+        $data['project_code'] = (new NumberingService)->generateProject($clientCode);
 
         $typeIds = $data['project_type_ids'] ?? [];
         unset($data['project_type_ids']);

@@ -45,7 +45,6 @@ class RoadMarkingSeeder
 
         foreach ($transactions as $item) {
             $location = $item['lokasi'] ?? 'Unknown location';
-            $projectCode = (new NumberingService)->generate('project');
             $tarikh = $this->parseDate($item['tarikh'] ?? null);
 
             // Create or retrieve client from contractor name
@@ -57,6 +56,8 @@ class RoadMarkingSeeder
                     'client_code' => (new NumberingService)->generate('client'),
                 ]
             );
+
+            $projectCode = (new NumberingService)->generateProject($client->client_code);
 
             $extra = [
                 'subcontractor' => $clientName,

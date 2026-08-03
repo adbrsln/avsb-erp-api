@@ -49,7 +49,7 @@ class MillPaveSeeder
         $pm = StaffProfile::first();
 
         foreach ($projects as $index => $item) {
-            $projectCode = (new NumberingService)->generate('project');
+            $projectCode = (new NumberingService)->generateProject($tnb->client_code);
             $picName = $item['pic_tnb'] ?? null;
 
             // Find or create TNB PIC (handle combined names like "Nur Jalilah / Nur Faogihah")

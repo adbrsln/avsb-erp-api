@@ -6,7 +6,7 @@ use App\Models\NumberingSequence;
 
 class NumberingService
 {
-    public function generate(string $code): string
+    public function generate(string $code, ?string $prefix = null, ?string $pattern = null): string
     {
         $seq = NumberingSequence::firstOrCreate(
             ['code' => $code],
@@ -30,17 +30,30 @@ class NumberingService
         $num = $seq->last_sequence;
 
         $replacements = [
-            '{PREFIX}' => $seq->prefix,
+            '{PREFIX}' => $prefix ?? $seq->prefix,
             '{YEAR}' => date('y'),
             '{MONTH}' => date('m'),
         ];
 
-        $pattern = $seq->pattern;
+        $pattern = $pattern ?? $seq->pattern;
         if (preg_match('/\{SEQ:(\d+)\}/', $pattern, $m)) {
             $pattern = str_replace($m[0], str_pad((string) $num, (int) $m[1], '0', STR_PAD_LEFT), $pattern);
         }
 
         return str_replace(array_keys($replacements), array_values($replacements), $pattern);
+    }
+
+    public function generateProject(?string $clientCode = null): string
+    {
+        if ($clientCode !== null && $clientCode !== '') {
+            return $this->generate(
+                'project',
+                'AV-'.$clientCode.'-',
+                '{PREFIX}{YEAR}{MONTH}-{SEQ:4}'
+            );
+        }
+
+        return $this->generate('project', 'AV-', '{PREFIX}{YEAR}-{MONTH}-{SEQ:4}');
     }
 
     private function defaultPrefix(string $code): string

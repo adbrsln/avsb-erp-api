@@ -39,7 +39,7 @@ class BulkProjectSeeder
             $client = Client::inRandomOrder()->first() ?? Client::factory()->create();
 
             $project = Project::create([
-                'project_code' => $numService->generate('project'),
+                'project_code' => $numService->generateProject($client->client_code),
                 'name' => $projectNames[$i % count($projectNames)],
                 'client' => $client->company_name,
                 'client_id' => $client->id,

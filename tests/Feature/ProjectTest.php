@@ -1,7 +1,9 @@
 <?php
 
+use App\Models\Client;
 use App\Models\Task;
 use App\Models\User;
+use App\Services\NumberingService;
 
 use function Pest\Laravel\getJson;
 use function Pest\Laravel\postJson;
@@ -49,6 +51,81 @@ describe('Projects', function () {
     it('creates project with validation error', function () {
         postJson('/api/v1/projects', [], $this->headers)
             ->assertStatus(422);
+    });
+
+});
+
+describe('Project numbering', function () {
+
+    it('formats project code with client code prefix', function () {
+        $client = Client::first() ?? Client::create([
+            'client_code' => 'TEST-CLT-001',
+            'company_name' => 'Numbering Test Client',
+            'buyer_type' => 'company',
+            'email' => 'numbering@testclient.com',
+        ]);
+
+        $response = postJson('/api/v1/projects', [
+            'name' => 'Numbering Format Project',
+            'client_id' => $client->id,
+        ], $this->headers)->assertStatus(201);
+
+        $code = $response->json('project_code');
+        expect($code)->toStartWith('AV-'.$client->client_code.'-');
+        expect($code)->toMatch('/^AV-'.$client->client_code.'-\d{4}-\d{4}$/');
+    });
+
+    it('uses client code when only client name matches an existing client', function () {
+        $client = Client::first() ?? Client::create([
+            'client_code' => 'TEST-CLT-001',
+            'company_name' => 'Name Match Client',
+            'buyer_type' => 'company',
+            'email' => 'namematch@testclient.com',
+        ]);
+
+        $response = postJson('/api/v1/projects', [
+            'name' => 'Name Match Project',
+            'client' => $client->company_name,
+        ], $this->headers)->assertStatus(201);
+
+        expect($response->json('project_code'))->toStartWith('AV-'.$client->client_code.'-');
+    });
+
+    it('falls back to legacy format when no client code matches', function () {
+        $response = postJson('/api/v1/projects', [
+            'name' => 'No Client Project',
+            'client' => 'Non Existent Client Name',
+        ], $this->headers)->assertStatus(201);
+
+        $code = $response->json('project_code');
+        expect($code)->toMatch('/^AV-\d{2}-\d{2}-\d{4}$/');
+    });
+
+    it('keeps a single global sequence across clients', function () {
+        $clientA = Client::create([
+            'client_code' => 'GLOBAL-CLT-A',
+            'company_name' => 'Global Client A',
+            'buyer_type' => 'company',
+            'email' => 'a@global.test',
+        ]);
+        $clientB = Client::create([
+            'client_code' => 'GLOBAL-CLT-B',
+            'company_name' => 'Global Client B',
+            'buyer_type' => 'company',
+            'email' => 'b@global.test',
+        ]);
+
+        $service = new NumberingService;
+        $codeA1 = $service->generateProject($clientA->client_code);
+        $codeB1 = $service->generateProject($clientB->client_code);
+
+        expect($codeA1)->toStartWith('AV-GLOBAL-CLT-A-');
+        expect($codeB1)->toStartWith('AV-GLOBAL-CLT-B-');
+        expect($codeA1)->not->toBe($codeB1);
+
+        // Global counter: second call continues the sequence, not resets per client
+        $codeA2 = $service->generateProject($clientA->client_code);
+        expect($codeA2)->not->toBe($codeA1);
     });
 
 });

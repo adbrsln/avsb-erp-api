@@ -78,9 +78,11 @@ class ExtraProjectSeeder
             $type = $projectTypes->where('code', $ep['type_code'])->first() ?? $projectTypes->first();
             $client = $ep['client'];
 
+            $numService = new NumberingService;
+
             $project = Project::create([
                 'name' => $ep['name'],
-                'project_code' => (new NumberingService)->generate('project'),
+                'project_code' => $client ? $numService->generateProject($client->client_code) : $numService->generateProject(),
                 'client' => $client ? $client->company_name : 'TNB',
                 'client_id' => $client ? $client->id : 1,
                 'project_manager_id' => $pm->id ?? 1,

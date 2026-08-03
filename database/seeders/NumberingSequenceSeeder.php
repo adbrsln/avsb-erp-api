@@ -13,7 +13,7 @@ class NumberingSequenceSeeder
                 'code' => 'project',
                 'prefix' => 'AV-',
                 'pattern' => '{PREFIX}{YEAR}-{MONTH}-{SEQ:4}',
-                'description' => 'Project filing ID',
+                'description' => 'Project filing ID — AV-{client_code}-{YYMM}-{SEQ} when client linked',
             ],
             [
                 'code' => 'invoice',
