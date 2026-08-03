@@ -333,3 +333,17 @@ Full migration from Slim 4 (avsb-erp/api/) to Laravel 13 (avsb-erp-api/).
 - **Tests** — AttendanceTest `Attendance super_admin exclusion` describe, 5 tests: records?all=true listing, summary by_staff count + total_hours, CSV export lacks name, dashboard presentToday, project labor cost. Float-strict gotcha: PHP json returns int `6`/`200` not `6.0`/`200.0` — assert ints
 - **Verification**: 219 tests / 210 pass / 9 skip / 0 fail; pint clean
 
+## Session Memory — Aug 3, 2026 — Reset Projects Command
+
+### `app:reset-projects` maintenance command
+- **Purpose**: hard-delete projects + ALL related data (full wipe). Options: `--project=CODE,CODE` (comma-separated, default all), `--status=`, `--dry-run` (preview counts), `--force` (skip confirm). Wrapped in one DB transaction, rollback on error, per-table deleted counts in output. Not scheduled
+- **FK graph gotchas (why manual ordered deletion, not `forceDelete` + DB cascade)**:
+  - `self_billed_invoices.project_id` has NO onDelete (RESTRICT) → delete before projects or FK error
+  - nullOnDelete children survive orphaned: tasks (`phase_id`), invoices/quotations/contracts/attendance/timecards/activity_log (`project_id`) → delete explicitly
+  - SoftDeletes child models need `withTrashed()->forceDelete()`: Invoice, Quotation, Contract, ProjectClaim, ProjectClaimDocument, ProjectDocument, SelfBilledInvoice, Timecard, SubcontractorClaimDocument. Plain `delete()` for the rest (Phase/Task/Attendance/ActivityLog/Geofence/etc. have NO SoftDeletes)
+  - Pivots via `DB::table()`: task_staff, phase_staff, project_staff_pics, project_project_type, project_project_group
+- **Deletion order**: subcon claim docs → subcon claims → project_subcontractors → project_claim_docs → project_claims → contract_variations → contracts → quotations → invoice_payments → receipts → invoices → attendance → timecards → activity_log → self_billed → geofences → material_usage → project_documents → task_staff → tasks → phase_staff → phase_comments → checklist_results → checklist_items → project_phases → 3 pivots → projects (`withTrashed()->forceDelete()`)
+- **Resolution query**: `Project::withTrashed()` so `--project` can target soft-deleted projects
+- **Tests** — `ResetProjectsTest` 7 tests. Gotchas: ProjectClaim requires `title`; SelfBilledInvoice requires `supplier_id` (FK to clients); project_types requires `code`; Phase has no SoftDeletes; project_types/project_groups tables empty in test DB → `insertGetId` fixtures
+- **Verification**: 226 tests / 217 pass / 9 skip / 0 fail; pint clean
+
