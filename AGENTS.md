@@ -293,3 +293,16 @@ Full migration from Slim 4 (avsb-erp/api/) to Laravel 13 (avsb-erp-api/).
 - `php artisan db:seed --class=PublicHolidaySeeder` for default holiday list (smoke run already populated 2026 KL holidays)
 - Live DB already has 2026 KL holidays from smoke run of `holidays:fetch --year=2026`
 
+---
+
+## Session Memory — Aug 3, 2026 — Geofence Enforcement Toggle
+
+### Geofence Punch Relax Mode (Company Setting)
+- **Migration** `2026_07_31_000400_add_geofence_enforced_to_company_settings.php` — `company_settings.geofence_enforced` bool default **true** (strict)
+- **CompanySetting model** — `geofence_enforced` in `$fillable` + `boolean` cast
+- **AttendanceController::enforceGeofence()** — early-returns `null` when `CompanySetting::value('geofence_enforced', true) === false`; clockIn/clockOut null-safe on `geofence_id`/`clock_out_geofence_id` (stored null when relaxed). Coord range validation unchanged
+- **CompanySettingController::update()** — persists via `array_key_exists('geofence_enforced', $body)` (whole-object PUT)
+- **GeofenceTest** — `setGeofenceEnforced()` helper + 4 tests: relaxed clock-in (201, null geofence_id), enforced outside→422, relaxed clock-out, toggle persists via PUT
+- **Also committed this session**: `POST /notifications/read-all` route (frontend used it, only GET read existed); flaky date-boundary test fixes (LeaveCancelTest weekend drift → fixed dates, AttendanceTest month rollover → exact date range)
+- **Verification**: 204 tests / 195 pass / 9 skip / 0 fail; pint clean; frontend `tsc --noEmit` clean
+
