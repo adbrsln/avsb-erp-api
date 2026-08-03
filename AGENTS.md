@@ -306,3 +306,18 @@ Full migration from Slim 4 (avsb-erp/api/) to Laravel 13 (avsb-erp-api/).
 - **Also committed this session**: `POST /notifications/read-all` route (frontend used it, only GET read existed); flaky date-boundary test fixes (LeaveCancelTest weekend drift → fixed dates, AttendanceTest month rollover → exact date range)
 - **Verification**: 204 tests / 195 pass / 9 skip / 0 fail; pint clean; frontend `tsc --noEmit` clean
 
+## Session Memory — Aug 3, 2026 — Legacy Invoice Import
+
+### Manual Import + Bulk CSV Command (migration from existing process)
+- **Migration** `2026_08_03_000100_add_legacy_source_to_invoices.php` — `invoices.source` (default `system`) + `legacy_document_path`/`legacy_document_filename`/`legacy_paid_date`
+- **Invoice model** — 4 fields in `$fillable`; `legacy_paid_date` date cast
+- **`LegacyInvoiceImporter` service** — shared logic for UI + command: project resolve (project_id → project_code → project_name), manual invoice number w/ dup check (`withTrashed`) or auto-generate, single total amount (subtotal=amount, sst/retention=0, one "Legacy invoice (migrated)" line item), optional PDF via `FileStorageService::validateUpload` + `putFromFile`. **No JE, no e-invoice, no notification**
+- **InvoiceController::import()** — `POST /invoices/import` (multipart); 422 on missing client / amount≤0 / invalid status / dup number. **Route registered BEFORE `invoices/{id}`** (avoid `{id}` catch)
+- **InvoiceController::download()** — `source==='legacy'` && doc exists → serve uploaded original (presigned if R2, stream if local); else regenerate via DocumentGenerator
+- **E-Invoice guard** — `EInvoiceController::submitInvoice()` 422 `source==='legacy'`. **Pre-existing broken route fixed**: `invoices/{id}/submit-einvoice` pointed at undefined `InvoiceController::submitEInvoice` → now `EInvoiceController::submit`
+- **Auto-invoice gate** — `PhaseController` (line ~378) + `InvoiceController::generateForProject()` both filter `where('source','system')` — legacy-only projects can still generate a real invoice
+- **`app:import-legacy-invoices` command** (mirrors ImportStaff) — `--file` (default `database/data/legacy-invoices-migration.csv`), `--dry-run`, `--force`, `--missing-project=skip|fail` (default skip, resolved BEFORE import), `--document-dir` (resolves per-row `document` filename). CSV cols: `invoice_number,project_code,project_name,client,amount,status,date,due_date,paid_date,document`. Row-level try/catch, summary Imported/Skipped/Errors, FAILURE exit on errors
+- **Frontend** — `LegacyInvoiceImportDialog.tsx` (Import Existing button on InvoicesPage, raw fetch+FormData), "Imported" badge on list+detail, legacy hides Issue/CreditNote/Revert/E-Invoice, keeps Record Payment
+- **Tests** — `LegacyInvoiceImportTest` 10 tests: fields/no-JE, dup number 422, auto-number, invalid status/amount 422, PDF store+download, e-invoice 422, generateForProject on legacy-only project, CSV import, dry-run no-op, missing-project skip. Note: `post()` has no files param — use `call('POST', ...)` with `HTTP_AUTHORIZATION` server var; fake `UploadedFile` rejected by finfo — write real minimal PDF bytes
+- **Verification**: 214 tests / 205 pass / 9 skip / 0 fail; pint clean; `tsc --noEmit` clean
+
