@@ -342,8 +342,25 @@ Full migration from Slim 4 (avsb-erp/api/) to Laravel 13 (avsb-erp-api/).
   - nullOnDelete children survive orphaned: tasks (`phase_id`), invoices/quotations/contracts/attendance/timecards/activity_log (`project_id`) → delete explicitly
   - SoftDeletes child models need `withTrashed()->forceDelete()`: Invoice, Quotation, Contract, ProjectClaim, ProjectClaimDocument, ProjectDocument, SelfBilledInvoice, Timecard, SubcontractorClaimDocument. Plain `delete()` for the rest (Phase/Task/Attendance/ActivityLog/Geofence/etc. have NO SoftDeletes)
   - Pivots via `DB::table()`: task_staff, phase_staff, project_staff_pics, project_project_type, project_project_group
-- **Deletion order**: subcon claim docs → subcon claims → project_subcontractors → project_claim_docs → project_claims → contract_variations → contracts → quotations → invoice_payments → receipts → invoices → attendance → timecards → activity_log → self_billed → geofences → material_usage → project_documents → task_staff → tasks → phase_staff → phase_comments → checklist_results → checklist_items → project_phases → 3 pivots → projects (`withTrashed()->forceDelete()`)
+- **Deletion order**: journal_entry_lines → journal_entries (invoice + payment refs, BEFORE invoices) → subcon claim docs → subcon claims → project_subcontractors → project_claim_docs → project_claims → contract_variations → contracts → quotations → invoice_payments → receipts → invoices → attendance → timecards → activity_log → self_billed → geofences → material_usage → project_documents → task_staff → tasks → phase_staff → phase_comments → checklist_results → checklist_items → project_phases → 3 pivots → projects (`withTrashed()->forceDelete()`)
+- **JE cleanup**: `journalEntryIds()` builder `select('id')` (subquery in whereIn must return 1 column — else SQLite "sub-select returns 11 columns"); matches `reference_type='invoice'` w/ invoice ids + `reference_type='payment'` w/ invoice OR invoice_payment ids (markPaid refs invoice, storePayment refs payment)
 - **Resolution query**: `Project::withTrashed()` so `--project` can target soft-deleted projects
-- **Tests** — `ResetProjectsTest` 7 tests. Gotchas: ProjectClaim requires `title`; SelfBilledInvoice requires `supplier_id` (FK to clients); project_types requires `code`; Phase has no SoftDeletes; project_types/project_groups tables empty in test DB → `insertGetId` fixtures
-- **Verification**: 226 tests / 217 pass / 9 skip / 0 fail; pint clean
+- **Tests** — `ResetProjectsTest` 8 tests (JE orphan cleanup added). Gotchas: ProjectClaim requires `title`; SelfBilledInvoice requires `supplier_id` (FK to clients); project_types requires `code`; Phase has no SoftDeletes; project_types/project_groups tables empty in test DB → `insertGetId` fixtures
+- **Verification**: 230 tests / 221 pass / 9 skip / 0 fail; pint clean
+
+## Session Memory — Aug 3, 2026 — Legacy Invoice Import Journal Entries
+
+### JE generation in `LegacyInvoiceImporter::import()`
+- Import now runs inside `DB::transaction`. Creates:
+  - **Issue JE** (`reference_type='invoice'`, entry_date = invoice date): DR AR(1104) / CR Revenue(4101) = full amount. No SST/retention lines (legacy = 0). Skips w/ warning if 4101/1104 missing (matches doIssue)
+  - **Payment JE** (`reference_type='payment'`, entry_date = paid date): DR Bank(1102) / CR AR(1104) = amount_paid. **Throws RuntimeException if 1102/1104 missing** (invoice_payments.debit_account_id/credit_account_id are NOT NULL constrained — silent skip would violate)
+  - **InvoicePayment row** (debit=1102, credit=1104, `payment_reference='LEGACY-{number}'`) so detail-page payment history/remaining is correct
+- **amount_paid resolution**: paid → defaults to full amount (or provided, capped at amount); partially_paid → required, must be > 0 and ≤ amount; unpaid → 0 (no payment JE, no InvoicePayment)
+- **paid_date**: required when amount_paid > 0, defaults to invoice date if blank; stored on `legacy_paid_date`
+- **Period lock**: bypassed (consistent with doIssue/markPaid — system JEs don't call `PeriodLockService::assertOpen()`)
+- **Frontend**: LegacyInvoiceImportDialog now sends `amount_paid` + `paid_date` for non-unpaid statuses; Amount Paid field (partial marked required, paid placeholder "Full amount"); helper text changed to "Matching journal entries are created"
+- **CSV**: `amount_paid` column added (optional, blank = status default); dry-run prints it
+- **Tests** — LegacyInvoiceImportTest now 13: paid → issue JE (2 lines, dated invoice date) + payment JE (dated paid date) + InvoicePayment sum; unpaid → issue only; partial → partial payment JE + InvoicePayment; validation 422s (partial w/o amount_paid, amount_paid > amount). Test setup adds `ChartOfAccount 1102` (TestDataSeeder only has 1001/1104/2101/4101/6101)
+- **Dev DB**: `php artisan migrate` was pending locally (source column + geofence toggle) — tests use in-memory SQLite so unaffected; dev MySQL needed migration for manual testing
+- **Verification**: 230 tests / 221 pass / 9 skip / 0 fail; pint clean; tsc clean
 
