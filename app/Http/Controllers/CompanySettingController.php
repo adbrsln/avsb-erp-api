@@ -51,6 +51,9 @@ class CompanySettingController extends Controller
                 'socso_24h_phase' => $body['socso_24h_phase'] ?? $settings->socso_24h_phase ?? 1,
                 'work_start_time' => $body['work_start_time'] ?? $settings->work_start_time,
                 'work_end_time' => $body['work_end_time'] ?? $settings->work_end_time,
+                'geofence_enforced' => array_key_exists('geofence_enforced', $body)
+                    ? (bool) $body['geofence_enforced']
+                    : $settings->geofence_enforced,
             ]));
         }
 

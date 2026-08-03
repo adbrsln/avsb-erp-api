@@ -19,5 +19,10 @@ class CompanySetting extends Model
         'msic_description', 'business_phone', 'business_email',
         'socso_24h_phase', 'logo_path',
         'work_start_time', 'work_end_time',
+        'geofence_enforced',
+    ];
+
+    protected $casts = [
+        'geofence_enforced' => 'boolean',
     ];
 }

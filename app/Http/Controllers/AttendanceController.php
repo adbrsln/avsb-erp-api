@@ -101,11 +101,17 @@ class AttendanceController extends Controller
 
     /**
      * Validates GPS accuracy and returns the containing active geofence, or a 422 response.
+     * When geofence enforcement is disabled (company setting), returns null — punch allowed
+     * from any valid GPS location.
      */
-    private function enforceGeofence(mixed $lat, mixed $lng, mixed $accuracy): Geofence|JsonResponse
+    private function enforceGeofence(mixed $lat, mixed $lng, mixed $accuracy): Geofence|JsonResponse|null
     {
+        if (CompanySetting::value('geofence_enforced', true) === false) {
+            return null;
+        }
+
         if ($lat === null || $lng === null) {
-            return response()->json(['error' => 'Location is required to punch.'], 422);
+            return null;
         }
 
         $accuracyError = GeofenceService::accuracyError($accuracy);
@@ -268,7 +274,7 @@ class AttendanceController extends Controller
             'clock_in_ip' => $request->ip(),
             'status' => 'present',
             'project_id' => $projectId,
-            'geofence_id' => $geofence->id,
+            'geofence_id' => $geofence ? $geofence->id : null,
             'schedule_flagged' => $scheduleReason !== null,
             'schedule_flag_reason' => $scheduleReason,
         ]);
@@ -342,7 +348,7 @@ class AttendanceController extends Controller
             'clock_out_latitude' => $outLat,
             'clock_out_longitude' => $outLng,
             'clock_out_ip' => $request->ip(),
-            'clock_out_geofence_id' => $geofence->id,
+            'clock_out_geofence_id' => $geofence ? $geofence->id : null,
             'flagged' => $flagged,
             'flagged_reason' => $flagged ? "Shift of {$totalHours}h exceeds 14h limit." : null,
             'schedule_flagged' => (bool) $record->schedule_flagged || $scheduleReason !== null,

@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Attendance;
+use App\Models\CompanySetting;
 use App\Models\Geofence;
 use App\Models\Project;
 use App\Models\StaffProfile;
@@ -12,6 +13,14 @@ use function Pest\Laravel\getJson;
 use function Pest\Laravel\post;
 use function Pest\Laravel\postJson;
 use function Pest\Laravel\putJson;
+
+function setGeofenceEnforced(bool $enforced): void
+{
+    CompanySetting::firstOrCreate(
+        ['company_name' => 'Test Company'],
+        ['geofence_enforced' => $enforced],
+    )->update(['geofence_enforced' => $enforced]);
+}
 
 function makeGeofenceStaffUser(string $role = 'staff'): array
 {
@@ -314,6 +323,63 @@ describe('Project auto-geofence sync', function () {
         $geofence = Geofence::where('project_id', $project->id)->first();
         expect($geofence)->not->toBeNull()
             ->and($geofence->is_active)->toBeFalse();
+    });
+
+});
+
+describe('Geofence enforcement toggle', function () {
+
+    it('allows clock-in anywhere when enforcement is disabled', function () {
+        setGeofenceEnforced(false);
+        $ctx = makeGeofenceStaffUser('staff');
+
+        $response = post('/api/v1/attendance/clock-in', [
+            'latitude' => 5.0,
+            'longitude' => 110.0,
+            'photo' => UploadedFile::fake()->image('punch.png', 100, 100),
+        ], $ctx['headers']);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('geofence_id', null);
+    });
+
+    it('still enforces geofence when the toggle is on', function () {
+        setGeofenceEnforced(true);
+        $ctx = makeGeofenceStaffUser('staff');
+
+        postJson('/api/v1/attendance/clock-in', [
+            'latitude' => 5.0,
+            'longitude' => 110.0,
+            'accuracy' => 5,
+        ], $ctx['headers'])
+            ->assertStatus(422)
+            ->assertJson(['error' => 'Location is outside all geofenced sites.']);
+    });
+
+    it('allows clock-out anywhere when enforcement is disabled', function () {
+        setGeofenceEnforced(false);
+        $ctx = makeGeofenceStaffUser('staff');
+
+        $record = Attendance::factory()->create([
+            'staff_id' => $ctx['staff']->id,
+            'clock_out' => null,
+        ]);
+
+        post('/api/v1/attendance/clock-out/'.$record->id, [
+            'latitude' => 5.0,
+            'longitude' => 110.0,
+            'photo' => UploadedFile::fake()->image('punch.png', 100, 100),
+        ], $ctx['headers'])
+            ->assertStatus(200)
+            ->assertJsonPath('clock_out_geofence_id', null);
+    });
+
+    it('persists the toggle via company settings update', function () {
+        setGeofenceEnforced(true);
+
+        putJson('/api/v1/settings/company', ['geofence_enforced' => false], $this->headers)
+            ->assertStatus(200)
+            ->assertJsonPath('geofence_enforced', false);
     });
 
 });
