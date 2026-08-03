@@ -4,6 +4,8 @@ use App\Models\Attendance;
 use App\Models\Contract;
 use App\Models\Geofence;
 use App\Models\Invoice;
+use App\Models\JournalEntry;
+use App\Models\JournalEntryLine;
 use App\Models\Phase;
 use App\Models\Project;
 use App\Models\ProjectClaim;
@@ -228,6 +230,51 @@ describe('app:reset-projects', function () {
         expect(DB::table('project_staff_pics')->where('project_id', $project->id)->exists())->toBeFalse();
         expect(DB::table('project_project_type')->where('project_id', $project->id)->exists())->toBeFalse();
         expect(DB::table('project_project_group')->where('project_id', $project->id)->exists())->toBeFalse();
+    });
+
+    it('deletes orphan journal entries referencing invoices', function () {
+        $project = resetProjectFixture('JE-001');
+        $invoice = Invoice::withTrashed()->where('project_id', $project->id)->first();
+
+        // Simulate issue JE + payment JE for the fixture invoice
+        $issueJe = JournalEntry::create([
+            'entry_number' => 'JE-FIX-001',
+            'entry_date' => now()->toDateString(),
+            'description' => 'Invoice issued - '.$invoice->invoice_number,
+            'reference_type' => 'invoice',
+            'reference_id' => $invoice->id,
+            'status' => 'posted',
+            'posted_at' => now(),
+        ]);
+        JournalEntryLine::create([
+            'journal_entry_id' => $issueJe->id,
+            'account_id' => 1,
+            'debit' => 1000,
+            'description' => $invoice->invoice_number,
+        ]);
+
+        $payJe = JournalEntry::create([
+            'entry_number' => 'JE-FIX-002',
+            'entry_date' => now()->toDateString(),
+            'description' => 'Payment received - '.$invoice->invoice_number,
+            'reference_type' => 'payment',
+            'reference_id' => $invoice->id,
+            'status' => 'posted',
+            'posted_at' => now(),
+        ]);
+        JournalEntryLine::create([
+            'journal_entry_id' => $payJe->id,
+            'account_id' => 1,
+            'credit' => 1000,
+            'description' => $invoice->invoice_number,
+        ]);
+
+        artisan('app:reset-projects', ['--project' => 'JE-001', '--force' => true])
+            ->assertSuccessful();
+
+        expect(JournalEntry::whereIn('id', [$issueJe->id, $payJe->id])->exists())->toBeFalse();
+        expect(JournalEntryLine::whereIn('journal_entry_id', [$issueJe->id, $payJe->id])->exists())->toBeFalse();
+        expect(JournalEntry::count())->toBe(0);
     });
 
 });

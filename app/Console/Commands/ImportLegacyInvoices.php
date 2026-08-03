@@ -104,7 +104,7 @@ class ImportLegacyInvoices extends Command
             }
 
             if ($dryRun) {
-                $this->line("  [DRY RUN] Row {$rowNum}: {$invoiceNumber} client={$client} amount={$amount} status={$status} project_code={$projectCode}");
+                $this->line("  [DRY RUN] Row {$rowNum}: {$invoiceNumber} client={$client} amount={$amount} status={$status} amount_paid=".trim($data['amount_paid'] ?? '').' project_code='.$projectCode);
                 $imported++;
 
                 continue;
@@ -134,6 +134,7 @@ class ImportLegacyInvoices extends Command
                     'client' => $client,
                     'amount' => (float) $amount,
                     'status' => $status,
+                    'amount_paid' => trim($data['amount_paid'] ?? '') !== '' ? (float) $data['amount_paid'] : 0,
                     'date' => trim($data['date'] ?? '') ?: null,
                     'due_date' => trim($data['due_date'] ?? '') ?: null,
                     'paid_date' => trim($data['paid_date'] ?? '') ?: null,

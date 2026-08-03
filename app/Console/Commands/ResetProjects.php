@@ -11,6 +11,8 @@ use App\Models\ContractVariation;
 use App\Models\Geofence;
 use App\Models\Invoice;
 use App\Models\InvoicePayment;
+use App\Models\JournalEntry;
+use App\Models\JournalEntryLine;
 use App\Models\Phase;
 use App\Models\PhaseComment;
 use App\Models\Project;
@@ -27,6 +29,7 @@ use App\Models\SubcontractorClaimDocument;
 use App\Models\Task;
 use App\Models\Timecard;
 use Illuminate\Console\Command;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
 class ResetProjects extends Command
@@ -82,8 +85,11 @@ class ResetProjects extends Command
         $invoiceIds = Invoice::withTrashed()->whereIn('project_id', $projectIds)->pluck('id')->all();
         $subconIds = ProjectSubcontractor::whereIn('project_id', $projectIds)->pluck('id')->all();
         $subconClaimIds = SubcontractorClaim::whereIn('project_subcontractor_id', $subconIds)->pluck('id')->all();
+        $invoicePaymentIds = InvoicePayment::whereIn('invoice_id', $invoiceIds)->pluck('id')->all();
 
         $steps = [
+            'journal_entry_lines' => fn () => $this->journalEntryCount($invoiceIds, $invoicePaymentIds),
+            'journal_entries' => fn () => $this->journalEntryIds($invoiceIds, $invoicePaymentIds)->count(),
             'subcontractor_claim_documents' => fn () => SubcontractorClaimDocument::whereIn('subcontractor_claim_id', $subconClaimIds)->count(),
             'subcontractor_claims' => fn () => SubcontractorClaim::whereIn('id', $subconClaimIds)->count(),
             'project_subcontractors' => fn () => ProjectSubcontractor::whereIn('id', $subconIds)->count(),
@@ -141,6 +147,8 @@ class ResetProjects extends Command
             $deleted['quotations'] = Quotation::withTrashed()->whereIn('project_id', $projectIds)->forceDelete();
             $deleted['invoice_payments'] = InvoicePayment::whereIn('invoice_id', $invoiceIds)->delete();
             $deleted['receipts'] = Receipt::whereIn('invoice_id', $invoiceIds)->delete();
+            $deleted['journal_entry_lines'] = JournalEntryLine::whereIn('journal_entry_id', $this->journalEntryIds($invoiceIds, $invoicePaymentIds))->delete();
+            $deleted['journal_entries'] = $this->journalEntryIds($invoiceIds, $invoicePaymentIds)->delete();
             $deleted['invoices'] = Invoice::withTrashed()->whereIn('id', $invoiceIds)->forceDelete();
             $deleted['attendance'] = Attendance::whereIn('project_id', $projectIds)->delete();
             $deleted['timecards'] = Timecard::withTrashed()->whereIn('project_id', $projectIds)->forceDelete();
@@ -178,5 +186,25 @@ class ResetProjects extends Command
         $this->info("Done. Deleted {$projects->count()} project(s), {$total} related rows in total.");
 
         return Command::SUCCESS;
+    }
+
+    private function journalEntryIds(array $invoiceIds, array $invoicePaymentIds): Builder
+    {
+        return JournalEntry::query()->select('id')
+            ->where(function ($q) use ($invoiceIds, $invoicePaymentIds) {
+                $q->where(function ($q2) use ($invoiceIds) {
+                    $q2->where('reference_type', 'invoice')->whereIn('reference_id', $invoiceIds);
+                })->orWhere(function ($q2) use ($invoicePaymentIds) {
+                    $q2->where('reference_type', 'payment')->whereIn('reference_id', $invoicePaymentIds);
+                })->orWhere(function ($q2) use ($invoiceIds) {
+                    // markPaid / legacy payment JEs reference the invoice id directly
+                    $q2->where('reference_type', 'payment')->whereIn('reference_id', $invoiceIds);
+                });
+            });
+    }
+
+    private function journalEntryCount(array $invoiceIds, array $invoicePaymentIds): int
+    {
+        return JournalEntryLine::whereIn('journal_entry_id', $this->journalEntryIds($invoiceIds, $invoicePaymentIds))->count();
     }
 }

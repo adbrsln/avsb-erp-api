@@ -1,8 +1,11 @@
 <?php
 
+use App\Models\ChartOfAccount;
 use App\Models\Client;
 use App\Models\Invoice;
+use App\Models\InvoicePayment;
 use App\Models\JournalEntry;
+use App\Models\JournalEntryLine;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
@@ -15,6 +18,12 @@ beforeEach(function () {
     $this->user = User::where('email', 'superadmin@azamventures.com')->first();
     $this->token = $this->user->createToken('test')->plainTextToken;
     $this->headers = ['Authorization' => 'Bearer '.$this->token];
+
+    // Payment JE needs a bank account (1104/4101 exist from TestDataSeeder)
+    ChartOfAccount::firstOrCreate(
+        ['code' => '1102'],
+        ['name' => 'Maybank Current Account', 'type' => 'asset', 'category' => 'current_asset', 'is_active' => true]
+    );
 
     $this->client = Client::first() ?? Client::create([
         'client_code' => 'TEST-CLT-IMP',
@@ -34,7 +43,7 @@ beforeEach(function () {
 
 describe('Legacy invoice import endpoint', function () {
 
-    it('imports a legacy invoice with correct fields and no journal entry', function () {
+    it('imports a paid legacy invoice with issue + payment journal entries', function () {
         $response = postJson('/api/v1/invoices/import', [
             'client' => $this->client->company_name,
             'project_id' => $this->project->id,
@@ -60,10 +69,94 @@ describe('Legacy invoice import endpoint', function () {
         $invoice = Invoice::where('invoice_number', 'LEGACY-INV-001')->first();
         expect($invoice)->not->toBeNull();
 
-        $jeCount = JournalEntry::where('reference_type', 'invoice')
+        // Issue JE: DR AR 1104 / CR Revenue 4101, dated invoice date
+        $issueJe = JournalEntry::where('reference_type', 'invoice')
             ->where('reference_id', $invoice->id)
-            ->count();
-        expect($jeCount)->toBe(0);
+            ->first();
+        expect($issueJe)->not->toBeNull();
+        expect($issueJe->entry_date->toDateString())->toBe('2025-06-30');
+        expect(JournalEntryLine::where('journal_entry_id', $issueJe->id)->count())->toBe(2);
+
+        $arAccount = ChartOfAccount::where('code', '1104')->first();
+        $revenueAccount = ChartOfAccount::where('code', '4101')->first();
+        expect(JournalEntryLine::where('journal_entry_id', $issueJe->id)->where('account_id', $arAccount->id)->sum('debit'))->toBe(125000);
+        expect(JournalEntryLine::where('journal_entry_id', $issueJe->id)->where('account_id', $revenueAccount->id)->sum('credit'))->toBe(125000);
+
+        // Payment JE: DR Bank 1102 / CR AR 1104, dated paid date
+        $payJe = JournalEntry::where('reference_type', 'payment')
+            ->where('reference_id', $invoice->id)
+            ->first();
+        expect($payJe)->not->toBeNull();
+        expect($payJe->entry_date->toDateString())->toBe('2025-08-15');
+
+        $bankAccount = ChartOfAccount::where('code', '1102')->first();
+        expect(JournalEntryLine::where('journal_entry_id', $payJe->id)->where('account_id', $bankAccount->id)->sum('debit'))->toBe(125000);
+        expect(JournalEntryLine::where('journal_entry_id', $payJe->id)->where('account_id', $arAccount->id)->sum('credit'))->toBe(125000);
+
+        // InvoicePayment row so payment history is accurate
+        expect(InvoicePayment::where('invoice_id', $invoice->id)->sum('amount'))->toBe(125000);
+    });
+
+    it('creates issue JE only for unpaid invoices', function () {
+        postJson('/api/v1/invoices/import', [
+            'client' => $this->client->company_name,
+            'invoice_number' => 'LEGACY-UNPAID-001',
+            'amount' => 5000,
+            'status' => 'unpaid',
+            'date' => '2025-01-10',
+        ], $this->headers)->assertStatus(201);
+
+        $invoice = Invoice::where('invoice_number', 'LEGACY-UNPAID-001')->first();
+
+        expect(JournalEntry::where('reference_type', 'invoice')->where('reference_id', $invoice->id)->exists())->toBeTrue();
+        expect(JournalEntry::where('reference_type', 'payment')->where('reference_id', $invoice->id)->exists())->toBeFalse();
+        expect(InvoicePayment::where('invoice_id', $invoice->id)->exists())->toBeFalse();
+    });
+
+    it('creates partial payment JE + InvoicePayment for partially_paid with amount_paid', function () {
+        postJson('/api/v1/invoices/import', [
+            'client' => $this->client->company_name,
+            'invoice_number' => 'LEGACY-PARTIAL-001',
+            'amount' => 80000,
+            'status' => 'partially_paid',
+            'amount_paid' => 30000,
+            'date' => '2025-05-15',
+            'paid_date' => '2025-06-01',
+        ], $this->headers)->assertStatus(201);
+
+        $invoice = Invoice::where('invoice_number', 'LEGACY-PARTIAL-001')->first();
+        expect($invoice->status)->toBe('partially_paid');
+        expect($invoice->legacy_paid_date)->not->toBeNull();
+
+        expect(JournalEntry::where('reference_type', 'invoice')->where('reference_id', $invoice->id)->exists())->toBeTrue();
+
+        $payJe = JournalEntry::where('reference_type', 'payment')->where('reference_id', $invoice->id)->first();
+        expect($payJe)->not->toBeNull();
+        expect($payJe->entry_date->toDateString())->toBe('2025-06-01');
+
+        $bankAccount = ChartOfAccount::where('code', '1102')->first();
+        expect(JournalEntryLine::where('journal_entry_id', $payJe->id)->where('account_id', $bankAccount->id)->sum('debit'))->toBe(30000);
+
+        expect(InvoicePayment::where('invoice_id', $invoice->id)->sum('amount'))->toBe(30000);
+    });
+
+    it('rejects partial invoice without amount_paid and amount_paid over amount', function () {
+        postJson('/api/v1/invoices/import', [
+            'client' => $this->client->company_name,
+            'amount' => 5000,
+            'status' => 'partially_paid',
+        ], $this->headers)
+            ->assertStatus(422)
+            ->assertJsonPath('error', 'Amount paid is required for partially paid invoices');
+
+        postJson('/api/v1/invoices/import', [
+            'client' => $this->client->company_name,
+            'amount' => 5000,
+            'status' => 'partially_paid',
+            'amount_paid' => 6000,
+        ], $this->headers)
+            ->assertStatus(422)
+            ->assertJsonPath('error', 'Amount paid cannot exceed the invoice amount');
     });
 
     it('rejects duplicate manual invoice number', function () {

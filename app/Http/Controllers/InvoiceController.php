@@ -120,6 +120,9 @@ class InvoiceController extends Controller
         if (! empty($data['status']) && ! in_array($data['status'], LegacyInvoiceImporter::ALLOWED_STATUSES, true)) {
             return response()->json(['error' => 'Status must be one of: '.implode(', ', LegacyInvoiceImporter::ALLOWED_STATUSES)], 422);
         }
+        if (! empty($data['amount_paid']) && (float) $data['amount_paid'] < 0) {
+            return response()->json(['error' => 'Amount paid cannot be negative'], 422);
+        }
 
         try {
             $invoice = (new LegacyInvoiceImporter)->import($data, $request->file('document'));

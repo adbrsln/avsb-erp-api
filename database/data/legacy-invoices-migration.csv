@@ -1,3 +1,4 @@
-invoice_number,project_code,project_name,client,amount,status,date,due_date,paid_date,document
-# Sample row (uncomment + fill to use):
-# INV-2025-001,P001,,Azam Ventures Sdn Bhd,125000.00,paid,2025-06-30,2025-07-30,2025-08-15,INV-2025-001.pdf
+invoice_number,project_code,project_name,client,amount,status,amount_paid,date,due_date,paid_date,document
+# Sample rows (uncomment + fill to use). amount_paid optional: blank = full for paid, required for partially_paid.
+# INV-2025-001,P001,,Azam Ventures Sdn Bhd,125000.00,paid,,2025-06-30,2025-07-30,2025-08-15,INV-2025-001.pdf
+# INV-2025-002,P002,,Azam Ventures Sdn Bhd,80000.00,partially_paid,30000.00,2025-05-15,2025-06-15,2025-06-01,INV-2025-002.pdf
