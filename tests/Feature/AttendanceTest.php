@@ -192,11 +192,15 @@ describe('Attendance summary', function () {
         $staff = $ctx['staff'];
 
         $date = now()->toDateString();
-        Attendance::factory()->create(['staff_id' => $staff->id, 'date' => $date]);
-        Attendance::factory()->create(['staff_id' => $staff->id, 'date' => $date]);
-        Attendance::factory()->create(['staff_id' => $staff->id, 'date' => now()->subDay()->toDateString()]);
+        $prevDate = now()->subDay()->toDateString();
+        $dateFrom = min($date, $prevDate);
+        $dateTo = max($date, $prevDate);
 
-        getJson('/api/v1/attendance/summary?date_from='.now()->startOfMonth()->toDateString().'&date_to='.now()->toDateString(), $ctx['headers'])
+        Attendance::factory()->create(['staff_id' => $staff->id, 'date' => $date]);
+        Attendance::factory()->create(['staff_id' => $staff->id, 'date' => $date]);
+        Attendance::factory()->create(['staff_id' => $staff->id, 'date' => $prevDate]);
+
+        getJson('/api/v1/attendance/summary?date_from='.$dateFrom.'&date_to='.$dateTo, $ctx['headers'])
             ->assertStatus(200)
             ->assertJsonPath('total_days', 2)
             ->assertJsonCount(1, 'by_staff')

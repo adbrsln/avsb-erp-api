@@ -63,7 +63,7 @@ describe('Leave cancel', function () {
 
     it('withdraws an approved leave and restores balance', function () {
         $ctx = makeLeaveActorUser('staff');
-        $year = Carbon::today()->year;
+        $year = 2026;
 
         StaffLeaveBalance::create([
             'staff_id' => $ctx['staff']->id,
@@ -75,7 +75,8 @@ describe('Leave cancel', function () {
             'balance' => 11,
         ]);
 
-        $leave = makeLeaveFor($ctx['staff'], 'approved', Carbon::today()->addDays(5)->toDateString(), Carbon::today()->addDays(7)->toDateString());
+        // Mon 10 Aug 2026 - Wed 12 Aug 2026 = 3 working days (no holidays seeded)
+        $leave = makeLeaveFor($ctx['staff'], 'approved', '2026-08-10', '2026-08-12');
 
         postJson('/api/v1/leaves/'.$leave->id.'/cancel', [], $ctx['headers'])
             ->assertStatus(200)

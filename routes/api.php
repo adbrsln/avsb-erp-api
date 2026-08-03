@@ -507,6 +507,7 @@ Route::prefix('v1')->group(function () {
 
         // ── Notifications ──
         Route::get('notifications/read', [NotificationController::class, 'markAllRead']);
+        Route::post('notifications/read-all', [NotificationController::class, 'markAllRead']);
         Route::get('notifications', [NotificationController::class, 'index']);
         Route::post('notifications/{id}/read', [NotificationController::class, 'markRead']);
         Route::delete('notifications/read', [NotificationController::class, 'deleteRead']);
