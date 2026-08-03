@@ -15,7 +15,7 @@ class RoadMarkingSeeder
 {
     public function run(): void
     {
-        $jsonPath = __DIR__.'/../../database/sample/road-marking.json';
+        $jsonPath = __DIR__.'/../../database/data/road-marking.json';
         if (! file_exists($jsonPath)) {
             echo "  [RoadMarkingSeeder] Skipped: road-marking.json not found\n";
 

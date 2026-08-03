@@ -12,7 +12,7 @@ class Socso24hTierSeeder
             return;
         }
 
-        $path = __DIR__.'/../../database/sample/socso24h-phase1.json';
+        $path = __DIR__.'/../../database/data/socso24h-phase1.json';
         if (! file_exists($path)) {
             echo "  [Socso24hTierSeeder] Phase 1 data file not found, skipping.\n";
 

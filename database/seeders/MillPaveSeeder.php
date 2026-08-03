@@ -14,7 +14,7 @@ class MillPaveSeeder
 {
     public function run(): void
     {
-        $jsonPath = __DIR__.'/../../database/sample/mill-pave.json';
+        $jsonPath = __DIR__.'/../../database/data/mill-pave.json';
         if (! file_exists($jsonPath)) {
             echo "  [MillPaveSeeder] Skipped: mill-pave.json not found\n";
 
