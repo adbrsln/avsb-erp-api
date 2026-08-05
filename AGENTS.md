@@ -377,3 +377,28 @@ Full migration from Slim 4 (avsb-erp/api/) to Laravel 13 (avsb-erp-api/).
 - **Tests** — ProjectTest `Project numbering` describe, 4 tests: client-id format regex `^AV-{code}-\d{4}-\d{4}$` (YYMM = 4 digits!), name-match client, legacy fallback `^AV-\d{2}-\d{2}-\d{4}$`, global counter distinct per client + increments
 - **Verification**: 234 tests / 225 pass / 9 skip / 0 fail; pint clean
 
+
+## Session Memory — Aug 5, 2026 — TNB Purchase Order Seeder + Import Command
+
+### TNB PO tracker CSV → ERP import (seeder + command)
+- **Purpose**: migrate TNB client PO tracking spreadsheet into the ERP. Row = TNB PO → project → AVSB invoice → payment → PO confirmation phase.
+- **`TnbPurchaseOrderSeeder`** (`database/seeders/TnbPurchaseOrderSeeder.php`) — shared row-import engine, NOT in AvsbSeeder chain (real client data, standalone only):
+  - `columnMap(array $header): array` — static, normalizes header → snake_case key → col index. **First-wins** (populated `DATE_PAID` wins over trailing empty `DATE _PAID`; both normalize to `date_paid`)
+  - `processRow(array $row, array $cols, string $poNumber): void` — one row in its own `DB::transaction`; throws `RuntimeException` on row-level failures
+  - `run(?csvPath)` — reads `database/data/tnb-purchase-orders.csv`, graceful skip message when file missing (MillPaveSeeder precedent)
+- **`app:import-tnb-purchase-orders` command** (`app/Console/Commands/ImportTnbPurchaseOrders.php`) — options `--file=` (default `database/data/tnb-purchase-orders.csv`), `--dry-run` (per-row preview, zero writes), `--force` (skip confirm). `RuntimeException` → skipped, `\Throwable` → error, exit FAILURE when errors > 0. Mirrors `app:import-legacy-invoices` UX.
+- **CSV column mapping** (user-clarified semantics):
+  - `CLIENT` = **client code** → resolved via `clients.client_code`; missing → row error (client master must exist; TNB from `ClientSeeder`)
+  - `TNB_PIC` = match `ClientPIC` by `(client_id, name)` → `projects.client_pic_id`; no match → null (no auto-create)
+  - `PO_CONFIRMATION` = **Phase name** on project; `DATE_SE` present → `status=completed` + `completed_at=DATE_SE 17:00:00`; empty → `status=pending`; idempotent via `(project_id, name)` check
+  - `INV_AVSB` = **existing AVSB invoice number** → find by `invoice_number` (withTrashed), pair `project_id`/`client_id` (only if null), set `status=paid`, record payment via `recordPayment(..., 'TNB-{poNumber}')`. Not found → row error
+  - `INVOICE` (when INV_AVSB empty) = create new invoice via `LegacyInvoiceImporter::import()`: number from CSV (empty → auto `INV-`), amount = `PELARASAN` fallback `PO_AMOUNT`, `amount_paid` = `TOTAL_PAID` (0 → full), `source=legacy`
+  - `SUBCON`/`SUBCON_FEE`/`MAINCON`/`MAINCON_FEE`/`DEDUCTION`/`BALANCE_PAYMENT`/`INV_SUBCON`/`INV_DATE` → JSON extras in `projects.description` (MillPaveSeeder pattern)
+  - `STATUS` → ignored. `IS_PROCEED` ≠ TRUE → row skipped
+- **`LegacyInvoiceImporter::recordPayment()` refactor** — old private `createPayment()` → public `recordPayment(Invoice, float, ?string, string $reference='')` with `payment_reference` idempotency guard (existing payment ref → no-op). `createPayment` delegates. Backward compatible; LegacyInvoiceImportTest 13 still green.
+- **Date format gotchas** (CSV mixes formats — column-aware parsing only):
+  - `DATE`/`INVOICE_DATE`/`DATE_SE` = `dd/mm/yyyy` (also accepts `dd.mm.yyyy`)
+  - `DATE_PAID` = US `m/d/yy` (e.g. `4/17/25` → 2025-04-17); 2-digit year assumes m/d/yy, 4-digit falls back to d/m/Y
+- **Test gotcha**: `TestDataSeeder` seeds ≥1 project + 0 invoices → NEVER assert global `Project::count()`; assert `where('po_number', ...)` scoped. Test file adds `uses(RefreshDatabase::class)` (top-level + inside each describe — Pest describe scope doesn't inherit top-level uses).
+- **Verification**: 247 tests / 238 pass / 9 skip / 0 fail; pint clean; frontend repo untouched (tsc N/A). Commits `3c672e5`→`54b4e3d` (5 commits).
+- **User flow**: drop real rows into `database/data/tnb-purchase-orders.csv` → `php artisan app:import-tnb-purchase-orders --dry-run` → `--force`.
