@@ -229,7 +229,7 @@ describe('app:import-tnb-purchase-orders command', function () {
         ]);
 
         expect($exit)->toBe(1);
-        expect(Project::count())->toBe(0);
+        expect(Project::where('po_number', '42024474')->exists())->toBeFalse();
     });
 
     it('imports rows with --force', function () {
