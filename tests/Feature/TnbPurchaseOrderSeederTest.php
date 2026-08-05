@@ -69,6 +69,7 @@ describe('TnbPurchaseOrderSeeder', function () {
         expect($project->client_id)->toBe(Client::where('client_code', 'TNB')->first()->id);
         expect($project->budget_amount)->toBe(28514.38);
         expect($project->description)->toContain('"subcon_fee":0');
+        expect($project->description)->toContain('"po_confirmation":"4001821575"');
 
         $invoice = Invoice::where('invoice_number', '5001357595')->first();
         expect($invoice)->not->toBeNull();

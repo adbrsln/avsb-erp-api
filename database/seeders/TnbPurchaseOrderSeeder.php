@@ -182,6 +182,7 @@ class TnbPurchaseOrderSeeder
 
         $extra = [
             'tnb_station' => $station,
+            'po_confirmation' => $get('po_confirmation'),
             'po_amount' => $this->toFloat($get('po_amount')),
             'pelarasan' => $this->toFloat($get('pelarasan')),
             'date_se' => $get('date_se'),

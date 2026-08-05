@@ -84,7 +84,7 @@ class ImportTnbPurchaseOrders extends Command
 
                     continue;
                 }
-                $this->line("  Row {$rowNum}: PO {$poNumber} client={$get('client')} station={$get('tnb_station')} amount=".$get('pelarasan').' inv_avsb='.$get('inv_avsb').' invoice='.$get('invoice'));
+                $this->line("  Row {$rowNum}: PO {$poNumber} client={$get('client')} station={$get('tnb_station')} po_amt=".$get('po_amount').' amount='.($get('pelarasan') ?: $get('po_amount')).' inv_avsb='.$get('inv_avsb').' invoice='.$get('invoice'));
                 $imported++;
 
                 continue;
