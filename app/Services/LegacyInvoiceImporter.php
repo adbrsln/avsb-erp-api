@@ -148,8 +148,18 @@ class LegacyInvoiceImporter
         ]);
     }
 
-    private function createPayment(Invoice $invoice, float $amountPaid, ?string $paidDate): void
+    public function recordPayment(Invoice $invoice, float $amountPaid, ?string $paidDate, string $reference = ''): void
     {
+        if ($reference === '') {
+            $reference = 'LEGACY-'.$invoice->invoice_number;
+        }
+
+        if (InvoicePayment::where('invoice_id', $invoice->id)
+            ->where('payment_reference', $reference)
+            ->exists()) {
+            return; // idempotent — payment already recorded
+        }
+
         $bankAccount = ChartOfAccount::where('code', '1102')->first();
         $arAccount = ChartOfAccount::where('code', '1104')->first();
 
@@ -183,10 +193,15 @@ class LegacyInvoiceImporter
             'invoice_id' => $invoice->id,
             'amount' => $amountPaid,
             'payment_date' => $paidDate ?? date('Y-m-d'),
-            'payment_reference' => 'LEGACY-'.$invoice->invoice_number,
+            'payment_reference' => $reference,
             'debit_account_id' => $bankAccount->id,
             'credit_account_id' => $arAccount->id,
         ]);
+    }
+
+    private function createPayment(Invoice $invoice, float $amountPaid, ?string $paidDate): void
+    {
+        $this->recordPayment($invoice, $amountPaid, $paidDate);
     }
 
     private function resolveProject(array $data): ?Project
