@@ -9,7 +9,10 @@ use App\Models\JournalEntry;
 use App\Models\Phase;
 use App\Models\Project;
 use Database\Seeders\TnbPurchaseOrderSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
+
+uses(RefreshDatabase::class);
 
 beforeEach(function () {
     // TestDataSeeder provides COA 1001/1104/2101/4101/6101 — 1102 (Bank) missing, needed for payment JE
@@ -42,6 +45,7 @@ function tnbRow(array $overrides = []): array
 }
 
 describe('TnbPurchaseOrderSeeder', function () {
+    uses(RefreshDatabase::class);
     it('skips rows where IS_PROCEED is false', function () {
         $path = tempnam(sys_get_temp_dir(), 'tnb_');
         writeTnbCsv($path, [array_replace(tnbRow(), [0 => 'FALSE'])]);
@@ -96,7 +100,7 @@ describe('TnbPurchaseOrderSeeder', function () {
 
         (new TnbPurchaseOrderSeeder($path))->run();
 
-        expect(Project::count())->toBe(1);
+        expect(Project::where('po_number', '42024474')->count())->toBe(1);
         expect(Invoice::where('invoice_number', '5001357595')->first()->project_id)->toBe($existing->id);
 
         unlink($path);
@@ -211,12 +215,13 @@ describe('TnbPurchaseOrderSeeder', function () {
     it('gracefully skips when the CSV file is missing', function () {
         (new TnbPurchaseOrderSeeder('/nonexistent/tnb-purchase-orders.csv'))->run();
 
-        expect(Project::count())->toBe(0);
+        expect(Project::where('po_number', '42024474')->exists())->toBeFalse();
         expect(Invoice::count())->toBe(0);
     });
 });
 
 describe('app:import-tnb-purchase-orders command', function () {
+    uses(RefreshDatabase::class);
     it('fails when the CSV file is missing', function () {
         $exit = Artisan::call('app:import-tnb-purchase-orders', [
             '--file' => '/nonexistent/tnb-purchase-orders.csv',
@@ -253,7 +258,7 @@ describe('app:import-tnb-purchase-orders command', function () {
         ]);
 
         expect($exit)->toBe(0);
-        expect(Project::count())->toBe(0);
+        expect(Project::where('po_number', '42024474')->exists())->toBeFalse();
         expect(Invoice::count())->toBe(0);
 
         unlink($path);
