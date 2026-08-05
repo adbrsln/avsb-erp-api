@@ -84,6 +84,19 @@ describe('TnbPurchaseOrderSeeder', function () {
         unlink($path);
     });
 
+    it('uses PO_AMOUNT as the invoice total when PELARASAN is empty', function () {
+        $path = tempnam(sys_get_temp_dir(), 'tnb_');
+        writeTnbCsv($path, [array_replace(tnbRow(), [8 => ''])]);
+
+        (new TnbPurchaseOrderSeeder($path))->run();
+
+        $invoice = Invoice::where('invoice_number', '5001357595')->first();
+        expect($invoice)->not->toBeNull();
+        expect((float) $invoice->total)->toBe(28514.38);
+
+        unlink($path);
+    });
+
     it('pairs the invoice to an existing project by po_number without duplicating it', function () {
         $client = Client::where('client_code', 'TNB')->first();
         $existing = Project::create([
