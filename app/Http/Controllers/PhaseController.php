@@ -2,23 +2,17 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ChartOfAccount;
-use App\Models\Invoice;
-use App\Models\JournalEntry;
-use App\Models\JournalEntryLine;
 use App\Models\Phase;
 use App\Models\PhaseComment;
 use App\Models\Project;
 use App\Models\StaffProfile;
 use App\Models\Task;
 use App\Services\Notification\NotificationEvent;
-use App\Services\NumberingService;
 use App\Traits\NotifiesProjectParticipants;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class PhaseController extends Controller
 {
@@ -372,56 +366,6 @@ class PhaseController extends Controller
             $project = Project::find($phase->project_id);
             if ($project) {
                 $project->update(['status' => 'completed']);
-            }
-
-            try {
-                if ($project && ($project->budget_amount ?? 0) > 0 && ! Invoice::where('project_id', $project->id)->where('source', 'system')->exists()) {
-                    $budget = (float) $project->budget_amount;
-                    $clientName = $project->client ?? ($project->clientRelation->company_name ?? '');
-                    $invoice = Invoice::create([
-                        'invoice_number' => (new NumberingService)->generate('invoice'),
-                        'project_id' => $project->id,
-                        'client' => $clientName,
-                        'date' => date('Y-m-d'),
-                        'due_date' => date('Y-m-d', strtotime('+30 days')),
-                        'status' => 'draft',
-                        'subtotal' => $budget,
-                        'sst' => 0,
-                        'retention' => 0,
-                        'total' => $budget,
-                        'items' => [
-                            ['description' => 'Project Completion - '.$project->name, 'amount' => $budget],
-                        ],
-                    ]);
-
-                    $revenueAccount = ChartOfAccount::where('code', '4101')->first();
-                    $arAccount = ChartOfAccount::where('code', '1104')->first();
-                    if ($revenueAccount && $arAccount) {
-                        $je = JournalEntry::create([
-                            'entry_number' => (new NumberingService)->generate('journal'),
-                            'entry_date' => date('Y-m-d'),
-                            'description' => 'Invoice from project completion - '.$project->name,
-                            'reference_type' => 'invoice',
-                            'reference_id' => $invoice->id,
-                            'status' => 'posted',
-                            'posted_at' => date('Y-m-d H:i:s'),
-                        ]);
-                        JournalEntryLine::create([
-                            'journal_entry_id' => $je->id,
-                            'account_id' => $arAccount->id,
-                            'debit' => $budget,
-                            'description' => $invoice->invoice_number,
-                        ]);
-                        JournalEntryLine::create([
-                            'journal_entry_id' => $je->id,
-                            'account_id' => $revenueAccount->id,
-                            'credit' => $budget,
-                            'description' => $invoice->invoice_number,
-                        ]);
-                    }
-                }
-            } catch (\Throwable $e) {
-                Log::error('Auto-invoice failed', ['project_id' => $phase->project_id, 'error' => $e->getMessage()]);
             }
 
             $this->notifyProject(

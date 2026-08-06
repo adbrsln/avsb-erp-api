@@ -99,15 +99,17 @@ trait CreatesStandardPhases
     private function defaultPhases(): array
     {
         return [
+            ['name' => 'PO Confirmation'],
             ['name' => 'Site Visit'],
-            ['name' => 'Start Date'],
+            ['name' => 'Project Implementation (Mill and pave)'],
             ['name' => 'Coring Test'],
             ['name' => 'Lab Report'],
             ['name' => 'Road Marking'],
-            ['name' => 'JMS'],
-            ['name' => 'LKS'],
-            ['name' => 'TNB'],
-            ['name' => 'SE'],
+            ['name' => 'Joint Measurement Sheet (JMS)'],
+            ['name' => 'Laporan Kerja Siap (LKS)'],
+            ['name' => 'Service Entry (SE)'],
+            ['name' => 'Invoice Submission'], // this will trigger the invoice creation process in TNB portal
+            ['name' => 'Payment Settlement (30 days)'],
         ];
     }
 

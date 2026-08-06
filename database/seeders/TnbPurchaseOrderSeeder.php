@@ -462,7 +462,7 @@ class TnbPurchaseOrderSeeder extends Seeder
         }
 
         $phases = $project->phases()->orderBy('order')->get();
-        $se = $phases->firstWhere(fn ($phase) => strtoupper((string) $phase->name) === 'SE');
+        $se = $phases->firstWhere(fn ($phase) => str_ends_with(strtoupper((string) $phase->name), '(SE)'));
 
         foreach ($phases as $phase) {
             if ($se && $phase->id === $se->id) {

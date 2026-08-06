@@ -68,15 +68,15 @@ function standardPhaseProject(string $code): Project
     ]);
 }
 
-it('creates the 9 standard phases with no custom list (default pending)', function () {
+it('creates the 11 standard phases with no custom list (default pending)', function () {
     $project = standardPhaseProject('AV-TRAIT-001');
 
     (new CreatesStandardPhasesHarness)->create($project);
 
-    expect($project->phases()->count())->toBe(9);
+    expect($project->phases()->count())->toBe(11);
     expect($project->phases()->pluck('status')->unique()->all())->toBe(['pending']);
-    expect($project->phases()->orderBy('order')->pluck('name')->first())->toBe('Site Visit');
-    expect($project->phases()->orderBy('order')->pluck('name')->last())->toBe('SE');
+    expect($project->phases()->orderBy('order')->pluck('name')->first())->toBe('PO Confirmation');
+    expect($project->phases()->orderBy('order')->pluck('name')->last())->toBe('Payment Settlement (30 days)');
 });
 
 it('creates custom phases from names only, spread evenly', function () {
