@@ -402,3 +402,47 @@ Full migration from Slim 4 (avsb-erp/api/) to Laravel 13 (avsb-erp-api/).
 - **Test gotcha**: `TestDataSeeder` seeds ≥1 project + 0 invoices → NEVER assert global `Project::count()`; assert `where('po_number', ...)` scoped. Test file adds `uses(RefreshDatabase::class)` (top-level + inside each describe — Pest describe scope doesn't inherit top-level uses).
 - **Verification**: 247 tests / 238 pass / 9 skip / 0 fail; pint clean; frontend repo untouched (tsc N/A). Commits `3c672e5`→`54b4e3d` (5 commits).
 - **User flow**: drop real rows into `database/data/tnb-purchase-orders.csv` → `php artisan app:import-tnb-purchase-orders --dry-run` → `--force`.
+
+## Session Memory — Aug 6, 2026 — TNB PO Seeder (shared invoices, subcon bills, phases), Phase Maintenance, Auto-invoice removal
+
+### TNB Purchase Order Seeder — final semantics (`TnbPurchaseOrderSeeder` + `app:import-tnb-purchase-orders`)
+- **CSV layout now 29 meaningful cols**: header has `PHASE_STATUS` + `PHASE_STATUS_REMARKS` inserted after `PROJECT_STATUS`. Header normalization = first-wins snake_case (` IS_PROCEED` leading space + BOM tolerated). `DATE_PAID` (populated) wins over trailing `DATE _PAID`.
+- **Dates are mixed-format**: rows use both `d/m/Y` (e.g. `21/01/2025`) AND US `m/d/yy` (e.g. `10/31/25`, `6/23/26`). ONE parser `parseFlexibleDate()` handles both: 2-digit year → m/d/yy; 4-digit → d/m/Y (also dd.mm.yyyy). Used for DATE, INVOICE_DATE, DATE_SE, DATE_PAID, INV_DATE.
+- **Invoice dual path**:
+  - `INV_AVSB` populated → find existing invoice. Exists → **pair** (same document; if owned by another project it is SHARED via `invoice_project` pivot, each PO appended as line item `PO {po} — {project name}`, invoice total/subtotal = sum of items). Not exists → create legacy with INV_AVSB as invoice_number.
+  - `INVOICE` populated (INV_AVSB empty) → create legacy with that number.
+  - Both empty → **auto-number ONLY when `PAYMENT_STATUS ∈ {PAID, PARTIALLY_PAID}`** — UNPAID/CANCELLED rows get NO invoice (project + phases only). Auto path idempotent: skip if project already has legacy invoice.
+  - `createLegacyInvoice`: invoice exists → **skip silently (return), NOT throw** — throwing rolled back the whole row's transaction (killed subcon billing/claims). Item always rewritten to `PO {po} — {name}` format.
+- **Shared invoice (multi-project)**: migration `2026_08_06_000000_create_invoice_project_table` — pivot `invoice_project` + backfill from `invoices.project_id`. Models: `Invoice::projects()` belongsToMany, `Project::sharedInvoices()`, `Project::allInvoices()` (own + shared, deduped). `invoices.project_id` KEPT as primary owner (legacy contract). `ProjectController::show` invoices = own + shared (distinct).
+- **Payment on shared invoice = SINGLE, full-total**: `pairExistingInvoice` records payment only if none exists; amount = invoice total (grows as items append); payment JE lines updated to match (`updatePaymentJournalEntries` DR 2101? no — DR bank/AR). Invoice marked paid. Per-PO payments NOT recorded (single payment rule).
+- **Subcon invoice = AP bill (industry practice)**: `createSubcontractorBilling` — Subcontractor master + Vendor master code `EB`, `ProjectSubcontractor` (status → `completed`), **Bill** `bill_number = INV_SUBCON` (existing subcon claim/invoice number), receive JE DR 5101 / CR 2101, BillPayment JE DR 2101 / CR 1102, bill → paid. Plus **SubcontractorClaim** (claim_number = INV_SUBCON, claimed_amount = fee, status paid, paid_at = DATE_PAID, full workflow timestamps, work_done 100%). Claim created BEFORE bill guard (bill-exists early-return must not skip claim). Fee = `DEDUCTION` if >0, else `SUBCON_FEE %` (e.g. `25%`) × invoice amount, else numeric fee. Claim + bill both idempotent (unique numbers).
+- **PHASE_STATUS/PHASE_STATUS_REMARKS**: PHASE_STATUS names the CURRENT phase (values seen: `JMS`, `SE`, `Invoice Submission`). `applyPhaseStatus`: target phase (exact OR substring name match, e.g. `SE` → `Service Entry (SE)`) → `in_progress` + `started_at` (start date 08:00) + remarks → phase `description`; all phases BEFORE it (order <) → `completed` + `completed_at` (end date 17:00); later → pending. Also stored as project description JSON extras (`phase_status`, `phase_status_remarks`) on create + backfill.
+- **DATE_SE**: `applyStandardPhaseCompletion` — SE phase (name ends `(SE)`) → `completed` at DATE_SE 17:00; all prior standard phases → completed at their end_date 17:00. No DATE_SE → pending.
+- **Standard phase set (11, from CreatesStandardPhases defaultPhases)**: PO Confirmation, Site Visit, Project Implementation (Mill and pave), Coring Test, Lab Report, Road Marking, Joint Measurement Sheet (JMS), Laporan Kerja Siap (LKS), Service Entry (SE), Invoice Submission, Payment Settlement (30 days). TNB phase REMOVED. `createConfirmationPhase` guard must check created name `'PO Confirmation'` (NOT the CSV value) — else re-run duplicates the phase.
+- **Extras JSON on project.description**: tnb_station, phase_status, phase_status_remarks, po_confirmation, po_amount, pelarasan, date_se, subcon, subcon_fee, maincon, maincon_fee, deduction, balance_payment, inv_subcon, inv_date.
+- **ProjectGroup**: station → `ProjectGroup` (name = station, random dark color), linked via `$project->groups()->sync()`. Fixed `firsOrCreate` → `firstOrCreate` typo. Guard empty station.
+- **CSV state**: 121 rows, 96 TRUE / 25 NOT TRUE (24 FALSE + 1 comment). FALSE rows = pending-adjustment POs (PHASE_STATUS=PELARASAN etc.) + 42252315/42252319 (reverted by user after being imported — bills EB1522/EB1523 + claims + invoices remain in DB) + 42301263/01318 (typo station PUTRAYAJA, fixed pelarasan). **64 TRUE rows are UNPAID w/o invoice ref → no invoice created (correct now); earlier imports created ~64 wrong PAID auto-invoices → cleanup pending (offer stands: maintenance command w/ dry-run).**
+- **Tests**: `TnbPurchaseOrderSeederTest` (26), `CreatesStandardPhasesTest` (13). Test gotcha: `TestDataSeeder` seeds ≥1 project + 0 invoices → assert po_number-scoped counts, never global `Project::count()`. Pest describe needs explicit `uses(RefreshDatabase::class)` inside block. V2 CSV helper (29-col header) for PHASE_STATUS tests.
+
+### Phase Maintenance command (`app:phase-maintenance`)
+- Attribute-style signature `#[Signature]`/`#[Description]`. Options `--status= completed|pending`, `--projects=` comma codes, `--po=` exact po_number, `--phase=` name, `--force`. Maintenance-only: phase status + timestamps; NO project-status sync, NO invoice/JE.
+- Interactive: status select → project select (searchable `multisearch` over code/name/po_number, top 50) OR direct codes → phase select (distinct names, "All phases") → confirm. **`scripted()` = any flag present → skip ALL prompts** (tests + CI). `laravel/prompts` uses GLOBAL functions `\Laravel\Prompts\select/multisearch/text`, NOT `Prompt::` static methods (v0 here).
+- `completed` → status + completed_at (existing or now); `pending` → clears completed_at/completed_by/started_at/started_by. Idempotent (already-target skipped).
+- Bug fixed: "All phases" selection — `Collection::prepend($value, $key)` arg order; `--phase=All phases` → treated as all.
+
+### Auto-invoice on project completion — REMOVED
+- `PhaseController::complete`: phases all done → project `completed` + `PROJECT_COMPLETED` notification ONLY. The invoice auto-create block (Invoice::create + JE DR 1104/CR 4101) deleted. Invoice creation = manual only (`POST /projects/{id}/generate-invoice`, quotation/contract generation, UI form). User decision: invoice creation requires user intervention.
+
+### LegacyInvoiceImporter
+- `recordPayment(Invoice, float, ?string, string $reference='')` — public, idempotency guard on `payment_reference`; `createPayment` delegates. Used by TNB seeder shared-invoice payments.
+
+### Frontend (avsb-erp)
+- `Projects.tsx`: search debounce 350→600ms + no full-page spinner on refetch (keep list mounted). Browser-verified: one request on fast typing.
+- `RootLayout.tsx`: change-password `api.post` → `api.put` (backend accepts both via `Route::match(['put','post'])`).
+- `LockScreen.tsx`: password `autoComplete` → `new-password`.
+
+### Cavecrew subagents
+- Model pins fixed haiku → opencode-go/deepseek-v4-flash (restart required). See ~/.config/opencode/AGENTS.md.
+
+### Verification
+- Latest: 284 tests / 275 pass / 9 skip / 0 fail; pint clean. Commits this session: c889044 → eb7a1b7 (13 commits) + frontend 52bd1fd + 10377c8 + 3b702a7.
