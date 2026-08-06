@@ -338,6 +338,12 @@ class TnbPurchaseOrderSeeder extends Seeder
             if (Invoice::where('project_id', $project->id)->where('source', 'legacy')->exists()) {
                 return;
             }
+            // No invoice reference and the row is not paid → no invoice yet
+            // (the invoice is issued later; UNPAID/CANCELLED rows stay project-only).
+            $payStatus = strtoupper($get('payment_status'));
+            if (! in_array($payStatus, ['PAID', 'PARTIALLY_PAID'], true)) {
+                return;
+            }
         } elseif (Invoice::withTrashed()->where('invoice_number', $invoiceNumber)->exists()) {
             return; // idempotent — invoice already imported; keep other row records (billing, claim, phases)
         }

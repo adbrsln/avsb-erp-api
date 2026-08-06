@@ -369,6 +369,30 @@ describe('TnbPurchaseOrderSeeder', function () {
         unlink($path);
     });
 
+    it('does not create an invoice for unpaid rows without an invoice reference', function () {
+        $path = tempnam(sys_get_temp_dir(), 'tnb_');
+        writeTnbCsvV2($path, [array_replace(tnbRowV2(), [11 => '', 13 => '', 14 => '', 15 => 'UNPAID', 16 => '', 17 => ''])]);
+
+        (new TnbPurchaseOrderSeeder($path))->run();
+
+        $project = Project::where('po_number', '42024474')->first();
+        expect($project)->not->toBeNull();
+        expect(Invoice::count())->toBe(0);
+
+        unlink($path);
+    });
+
+    it('does not create an invoice for cancelled rows without an invoice reference', function () {
+        $path = tempnam(sys_get_temp_dir(), 'tnb_');
+        writeTnbCsvV2($path, [array_replace(tnbRowV2(), [7 => 'CANCELLED', 11 => '', 13 => '', 14 => '', 15 => 'CANCELLED', 16 => '', 17 => ''])]);
+
+        (new TnbPurchaseOrderSeeder($path))->run();
+
+        expect(Invoice::count())->toBe(0);
+
+        unlink($path);
+    });
+
     it('auto-generates an invoice number when INVOICE and INV_AVSB are empty', function () {
         $path = tempnam(sys_get_temp_dir(), 'tnb_');
         writeTnbCsv($path, [array_replace(tnbRow(), [11 => ''])]);
