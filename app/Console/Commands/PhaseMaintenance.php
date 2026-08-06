@@ -168,7 +168,7 @@ class PhaseMaintenance extends Command
     private function resolvePhaseName(Collection $projects): ?string
     {
         $option = (string) $this->option('phase');
-        if ($option !== '') {
+        if ($option !== '' && $option !== 'All phases') {
             return $option;
         }
         if ($this->scripted()) {
@@ -181,7 +181,7 @@ class PhaseMaintenance extends Command
         if ($names->isEmpty()) {
             return null;
         }
-        $names->prepend('__all__', 'All phases');
+        $names->prepend('All phases', '__all__'); // Collection::prepend($value, $key) — key first is a bug
 
         $choice = \Laravel\Prompts\select('Which phases?', $names->all());
 

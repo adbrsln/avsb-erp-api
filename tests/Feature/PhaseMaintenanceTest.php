@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Client;
+use App\Models\Invoice;
 use App\Models\Phase;
 use App\Models\Project;
 use Illuminate\Support\Facades\Artisan;
@@ -132,7 +133,7 @@ it('does not touch projects or create invoices when all phases complete', functi
 
     expect($exit)->toBe(0);
     expect($project->refresh()->status)->toBe('active'); // NOT auto-completed
-    expect(App\Models\Invoice::count())->toBe(0); // no auto invoice
+    expect(Invoice::count())->toBe(0); // no auto invoice
 });
 
 it('is idempotent — second run reports 0 changed', function () {
@@ -154,6 +155,22 @@ it('fails on unknown project code', function () {
     ]);
 
     expect($exit)->toBe(1);
+});
+
+it('treats --phase=All phases as all phases', function () {
+    $project = makeMaintenanceProject('AV-MNT-010', 'PO-010');
+    addMaintenancePhase($project, 'Site Visit', 'in_progress');
+    addMaintenancePhase($project, 'LKS', 'in_progress');
+
+    $exit = Artisan::call('app:phase-maintenance', [
+        '--projects' => 'AV-MNT-010',
+        '--status' => 'completed',
+        '--phase' => 'All phases',
+        '--force' => true,
+    ]);
+
+    expect($exit)->toBe(0);
+    expect($project->phases()->where('status', 'completed')->count())->toBe(2);
 });
 
 it('fails on invalid --status value', function () {
