@@ -793,28 +793,28 @@ class InvoiceController extends Controller
         }
 
         $body = $request->all();
-        $marginPct = (float) ($body['margin_pct'] ?? 0);
+        $mainconPct = (float) ($body['maincon_pct'] ?? 0);
+        if ($mainconPct < 0 || $mainconPct > 100) {
+            return response()->json(['error' => 'maincon_pct must be between 0 and 100'], 422);
+        }
 
-        $costs = $this->calculateProjectCosts($project);
-        $baseAmount = $costs['total_cost'] > 0 ? $costs['total_cost'] : (float) ($project->budget_amount ?? 0);
-        $totalAmount = $baseAmount * (1 + $marginPct / 100);
+        // No margin markup — only the maincon fee deduction is allowed.
+        $invoiceAmount = (float) ($body['invoice_amount'] ?? $project->budget_amount ?? 0);
+        $mainconName = $this->projectMainconName($project);
+        $deduction = round($invoiceAmount * ($mainconPct / 100), 2);
+        $total = round($invoiceAmount - $deduction, 2);
 
         $clientName = $project->client ?? ($project->clientRelation->company_name ?? '');
 
-        $items = [];
-
-        if ($costs['materials'] > 0) {
-            $items[] = ['description' => 'Materials', 'amount' => round($costs['materials'], 2)];
-        }
-        if ($costs['claims'] > 0) {
-            $items[] = ['description' => 'Subcontractor / Progress Claims', 'amount' => round($costs['claims'], 2)];
-        }
-        if ($costs['labor'] > 0) {
-            $items[] = ['description' => 'Part-Time Labour', 'amount' => round($costs['labor'], 2)];
-        }
-
-        if (empty($items)) {
-            $items[] = ['description' => 'Project Completion - '.$project->name, 'amount' => round($totalAmount, 2)];
+        $items = [['description' => 'Project Completion - '.$project->name, 'unit' => 'Lot', 'quantity' => 1, 'unit_rate' => $invoiceAmount, 'total' => $invoiceAmount]];
+        if ($deduction > 0) {
+            $items[] = [
+                'description' => 'Maincon deduction - '.($mainconName !== '' ? $mainconName : $project->name),
+                'unit' => 'Lot',
+                'quantity' => 1,
+                'unit_rate' => -$deduction,
+                'total' => -$deduction,
+            ];
         }
 
         $invoice = Invoice::create([
@@ -824,10 +824,10 @@ class InvoiceController extends Controller
             'date' => date('Y-m-d'),
             'due_date' => date('Y-m-d', strtotime('+30 days')),
             'status' => 'draft',
-            'subtotal' => round($totalAmount, 2),
+            'subtotal' => $total,
             'sst' => 0,
             'retention' => 0,
-            'total' => round($totalAmount, 2),
+            'total' => $total,
             'items' => $items,
         ]);
 
@@ -835,6 +835,13 @@ class InvoiceController extends Controller
         $invoice->load('project');
 
         return response()->json($invoice, 201);
+    }
+
+    private function projectMainconName(Project $project): string
+    {
+        $extra = json_decode((string) $project->description, true);
+
+        return is_array($extra) ? trim((string) ($extra['maincon'] ?? '')) : '';
     }
 
     private function calculateProjectCosts(Project $project): array

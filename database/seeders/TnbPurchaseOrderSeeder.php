@@ -176,6 +176,10 @@ class TnbPurchaseOrderSeeder extends Seeder
         $extra = json_decode((string) $project->description, true) ?: [];
         $extra['phase_status'] = $phaseStatus;
         $extra['phase_status_remarks'] = $remarks;
+        $mainconFee = (string) ($extra['maincon_fee'] ?? '');
+        if ($mainconFee !== '' && ! isset($extra['maincon_fee_pct'])) {
+            $extra['maincon_fee_pct'] = $this->parsePercent($mainconFee);
+        }
         $project->update(['description' => json_encode($extra, JSON_UNESCAPED_UNICODE)]);
     }
 
@@ -446,7 +450,8 @@ class TnbPurchaseOrderSeeder extends Seeder
             'subcon' => $get('subcon'),
             'subcon_fee' => $this->toFloat($get('subcon_fee')),
             'maincon' => $get('maincon'),
-            'maincon_fee' => $this->toFloat($get('maincon_fee')),
+            'maincon_fee' => $get('maincon_fee'),
+            'maincon_fee_pct' => $this->parsePercent($get('maincon_fee')),
             'deduction' => $this->toFloat($get('deduction')),
             'balance_payment' => $this->toFloat($get('balance_payment')),
             'inv_subcon' => $get('inv_subcon'),
@@ -637,6 +642,17 @@ class TnbPurchaseOrderSeeder extends Seeder
     private function toFloat(string $value): float
     {
         return (float) str_replace(',', '', $value);
+    }
+
+    /** Parse a percent string like "15%" or "15" into a number (15). Non-numeric -> 0. */
+    private function parsePercent(string $value): float
+    {
+        $value = trim(str_replace(',', '', $value));
+        if (! preg_match('/^[0-9.]+%?$/', $value)) {
+            return 0;
+        }
+
+        return (float) rtrim($value, '%');
     }
 
     /** DATE, INVOICE_DATE, DATE_SE use dd/mm/yyyy (also accept dd.mm.yyyy). */

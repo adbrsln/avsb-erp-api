@@ -406,6 +406,19 @@ describe('TnbPurchaseOrderSeeder', function () {
         unlink($path);
     });
 
+    it('parses MAINCON_FEE percent into maincon_fee_pct extras', function () {
+        $path = tempnam(sys_get_temp_dir(), 'tnb_');
+        writeTnbCsvV2($path, [array_replace(tnbRowV2(), [20 => 'Refined Contour Sdn. Bhd.', 21 => '15%'])]);
+
+        (new TnbPurchaseOrderSeeder($path))->run();
+
+        $project = Project::where('po_number', '42024474')->first();
+        expect($project->description)->toContain('"maincon_fee_pct":15');
+        expect($project->description)->toContain('"maincon_fee":"15%"');
+
+        unlink($path);
+    });
+
     it('stores PHASE_STATUS and PHASE_STATUS_REMARKS on the project description', function () {
         $path = tempnam(sys_get_temp_dir(), 'tnb_');
         writeTnbCsvV2($path, [tnbRowV2()]);
