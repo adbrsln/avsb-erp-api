@@ -18,7 +18,6 @@ use App\Models\ProjectGroup;
 use App\Models\ProjectSubcontractor;
 use App\Models\Subcontractor;
 use App\Models\SubcontractorClaim;
-use App\Models\Vendor;
 use App\Services\LegacyInvoiceImporter;
 use App\Services\NumberingService;
 use Database\Seeders\Concerns\CreatesStandardPhases;
@@ -207,10 +206,6 @@ class TnbPurchaseOrderSeeder extends Seeder
             ['subcontractor_code' => 'EB'],
             ['company_name' => $subconName, 'status' => 'active']
         );
-        $vendor = Vendor::firstOrCreate(
-            ['vendor_code' => 'EB'],
-            ['company_name' => $subconName, 'status' => 'active']
-        );
         $projectSub = ProjectSubcontractor::firstOrCreate(
             ['project_id' => $project->id, 'subcontractor_id' => $subcon->id],
             [
@@ -251,7 +246,7 @@ class TnbPurchaseOrderSeeder extends Seeder
         }
         $bill = Bill::create([
             'bill_number' => $invSubcon,
-            'vendor_id' => $vendor->id,
+            'subcontractor_id' => $subcon->id,
             'vendor_bill_no' => $invSubcon,
             'bill_date' => $billDate,
             'due_date' => date('Y-m-d', strtotime($billDate.' +30 days')),
@@ -262,7 +257,7 @@ class TnbPurchaseOrderSeeder extends Seeder
             'paid_amount' => 0,
             'balance' => $fee,
         ]);
-        $expenseAccount = ChartOfAccount::where('code', '5101')->first();
+        $expenseAccount = ChartOfAccount::where('code', '5103')->first(); // subcontractor cost
         BillItem::create([
             'bill_id' => $bill->id,
             'description' => 'PO '.$poNumber.' — '.$subconName,

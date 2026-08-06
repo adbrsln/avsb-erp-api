@@ -41,8 +41,8 @@ class BillController extends Controller
     {
         $data = $request->all();
 
-        if (empty($data['vendor_id']) || empty($data['bill_date']) || empty($data['due_date'])) {
-            return response()->json(['error' => 'vendor_id, bill_date, and due_date are required'], 422);
+        if ((empty($data['vendor_id']) && empty($data['subcontractor_id'])) || empty($data['bill_date']) || empty($data['due_date'])) {
+            return response()->json(['error' => 'vendor_id or subcontractor_id, bill_date, and due_date are required'], 422);
         }
 
         if (! isset($data['items']) || ! is_array($data['items']) || count($data['items']) === 0) {

@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Bill;
+use App\Models\BillItem;
+use App\Models\BillPayment;
 use App\Models\ChartOfAccount;
 use App\Models\JournalEntry;
 use App\Models\JournalEntryLine;
@@ -304,6 +307,9 @@ class SubcontractorClaimController extends Controller
             'approved_at' => Carbon::now(),
         ]);
 
+        // Proper AP flow: approved claim becomes an AP bill (subcontractor as bill source)
+        $this->ensureClaimBill($claim);
+
         try {
             $submitter = StaffProfile::find($claim->submitted_by);
             if ($submitter) {
@@ -352,17 +358,28 @@ class SubcontractorClaimController extends Controller
                 $assignment->increment('retention_amount', $claim->retention_deducted);
             }
 
-            $subcontractorCostAccount = ChartOfAccount::where('code', '5103')->first();
+            // Pay the claim against its AP bill (created at approval)
+            $bill = $this->ensureClaimBill($claim);
+            $apAccount = ChartOfAccount::where('code', '2101')->first();
             $retentionAccount = ChartOfAccount::where('code', '2109')->first();
             $bankAccount = ChartOfAccount::where('code', '1102')->first();
 
-            if ($subcontractorCostAccount && $retentionAccount && $bankAccount) {
+            if ($bill && $apAccount && $bankAccount && ! BillPayment::where('bill_id', $bill->id)->exists()) {
+                BillPayment::create([
+                    'bill_id' => $bill->id,
+                    'amount' => $claim->net_payable,
+                    'payment_date' => Carbon::now()->format('Y-m-d'),
+                    'debit_account_id' => $apAccount->id,
+                    'credit_account_id' => $bankAccount->id,
+                    'payment_reference' => $claim->claim_number,
+                ]);
+
                 $je = JournalEntry::create([
                     'entry_number' => (new NumberingService)->generate('journal'),
                     'entry_date' => Carbon::now()->format('Y-m-d'),
                     'description' => 'Subcontractor claim payment - '.$claim->claim_number,
-                    'reference_type' => 'subcontractor_claim',
-                    'reference_id' => $claim->id,
+                    'reference_type' => 'bill_payment',
+                    'reference_id' => $bill->id,
                     'status' => 'posted',
                     'posted_at' => Carbon::now(),
                     'created_by' => $this->getStaffId($request),
@@ -370,16 +387,9 @@ class SubcontractorClaimController extends Controller
 
                 JournalEntryLine::create([
                     'journal_entry_id' => $je->id,
-                    'account_id' => $subcontractorCostAccount->id,
-                    'debit' => $claim->claimed_amount,
-                    'description' => $claim->claim_number.' - Subcontractor costs',
-                ]);
-
-                JournalEntryLine::create([
-                    'journal_entry_id' => $je->id,
-                    'account_id' => $retentionAccount->id,
-                    'credit' => $claim->retention_deducted,
-                    'description' => $claim->claim_number.' - Retention',
+                    'account_id' => $apAccount->id,
+                    'debit' => $claim->net_payable,
+                    'description' => $claim->claim_number.' - AP payment',
                 ]);
 
                 JournalEntryLine::create([
@@ -387,6 +397,39 @@ class SubcontractorClaimController extends Controller
                     'account_id' => $bankAccount->id,
                     'credit' => $claim->net_payable,
                     'description' => $claim->claim_number.' - Bank payment',
+                ]);
+
+                if ($retentionAccount && $claim->retention_deducted > 0) {
+                    $retentionJe = JournalEntry::create([
+                        'entry_number' => (new NumberingService)->generate('journal'),
+                        'entry_date' => Carbon::now()->format('Y-m-d'),
+                        'description' => 'Retention held - '.$claim->claim_number,
+                        'reference_type' => 'bill_payment',
+                        'reference_id' => $bill->id,
+                        'status' => 'posted',
+                        'posted_at' => Carbon::now(),
+                        'created_by' => $this->getStaffId($request),
+                    ]);
+
+                    JournalEntryLine::create([
+                        'journal_entry_id' => $retentionJe->id,
+                        'account_id' => $apAccount->id,
+                        'debit' => $claim->retention_deducted,
+                        'description' => $claim->claim_number.' - Retention held',
+                    ]);
+
+                    JournalEntryLine::create([
+                        'journal_entry_id' => $retentionJe->id,
+                        'account_id' => $retentionAccount->id,
+                        'credit' => $claim->retention_deducted,
+                        'description' => $claim->claim_number.' - Retention',
+                    ]);
+                }
+
+                $bill->update([
+                    'paid_amount' => $claim->net_payable,
+                    'balance' => $claim->retention_deducted,
+                    'status' => $claim->retention_deducted > 0 ? 'partially_paid' : 'paid',
                 ]);
             }
 
@@ -436,6 +479,73 @@ class SubcontractorClaimController extends Controller
         $claim->load('projectSubcontractor');
 
         return response()->json($claim);
+    }
+
+    /**
+     * Create the AP bill for an approved claim if it does not exist yet
+     * (bill_number = claim_number, subcontractor as bill source) plus the
+     * receive JE (DR subcontractor cost 5103 / CR AP 2101).
+     */
+    private function ensureClaimBill(SubcontractorClaim $claim): ?Bill
+    {
+        $bill = Bill::where('bill_number', $claim->claim_number)->first();
+        if ($bill) {
+            return $bill;
+        }
+
+        $assignment = $claim->projectSubcontractor;
+        $billDate = $claim->claim_date?->format('Y-m-d') ?? Carbon::now()->format('Y-m-d');
+
+        $bill = Bill::create([
+            'bill_number' => $claim->claim_number,
+            'subcontractor_id' => $assignment?->subcontractor_id,
+            'bill_date' => $billDate,
+            'due_date' => Carbon::parse($billDate)->addDays(30)->format('Y-m-d'),
+            'status' => 'unpaid',
+            'subtotal' => $claim->claimed_amount,
+            'tax' => 0,
+            'total' => $claim->claimed_amount,
+            'paid_amount' => 0,
+            'balance' => $claim->claimed_amount,
+        ]);
+
+        $subName = $assignment?->subcontractor?->company_name ?? 'Subcontractor';
+        BillItem::create([
+            'bill_id' => $bill->id,
+            'description' => 'Claim '.$claim->claim_number.' — '.$subName,
+            'unit' => 'Lot',
+            'quantity' => 1,
+            'unit_price' => $claim->claimed_amount,
+            'total' => $claim->claimed_amount,
+        ]);
+
+        $costAccount = ChartOfAccount::where('code', '5103')->first();
+        $apAccount = ChartOfAccount::where('code', '2101')->first();
+        if ($costAccount && $apAccount) {
+            $je = JournalEntry::create([
+                'entry_number' => (new NumberingService)->generate('journal'),
+                'entry_date' => $billDate,
+                'description' => 'Bill received - '.$claim->claim_number,
+                'reference_type' => 'bill',
+                'reference_id' => $bill->id,
+                'status' => 'posted',
+                'posted_at' => Carbon::now(),
+            ]);
+            JournalEntryLine::create([
+                'journal_entry_id' => $je->id,
+                'account_id' => $costAccount->id,
+                'debit' => $claim->claimed_amount,
+                'description' => $claim->claim_number.' - Subcontractor costs',
+            ]);
+            JournalEntryLine::create([
+                'journal_entry_id' => $je->id,
+                'account_id' => $apAccount->id,
+                'credit' => $claim->claimed_amount,
+                'description' => $claim->claim_number.' - AP',
+            ]);
+        }
+
+        return $bill;
     }
 
     public function uploadDocument(Request $request, int $id): JsonResponse

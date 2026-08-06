@@ -8,13 +8,13 @@ use App\Models\ClientPIC;
 use App\Models\Invoice;
 use App\Models\InvoicePayment;
 use App\Models\JournalEntry;
+use App\Models\JournalEntryLine;
 use App\Models\Phase;
 use App\Models\Project;
 use App\Models\ProjectGroup;
 use App\Models\ProjectSubcontractor;
 use App\Models\Subcontractor;
 use App\Models\SubcontractorClaim;
-use App\Models\Vendor;
 use Database\Seeders\TnbPurchaseOrderSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
@@ -312,7 +312,7 @@ describe('TnbPurchaseOrderSeeder', function () {
         $sub = Subcontractor::where('subcontractor_code', 'EB')->first();
         expect($sub)->not->toBeNull();
         expect($sub->company_name)->toBe('Elektron Berkat');
-        expect(Vendor::where('vendor_code', 'EB')->first())->not->toBeNull();
+        expect(Bill::where('bill_number', 'EB1523/2026')->first()->subcontractor_id)->toBe(Subcontractor::where('subcontractor_code', 'EB')->first()->id);
 
         $bill = Bill::where('bill_number', 'EB1523/2026')->first();
         expect($bill)->not->toBeNull();
@@ -321,7 +321,11 @@ describe('TnbPurchaseOrderSeeder', function () {
 
         $pay = BillPayment::where('bill_id', $bill->id)->first();
         expect((float) $pay->amount)->toBe(19727.07);
-        expect(JournalEntry::where('reference_type', 'bill')->where('reference_id', $bill->id)->exists())->toBeTrue();
+        $billJe = JournalEntry::where('reference_type', 'bill')->where('reference_id', $bill->id)->first();
+        expect($billJe)->not->toBeNull();
+        $costLine = JournalEntryLine::where('journal_entry_id', $billJe->id)->where('debit', '>', 0)->first();
+        expect($costLine)->not->toBeNull();
+        expect($costLine->account_id)->toBe(ChartOfAccount::where('code', '5103')->first()->id);
         expect(JournalEntry::where('reference_type', 'bill_payment')->where('reference_id', $bill->id)->exists())->toBeTrue();
         $ps = ProjectSubcontractor::where('project_id', Project::where('po_number', '42024474')->first()->id)->first();
         expect($ps)->not->toBeNull();

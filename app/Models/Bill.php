@@ -13,7 +13,7 @@ class Bill extends Model
     protected $table = 'bills';
 
     protected $fillable = [
-        'bill_number', 'vendor_id', 'purchase_order_id', 'vendor_bill_no',
+        'bill_number', 'vendor_id', 'subcontractor_id', 'purchase_order_id', 'vendor_bill_no',
         'bill_date', 'due_date', 'status', 'subtotal', 'tax', 'total',
         'paid_amount', 'balance', 'notes',
     ];
@@ -31,6 +31,11 @@ class Bill extends Model
     public function vendor()
     {
         return $this->belongsTo(Vendor::class);
+    }
+
+    public function subcontractor()
+    {
+        return $this->belongsTo(Subcontractor::class);
     }
 
     public function purchaseOrder()
