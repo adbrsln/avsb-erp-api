@@ -199,6 +199,23 @@ describe('TnbPurchaseOrderSeeder', function () {
         unlink($path);
     });
 
+    it('creates a legacy invoice from INV_AVSB when the invoice does not exist', function () {
+        $path = tempnam(sys_get_temp_dir(), 'tnb_');
+        writeTnbCsv($path, [array_replace(tnbRow(), [11 => '', 22 => 'AV/RC/2609'])]);
+
+        (new TnbPurchaseOrderSeeder($path))->run();
+
+        $invoice = Invoice::where('invoice_number', 'AV/RC/2609')->first();
+        expect($invoice)->not->toBeNull();
+        expect($invoice->source)->toBe('legacy');
+        expect((float) $invoice->total)->toBe(45703.88);
+        expect($invoice->status)->toBe('paid');
+        expect($invoice->project_id)->toBe(Project::where('po_number', '42024474')->first()->id);
+        expect(InvoicePayment::where('invoice_id', $invoice->id)->sum('amount'))->toBe(45703.88);
+
+        unlink($path);
+    });
+
     it('is idempotent on re-run — no duplicate project, invoice, phase, or payment', function () {
         $path = tempnam(sys_get_temp_dir(), 'tnb_');
         writeTnbCsv($path, [tnbRow()]);

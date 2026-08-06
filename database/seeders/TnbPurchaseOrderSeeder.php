@@ -134,30 +134,34 @@ class TnbPurchaseOrderSeeder extends Seeder
             $invoiceNumber = $get('invoice');
             $existingInvoiceNumber = $get('inv_avsb');
 
-            if ($existingInvoiceNumber !== '') {
+            if ($existingInvoiceNumber !== '' && Invoice::withTrashed()->where('invoice_number', $existingInvoiceNumber)->exists()) {
                 $invoice = Invoice::withTrashed()->where('invoice_number', $existingInvoiceNumber)->first();
-                if (! $invoice) {
-                    throw new RuntimeException('INV_AVSB invoice "'.$existingInvoiceNumber.'" not found');
-                }
                 $this->pairExistingInvoice($invoice, $project, $amountPaid, $paidDate, $poNumber);
             } else {
-                if ($invoiceNumber !== '' && Invoice::withTrashed()->where('invoice_number', $invoiceNumber)->exists()) {
-                    throw new RuntimeException('Invoice number "'.$invoiceNumber.'" already exists');
-                }
-                $pelarasan = $this->toFloat($get('pelarasan'));
-                $amount = $pelarasan > 0 ? $pelarasan : $this->toFloat($get('po_amount'));
-                $this->importer->import([
-                    'invoice_number' => $invoiceNumber,
-                    'project_id' => $project->id,
-                    'client' => $client->company_name,
-                    'amount' => $amount,
-                    'status' => 'paid',
-                    'amount_paid' => $amountPaid,
-                    'date' => $this->parseDmyDate($get('invoice_date')),
-                    'paid_date' => $paidDate,
-                ]);
+                // INV_AVSB value used as the invoice number; when it names an invoice
+                // that does not exist yet, create it as a legacy invoice (same as INVOICE column).
+                $this->createLegacyInvoice($client, $project, $get, $existingInvoiceNumber !== '' ? $existingInvoiceNumber : $invoiceNumber);
             }
         });
+    }
+
+    private function createLegacyInvoice(Client $client, Project $project, callable $get, string $invoiceNumber): void
+    {
+        if ($invoiceNumber !== '' && Invoice::withTrashed()->where('invoice_number', $invoiceNumber)->exists()) {
+            throw new RuntimeException('Invoice number "'.$invoiceNumber.'" already exists');
+        }
+        $pelarasan = $this->toFloat($get('pelarasan'));
+        $amount = $pelarasan > 0 ? $pelarasan : $this->toFloat($get('po_amount'));
+        $this->importer->import([
+            'invoice_number' => $invoiceNumber,
+            'project_id' => $project->id,
+            'client' => $client->company_name,
+            'amount' => $amount,
+            'status' => 'paid',
+            'amount_paid' => $this->toFloat($get('total_paid')),
+            'date' => $this->parseDmyDate($get('invoice_date')),
+            'paid_date' => $this->parsePaidDate($get('date_paid')),
+        ]);
     }
 
     /** @param  array<int, string|null>  $row */
