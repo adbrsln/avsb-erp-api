@@ -110,7 +110,7 @@ class MillPaveSeeder extends Seeder
                 'service_type_id' => 1,
                 'po_number' => $item['po_number'] !== 'AKK' ? $item['po_number'] : null,
                 'location' => $item['site_location'],
-                'status' => 'completed',
+                'status' => 'pending',
                 'budget_amount' => (float) ($item['po_value_rm'] ?? 0),
                 'start_date' => $startDate,
                 'end_date' => $endDate,

@@ -245,11 +245,11 @@ class TnbPurchaseOrderSeeder extends Seeder
 
         Phase::create([
             'project_id' => $project->id,
-            'name' => $name,
+            'name' => 'PO Confirmation',
             'order' => $order ?: 1,
             'status' => $completedDate ? 'completed' : 'pending',
             'completed_at' => $completedDate ? $completedDate.' 17:00:00' : null,
-            'completion_remarks' => $completedDate ? 'TNB PO confirmation' : null,
+            'completion_remarks' => $completedDate ? 'TNB PO confirmation : '.$name : null,
         ]);
     }
 

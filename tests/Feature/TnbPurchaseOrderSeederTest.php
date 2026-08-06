@@ -141,10 +141,11 @@ describe('TnbPurchaseOrderSeeder', function () {
         (new TnbPurchaseOrderSeeder($path))->run();
 
         $phase = Phase::where('project_id', Project::where('po_number', '42024474')->first()->id)
-            ->where('name', '4001821575')->first();
+            ->where('name', 'PO Confirmation')->first();
         expect($phase)->not->toBeNull();
         expect($phase->status)->toBe('completed');
         expect($phase->completed_at->format('Y-m-d'))->toBe('2025-04-15');
+        expect($phase->completion_remarks)->toContain('4001821575');
 
         unlink($path);
     });
@@ -156,7 +157,7 @@ describe('TnbPurchaseOrderSeeder', function () {
         (new TnbPurchaseOrderSeeder($path))->run();
 
         $phase = Phase::where('project_id', Project::where('po_number', '42024474')->first()->id)
-            ->where('name', '4001821575')->first();
+            ->where('name', 'PO Confirmation')->first();
         expect($phase)->not->toBeNull();
         expect($phase->status)->toBe('pending');
         expect($phase->completed_at)->toBeNull();
@@ -225,7 +226,7 @@ describe('TnbPurchaseOrderSeeder', function () {
 
         expect(Project::where('po_number', '42024474')->count())->toBe(1);
         expect(Invoice::where('invoice_number', '5001357595')->count())->toBe(1);
-        expect(Phase::where('name', '4001821575')->count())->toBe(1);
+        expect(Phase::where('name', 'PO Confirmation')->count())->toBe(1);
         expect(Project::where('po_number', '42024474')->first()->phases()->count())->toBe(10);
         expect(InvoicePayment::count())->toBe(1);
 
