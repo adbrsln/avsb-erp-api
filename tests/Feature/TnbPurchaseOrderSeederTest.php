@@ -285,6 +285,20 @@ describe('TnbPurchaseOrderSeeder', function () {
         unlink($path);
     });
 
+    it('parses US-format dates (DATE and INVOICE_DATE) into project start and invoice date', function () {
+        $path = tempnam(sys_get_temp_dir(), 'tnb_');
+        writeTnbCsv($path, [array_replace(tnbRow(), [2 => '10/31/25', 12 => '6/23/26'])]);
+
+        (new TnbPurchaseOrderSeeder($path))->run();
+
+        $project = Project::where('po_number', '42024474')->first();
+        expect($project->start_date->format('Y-m-d'))->toBe('2025-10-31');
+        $invoice = Invoice::where('invoice_number', '5001357595')->first();
+        expect($invoice->date->format('Y-m-d'))->toBe('2026-06-23');
+
+        unlink($path);
+    });
+
     it('does not duplicate auto-numbered invoices on re-run', function () {
         $path = tempnam(sys_get_temp_dir(), 'tnb_');
         writeTnbCsv($path, [array_replace(tnbRow(), [11 => ''])]);

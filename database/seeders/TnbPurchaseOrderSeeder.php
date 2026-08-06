@@ -134,7 +134,7 @@ class TnbPurchaseOrderSeeder extends Seeder
             $this->createConfirmationPhase($project, $get);
 
             $amountPaid = $this->toFloat($get('total_paid'));
-            $paidDate = $this->parsePaidDate($get('date_paid'));
+            $paidDate = $this->parseFlexibleDate($get('date_paid'));
             $invoiceNumber = $get('invoice');
             $existingInvoiceNumber = $get('inv_avsb');
 
@@ -175,8 +175,8 @@ class TnbPurchaseOrderSeeder extends Seeder
             'amount' => $amount,
             'status' => 'paid',
             'amount_paid' => $this->toFloat($get('total_paid')),
-            'date' => $this->parseDmyDate($get('invoice_date')),
-            'paid_date' => $this->parsePaidDate($get('date_paid')),
+            'date' => $this->parseFlexibleDate($get('invoice_date')),
+            'paid_date' => $this->parseFlexibleDate($get('date_paid')),
         ]);
         // Uniform line-item format: each PO is an item of the invoice document
         $invoice->update([
@@ -271,7 +271,7 @@ class TnbPurchaseOrderSeeder extends Seeder
             'location' => $station,
             'status' => strtolower($get('project_status')) ?: 'active',
             'budget_amount' => $this->toFloat($get('po_amount')),
-            'start_date' => $this->parseDmyDate($get('date')),
+            'start_date' => $this->parseFlexibleDate($get('date')),
             'description' => json_encode(array_filter($extra, fn ($v) => $v !== '' && $v !== null), JSON_UNESCAPED_UNICODE),
         ]);
 
@@ -293,7 +293,7 @@ class TnbPurchaseOrderSeeder extends Seeder
             return; // idempotent
         }
 
-        $completedDate = $this->parseDmyDate($get('date_se'));
+        $completedDate = $this->parseFlexibleDate($get('date_se'));
         $order = (int) Phase::where('project_id', $project->id)->max('order') + 1;
 
         Phase::create([
@@ -393,8 +393,8 @@ class TnbPurchaseOrderSeeder extends Seeder
         return null;
     }
 
-    /** DATE_PAID uses US m/d/yy (e.g. 4/17/25); also accept dd/mm/yyyy fallback. */
-    private function parsePaidDate(?string $value): ?string
+    /** Handles mixed formats: US m/d/yy when 2-digit year (e.g. 4/17/25, 10/31/25), else dd/mm/yyyy (or dd.mm.yyyy). */
+    private function parseFlexibleDate(?string $value): ?string
     {
         if ($value === null || $value === '') {
             return null;
