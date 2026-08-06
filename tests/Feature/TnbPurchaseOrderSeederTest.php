@@ -13,6 +13,7 @@ use App\Models\Project;
 use App\Models\ProjectGroup;
 use App\Models\ProjectSubcontractor;
 use App\Models\Subcontractor;
+use App\Models\SubcontractorClaim;
 use App\Models\Vendor;
 use Database\Seeders\TnbPurchaseOrderSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -303,7 +304,17 @@ describe('TnbPurchaseOrderSeeder', function () {
         expect((float) $pay->amount)->toBe(19727.07);
         expect(JournalEntry::where('reference_type', 'bill')->where('reference_id', $bill->id)->exists())->toBeTrue();
         expect(JournalEntry::where('reference_type', 'bill_payment')->where('reference_id', $bill->id)->exists())->toBeTrue();
-        expect(ProjectSubcontractor::where('project_id', Project::where('po_number', '42024474')->first()->id)->exists())->toBeTrue();
+        $ps = ProjectSubcontractor::where('project_id', Project::where('po_number', '42024474')->first()->id)->first();
+        expect($ps)->not->toBeNull();
+        expect($ps->status)->toBe('completed');
+
+        $claim = SubcontractorClaim::where('claim_number', 'EB1523/2026')->first();
+        expect($claim)->not->toBeNull();
+        expect((float) $claim->claimed_amount)->toBe(19727.07);
+        expect((float) $claim->net_payable)->toBe(19727.07);
+        expect($claim->status)->toBe('paid');
+        expect($claim->paid_at)->not->toBeNull();
+        expect($claim->payment_reference)->toBe('EB1523/2026');
 
         unlink($path);
     });
@@ -318,6 +329,7 @@ describe('TnbPurchaseOrderSeeder', function () {
 
         expect(Bill::where('bill_number', 'EB1523/2026')->count())->toBe(1);
         expect(BillPayment::count())->toBe(1);
+        expect(SubcontractorClaim::count())->toBe(1);
 
         unlink($path);
     });

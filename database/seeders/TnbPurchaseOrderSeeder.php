@@ -17,6 +17,7 @@ use App\Models\Project;
 use App\Models\ProjectGroup;
 use App\Models\ProjectSubcontractor;
 use App\Models\Subcontractor;
+use App\Models\SubcontractorClaim;
 use App\Models\Vendor;
 use App\Services\LegacyInvoiceImporter;
 use App\Services\NumberingService;
@@ -192,7 +193,7 @@ class TnbPurchaseOrderSeeder extends Seeder
             ['vendor_code' => 'EB'],
             ['company_name' => $subconName, 'status' => 'active']
         );
-        ProjectSubcontractor::firstOrCreate(
+        $projectSub = ProjectSubcontractor::firstOrCreate(
             ['project_id' => $project->id, 'subcontractor_id' => $subcon->id],
             [
                 'scope_of_work' => 'TNB subcon - PO '.$poNumber,
@@ -200,6 +201,8 @@ class TnbPurchaseOrderSeeder extends Seeder
                 'status' => 'active',
             ]
         );
+        // Past project: the subcon claim is already completed and paid
+        $projectSub->update(['status' => 'completed']);
 
         if (Bill::where('bill_number', $invSubcon)->exists()) {
             return; // idempotent — bill already imported
@@ -269,6 +272,30 @@ class TnbPurchaseOrderSeeder extends Seeder
             JournalEntryLine::create(['journal_entry_id' => $je->id, 'account_id' => $bankAccount->id, 'credit' => $fee, 'description' => $invSubcon]);
 
             $bill->update(['paid_amount' => $fee, 'balance' => 0, 'status' => 'paid']);
+        }
+
+        $paidAt = $this->parseFlexibleDate($get('date_paid')) ?? $billDate;
+        $claimDate = $this->parseFlexibleDate($get('inv_date')) ?? $billDate;
+        if (! SubcontractorClaim::where('claim_number', $invSubcon)->exists()) {
+            SubcontractorClaim::create([
+                'project_subcontractor_id' => $projectSub->id,
+                'claim_number' => $invSubcon,
+                'claim_date' => $claimDate,
+                'work_done_pct' => 100,
+                'cumulative_pct' => 100,
+                'claimed_amount' => $fee,
+                'retention_deducted' => 0,
+                'net_payable' => $fee,
+                'previous_paid' => 0,
+                'current_due' => 0,
+                'status' => 'paid',
+                'submitted_at' => $paidAt.' 08:00:00',
+                'verified_at' => $paidAt.' 12:00:00',
+                'approved_at' => $paidAt.' 16:00:00',
+                'paid_at' => $paidAt.' 17:00:00',
+                'payment_reference' => $invSubcon,
+                'notes' => 'PO '.$poNumber.' — imported from TNB tracker (completed & paid)',
+            ]);
         }
     }
 
