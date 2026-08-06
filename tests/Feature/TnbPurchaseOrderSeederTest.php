@@ -245,6 +245,18 @@ describe('TnbPurchaseOrderSeeder', function () {
         unlink($path);
     });
 
+    it('does not duplicate auto-numbered invoices on re-run', function () {
+        $path = tempnam(sys_get_temp_dir(), 'tnb_');
+        writeTnbCsv($path, [array_replace(tnbRow(), [11 => ''])]);
+
+        (new TnbPurchaseOrderSeeder($path))->run();
+        (new TnbPurchaseOrderSeeder($path))->run();
+
+        expect(Invoice::count())->toBe(1);
+
+        unlink($path);
+    });
+
     it('gracefully skips when the CSV file is missing', function () {
         (new TnbPurchaseOrderSeeder('/nonexistent/tnb-purchase-orders.csv'))->run();
 

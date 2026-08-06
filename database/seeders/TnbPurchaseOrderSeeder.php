@@ -147,7 +147,13 @@ class TnbPurchaseOrderSeeder extends Seeder
 
     private function createLegacyInvoice(Client $client, Project $project, callable $get, string $invoiceNumber): void
     {
-        if ($invoiceNumber !== '' && Invoice::withTrashed()->where('invoice_number', $invoiceNumber)->exists()) {
+        if ($invoiceNumber === '') {
+            // Auto-numbered rows: idempotent — skip when the project was already invoiced
+            // (prevents duplicate legacy invoices on re-import runs).
+            if (Invoice::where('project_id', $project->id)->where('source', 'legacy')->exists()) {
+                return;
+            }
+        } elseif (Invoice::withTrashed()->where('invoice_number', $invoiceNumber)->exists()) {
             throw new RuntimeException('Invoice number "'.$invoiceNumber.'" already exists');
         }
         $pelarasan = $this->toFloat($get('pelarasan'));
