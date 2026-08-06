@@ -44,37 +44,55 @@ class ProjectTypeSeeder
             ['name' => 'Mill & Pave', 'code' => 'mill_pave', 'color' => '#dc2626', 'sort_order' => 7]
         );
 
+        $templates = [
+            ['name' => 'PO Confirmation', 'code' => 'po_confirmation', 'order' => 0],
+            ['name' => 'Site Visit', 'code' => 'site_visit', 'order' => 1],
+            ['name' => '⁠Mill and pave (Project Execution)', 'code' => 'project_execution', 'order' => 2],
+            ['name' => 'Coring Test', 'code' => 'coring_test', 'order' => 3],
+            ['name' => 'Lab Report', 'code' => 'lab_report', 'order' => 4],
+            ['name' => 'Road Marking', 'code' => 'road_marking', 'order' => 5],
+            ['name' => 'Joint Measurement Sheet (JMS)', 'code' => 'jms', 'order' => 6],
+            ['name' => 'Laporan Kerja Siap (LKS)', 'code' => 'lks', 'order' => 7],
+            ['name' => 'Service Entry (SE)', 'code' => 'se', 'order' => 8],
+            ['name' => 'Invoice Submission', 'code' => 'invoice_submission', 'order' => 9],
+            ['name' => 'Payment Settlement (30 days)', 'code' => 'payment_settlement', 'order' => 10],
+            ['name' => 'Road Cleaning', 'code' => 'cleaning', 'order' => 11],
+            ['name' => 'Paint Marking', 'code' => 'marking', 'order' => 12],
+            ['name' => 'Glass Beads', 'code' => 'glass_beads', 'order' => 13],
+            ['name' => 'Quality Check', 'code' => 'qc', 'order' => 14],
+        ];
+
         // Paving: lab_report before coring_test (order 3→4)
         $paving->phaseTemplates()->syncWithoutDetaching($this->mapOrder([
-            'site_visit' => 1, 'start_date' => 2, 'lab_report' => 3,
-            'coring_test' => 4, 'road_marking' => 5, 'jms' => 6,
-            'lks' => 7, 'tnb' => 8, 'se' => 9,
+            'po_confirmation' => 0, 'site_visit' => 1, 'project_execution' => 2, 'coring_test' => 3, 'lab_report' => 4,
+            'road_marking' => 5, 'jms' => 6,
+            'lks' => 7, 'tnb' => 8, 'se' => 9, 'payment_settlement' => 10, 'invoice_submission' => 11,
         ]));
 
         // Milling: coring_test before lab_report (order 3→4)
         $milling->phaseTemplates()->syncWithoutDetaching($this->mapOrder([
-            'site_visit' => 1, 'start_date' => 2, 'coring_test' => 3,
-            'lab_report' => 4, 'road_marking' => 5, 'jms' => 6,
-            'lks' => 7, 'tnb' => 8, 'se' => 9,
+            'po_confirmation' => 0, 'site_visit' => 1, 'project_execution' => 2, 'coring_test' => 3, 'lab_report' => 4,
+            'road_marking' => 5, 'jms' => 6,
+            'lks' => 7, 'tnb' => 8, 'se' => 9, 'payment_settlement' => 10, 'invoice_submission' => 11,
         ]));
 
         // Mill & Pave: same as Milling ordering
         $millPave->phaseTemplates()->syncWithoutDetaching($this->mapOrder([
-            'site_visit' => 1, 'start_date' => 2, 'coring_test' => 3,
-            'lab_report' => 4, 'road_marking' => 5, 'jms' => 6,
-            'lks' => 7, 'tnb' => 8, 'se' => 9,
+            'po_confirmation' => 0, 'site_visit' => 1, 'project_execution' => 2, 'coring_test' => 3, 'lab_report' => 4,
+            'road_marking' => 5, 'jms' => 6,
+            'lks' => 7, 'tnb' => 8, 'se' => 9, 'payment_settlement' => 10, 'invoice_submission' => 11,
         ]));
 
         // Road Marking: 6-phase workflow
         $roadMarking->phaseTemplates()->syncWithoutDetaching($this->mapOrder([
             'site_visit' => 1, 'cleaning' => 2, 'marking' => 3,
-            'glass_beads' => 4, 'qc' => 5, 'send_invoice' => 6,
+            'glass_beads' => 4, 'qc' => 5, 'invoice_submission' => 6, 'payment_settlement' => 7,
         ]));
 
         // Simple types: only site_visit + send_invoice
         foreach ([$drainage, $structure, $general] as $type) {
             $type->phaseTemplates()->syncWithoutDetaching($this->mapOrder([
-                'site_visit' => 1, 'send_invoice' => 2,
+                'site_visit' => 1, 'invoice_submission' => 2, 'payment_settlement' => 3,
             ]));
         }
     }

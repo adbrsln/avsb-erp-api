@@ -18,13 +18,13 @@ class PhaseTemplateSeeder
             ['name' => 'Road Marking', 'code' => 'road_marking', 'order' => 5],
             ['name' => 'Joint Measurement Sheet (JMS)', 'code' => 'jms', 'order' => 6],
             ['name' => 'Laporan Kerja Siap (LKS)', 'code' => 'lks', 'order' => 7],
-            ['name' => 'Service Entry (SE)', 'code' => 'se', 'order' => 9],
-            ['name' => 'Payment Settlement (30 days)', 'code' => 'payment_settlement', 'order' => 8],
+            ['name' => 'Service Entry (SE)', 'code' => 'se', 'order' => 8],
+            ['name' => 'Invoice Submission', 'code' => 'invoice_submission', 'order' => 9],
+            ['name' => 'Payment Settlement (30 days)', 'code' => 'payment_settlement', 'order' => 10],
             ['name' => 'Road Cleaning', 'code' => 'cleaning', 'order' => 11],
             ['name' => 'Paint Marking', 'code' => 'marking', 'order' => 12],
             ['name' => 'Glass Beads', 'code' => 'glass_beads', 'order' => 13],
             ['name' => 'Quality Check', 'code' => 'qc', 'order' => 14],
-            ['name' => 'Invoice Submission', 'code' => 'invoice_submission', 'order' => 10],
         ];
 
         foreach ($templates as $t) {

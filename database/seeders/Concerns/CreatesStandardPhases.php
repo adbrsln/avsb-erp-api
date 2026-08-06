@@ -108,7 +108,7 @@ trait CreatesStandardPhases
             ['name' => 'Joint Measurement Sheet (JMS)'],
             ['name' => 'Laporan Kerja Siap (LKS)'],
             ['name' => 'Service Entry (SE)'],
-            ['name' => 'Invoice Submission'], // this will trigger the invoice creation process in TNB portal
+            ['name' => 'Invoice Submission'],
             ['name' => 'Payment Settlement (30 days)'],
         ];
     }
