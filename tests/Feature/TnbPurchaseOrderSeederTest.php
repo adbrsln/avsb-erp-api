@@ -431,7 +431,8 @@ describe('TnbPurchaseOrderSeeder', function () {
         $jms = $phases->firstWhere('name', 'Joint Measurement Sheet (JMS)');
         expect($jms->status)->toBe('in_progress');
         expect($jms->started_at)->not->toBeNull();
-        expect($jms->description)->toBe('Pending PO amount adjustment');
+        expect($jms->completion_remarks)->toBe('Pending PO amount adjustment');
+        expect($jms->description)->toBeNull();
         foreach ($phases->where('order', '<', $jms->order) as $phase) {
             expect($phase->status)->toBe('completed');
             expect($phase->completed_at)->not->toBeNull();

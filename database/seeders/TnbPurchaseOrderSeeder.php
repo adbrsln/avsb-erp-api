@@ -504,9 +504,10 @@ class TnbPurchaseOrderSeeder extends Seeder
                 $update = [
                     'status' => 'in_progress',
                     'started_at' => ($phase->start_date?->format('Y-m-d') ?? date('Y-m-d')).' 08:00:00',
+                    'description' => null, // clear any stale note from older imports
                 ];
                 if ($remarks !== '') {
-                    $update['description'] = $remarks;
+                    $update['completion_remarks'] = $remarks; // rendered as phase notes
                 }
                 $phase->update($update);
             } elseif ($phase->order < $target->order && $phase->status !== 'completed') {
