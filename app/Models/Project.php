@@ -85,6 +85,20 @@ class Project extends Model
         return $this->hasMany(Invoice::class, 'project_id');
     }
 
+    public function sharedInvoices()
+    {
+        return $this->belongsToMany(Invoice::class, 'invoice_project');
+    }
+
+    /** Own invoices plus invoices shared via the invoice_project pivot (deduped). */
+    public function allInvoices()
+    {
+        return $this->invoices()->get()
+            ->merge($this->sharedInvoices()->get())
+            ->unique('id')
+            ->values();
+    }
+
     public function groups()
     {
         return $this->belongsToMany(ProjectGroup::class, 'project_project_group');

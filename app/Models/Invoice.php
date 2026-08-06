@@ -62,6 +62,11 @@ class Invoice extends Model
         return $this->belongsTo(Client::class, 'client_id');
     }
 
+    public function projects()
+    {
+        return $this->belongsToMany(Project::class, 'invoice_project');
+    }
+
     public function creditNote()
     {
         return $this->belongsTo(Invoice::class, 'credit_note_for_id');

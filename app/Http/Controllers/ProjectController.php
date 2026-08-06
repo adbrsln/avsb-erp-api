@@ -231,7 +231,10 @@ class ProjectController extends Controller
         $result['contracts'] = Contract::where('project_id', $item->id)
             ->select(['id', 'contract_number', 'status', 'total_amount', 'date'])->get();
         $result['invoices'] = Invoice::where('project_id', $item->id)
-            ->select(['id', 'invoice_number', 'status', 'total', 'date'])->get();
+            ->orWhereIn('id', $item->sharedInvoices()->pluck('invoices.id'))
+            ->distinct()
+            ->select(['id', 'invoice_number', 'status', 'total', 'date'])
+            ->get();
 
         return response()->json($result);
     }

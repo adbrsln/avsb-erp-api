@@ -234,15 +234,24 @@ describe('TnbPurchaseOrderSeeder', function () {
         expect(Invoice::count())->toBe(1);
         $invoice = Invoice::where('invoice_number', 'AV/RC/2609')->first();
         expect($invoice)->not->toBeNull();
+        expect($invoice->status)->toBe('paid');
         // Each PO is a line item; invoice total = sum of items
         expect(count($invoice->items))->toBe(2);
         expect((float) $invoice->total)->toBe(91407.76); // 45703.88 x 2 items
         expect($invoice->items[1]['description'])->toContain('PO 42028079');
-        // Single payment per shared invoice
-        expect(InvoicePayment::where('invoice_id', $invoice->id)->count())->toBe(1);
-        // Second project has no separate invoice row — covered by the shared document
+        // One invoice attached to both projects via pivot
+        expect($invoice->projects()->pluck('project_id')->all())->toHaveCount(2);
         $second = Project::where('po_number', '42028079')->first();
-        expect(Invoice::where('project_id', $second->id)->count())->toBe(0);
+        expect($second->sharedInvoices()->pluck('invoice_id')->all())->toBe([$invoice->id]);
+        // Single payment covering the FULL invoice total
+        $payment = InvoicePayment::where('invoice_id', $invoice->id)->first();
+        expect($payment)->not->toBeNull();
+        expect((float) $payment->amount)->toBe(91407.76);
+        // Payment JE marks the invoice paid in full
+        $paymentJe = JournalEntry::where('reference_type', 'payment')->where('reference_id', $invoice->id)->first();
+        expect($paymentJe)->not->toBeNull();
+        expect((float) $paymentJe->lines()->where('debit', '>', 0)->first()->debit)->toBe(91407.76);
+        expect((float) $paymentJe->lines()->where('credit', '>', 0)->first()->credit)->toBe(91407.76);
 
         unlink($path);
     });

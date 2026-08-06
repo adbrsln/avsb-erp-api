@@ -6,6 +6,8 @@ use App\Models\Client;
 use App\Models\ClientPIC;
 use App\Models\Invoice;
 use App\Models\InvoicePayment;
+use App\Models\JournalEntry;
+use App\Models\JournalEntryLine;
 use App\Models\Phase;
 use App\Models\Project;
 use App\Models\ProjectGroup;
@@ -141,7 +143,8 @@ class TnbPurchaseOrderSeeder extends Seeder
                 if ($invoice) {
                     // Pair to the same document — shared INV_AVSB numbers reuse one invoice
                     // across projects. No duplicate invoice is created.
-                    $this->pairExistingInvoice($invoice, $project, $amountPaid, $paidDate, $poNumber, $this->invoiceAmount($get));
+                    $rowPaid = strtoupper($get('payment_status')) === 'PAID';
+                    $this->pairExistingInvoice($invoice, $project, $amountPaid, $paidDate, $poNumber, $this->invoiceAmount($get), $rowPaid);
                 } else {
                     // INV_AVSB invoice does not exist yet — create it as a legacy invoice
                     // using the INV_AVSB value as the invoice number.
@@ -181,6 +184,7 @@ class TnbPurchaseOrderSeeder extends Seeder
                 ['description' => 'PO '.$poNumber.' — '.$project->name, 'unit' => 'Lot', 'quantity' => 1, 'unit_rate' => $amount, 'total' => $amount],
             ],
         ]);
+        $invoice->projects()->syncWithoutDetaching([$project->id]);
     }
 
     private function invoiceAmount(callable $get): float
@@ -302,7 +306,7 @@ class TnbPurchaseOrderSeeder extends Seeder
         ]);
     }
 
-    private function pairExistingInvoice(Invoice $invoice, Project $project, float $amountPaid, ?string $paidDate, string $poNumber, float $itemAmount): void
+    private function pairExistingInvoice(Invoice $invoice, Project $project, float $amountPaid, ?string $paidDate, string $poNumber, float $itemAmount, bool $rowPaid): void
     {
         $update = [];
         if (! $invoice->project_id) {
@@ -337,10 +341,33 @@ class TnbPurchaseOrderSeeder extends Seeder
             $invoice->update($update);
         }
 
-        // Single payment per shared invoice document
-        if ($amountPaid > 0 && ! InvoicePayment::where('invoice_id', $invoice->id)->exists()) {
-            $amount = round(min($amountPaid, (float) $invoice->total), 2);
-            $this->importer->recordPayment($invoice, $amount, $paidDate, 'TNB-'.$poNumber);
+        // Attach this project to the shared document (owner + additional projects)
+        $invoice->projects()->syncWithoutDetaching([$project->id]);
+
+        if (! $rowPaid) {
+            return; // unpaid PO row — no payment recorded
+        }
+
+        // Invoice fully paid when all PO rows are paid: single payment covers the
+        // whole invoice total, and the payment JE marks the invoice paid in full.
+        $total = (float) $invoice->total;
+        $payment = InvoicePayment::where('invoice_id', $invoice->id)->first();
+        if ($payment) {
+            if ((float) $payment->amount !== $total) {
+                $payment->update(['amount' => $total]);
+                $this->updatePaymentJournalEntries($invoice, $total);
+            }
+        } else {
+            $this->importer->recordPayment($invoice, $total, $paidDate, 'TNB-'.$poNumber);
+        }
+    }
+
+    private function updatePaymentJournalEntries(Invoice $invoice, float $total): void
+    {
+        $paymentJes = JournalEntry::where('reference_type', 'payment')->where('reference_id', $invoice->id)->get();
+        foreach ($paymentJes as $je) {
+            JournalEntryLine::where('journal_entry_id', $je->id)->where('debit', '>', 0)->update(['debit' => $total]);
+            JournalEntryLine::where('journal_entry_id', $je->id)->where('credit', '>', 0)->update(['credit' => $total]);
         }
     }
 
