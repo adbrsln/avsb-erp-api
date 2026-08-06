@@ -235,6 +235,13 @@ class TnbPurchaseOrderSeeder extends Seeder
     {
         $project = Project::where('po_number', $poNumber)->first();
         if ($project) {
+            // Backfill missing dates on previously-imported projects (e.g. US-format rows
+            // that failed parsing on the first run).
+            $rowStart = $this->parseFlexibleDate($get('date'));
+            if (! $project->start_date && $rowStart) {
+                $project->update(['start_date' => $rowStart]);
+            }
+
             return $project;
         }
 
