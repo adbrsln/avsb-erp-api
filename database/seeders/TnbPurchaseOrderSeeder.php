@@ -7,6 +7,7 @@ use App\Models\ClientPIC;
 use App\Models\Invoice;
 use App\Models\Phase;
 use App\Models\Project;
+use App\Models\ProjectGroup;
 use App\Services\LegacyInvoiceImporter;
 use App\Services\NumberingService;
 use Database\Seeders\Concerns\CreatesStandardPhases;
@@ -180,6 +181,29 @@ class TnbPurchaseOrderSeeder extends Seeder
         };
     }
 
+    private function createProjectGroup(string $projectGroup): string
+    {
+        $projectGroup = trim($projectGroup);
+        if ($projectGroup === '') {
+            return $projectGroup;
+        }
+
+        ProjectGroup::firstOrCreate(
+            ['name' => $projectGroup],
+            [
+                'description' => 'TNB Station - '.$projectGroup,
+                'color' => $this->randomColor(),
+            ]
+        );
+
+        return $projectGroup;
+    }
+
+    private function randomColor(): string
+    {
+        return sprintf('#%06X', random_int(0, 0xFFFFFF));
+    }
+
     private function resolveOrCreateProject(Client $client, callable $get, string $poNumber): Project
     {
         $project = Project::where('po_number', $poNumber)->first();
@@ -195,7 +219,7 @@ class TnbPurchaseOrderSeeder extends Seeder
         }
 
         $extra = [
-            'tnb_station' => $station,
+            'tnb_station' => $this->createProjectGroup($station),
             'po_confirmation' => $get('po_confirmation'),
             'po_amount' => $this->toFloat($get('po_amount')),
             'pelarasan' => $this->toFloat($get('pelarasan')),

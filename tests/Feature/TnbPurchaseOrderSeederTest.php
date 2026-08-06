@@ -8,6 +8,7 @@ use App\Models\InvoicePayment;
 use App\Models\JournalEntry;
 use App\Models\Phase;
 use App\Models\Project;
+use App\Models\ProjectGroup;
 use Database\Seeders\TnbPurchaseOrderSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
@@ -70,6 +71,7 @@ describe('TnbPurchaseOrderSeeder', function () {
         expect($project->budget_amount)->toBe(28514.38);
         expect($project->description)->toContain('"subcon_fee":0');
         expect($project->description)->toContain('"po_confirmation":"4001821575"');
+        expect(ProjectGroup::where('name', 'SHAH ALAM')->exists())->toBeTrue();
         expect($project->phases()->count())->toBe(10); // 9 standard + 1 PO confirmation
 
         $invoice = Invoice::where('invoice_number', '5001357595')->first();
