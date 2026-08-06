@@ -108,7 +108,7 @@ class MillPaveSeeder extends Seeder
                 'client_pic_id' => $picId,
                 'project_manager_id' => $pm?->id,
                 'service_type_id' => 1,
-                'po_number' => $item['po_number'],
+                'po_number' => $item['po_number'] !== 'AKK' ? $item['po_number'] : null,
                 'location' => $item['site_location'],
                 'status' => 'completed',
                 'budget_amount' => (float) ($item['po_value_rm'] ?? 0),

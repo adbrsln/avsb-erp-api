@@ -10,8 +10,9 @@ use App\Models\ProjectMaterialUsage;
 use App\Models\ProjectType;
 use App\Models\StaffProfile;
 use App\Services\NumberingService;
+use Illuminate\Database\Seeder;
 
-class RoadMarkingSeeder
+class RoadMarkingSeeder extends Seeder
 {
     public function run(): void
     {

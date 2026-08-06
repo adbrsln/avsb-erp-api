@@ -31,6 +31,16 @@ class ClientSeeder
                     ['name' => 'Amir Rashidi', 'phone' => null, 'email' => 'amir.rashidi@tnb.com.my', 'job_title' => 'Project Engineer', 'department' => 'TNB Pelabuhan Klang', 'is_primary' => false],
                 ],
             ],
+            [
+                'client_code' => 'RC',
+                'company_name' => 'Refined Contour Sdn. Bhd.',
+                'registration_no' => '200866-V',
+                'phone' => '1-300-88-5454',
+                'email' => 'procurement@rc.com.my',
+                'address' => 'No. 129, Jalan Bangsar, 59200 Kuala Lumpur',
+                'billing_address' => 'Bahagian Perolehan, TNB, Aras 3, Menara TNB',
+                'tax_id' => 'SST-TNB-001',
+            ],
         ];
 
         foreach ($clients as $c) {

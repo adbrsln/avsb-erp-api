@@ -53,12 +53,12 @@ trait CreatesStandardPhases
                 'project_id' => $project->id,
                 'name' => $name,
                 'order' => $order,
-                'status' => 'completed',
+                'status' => 'pending',
                 'start_date' => $phaseStart,
                 'end_date' => $phaseEnd,
-                'completed_at' => $phaseEnd.' 17:00:00',
-                'completed_by' => $pm?->id,
-                'completion_remarks' => 'System override',
+                // 'completed_at' => $phaseEnd.' 17:00:00',
+                // 'completed_by' => $pm?->id,
+                // 'completion_remarks' => 'System override',
             ]);
         }
     }
