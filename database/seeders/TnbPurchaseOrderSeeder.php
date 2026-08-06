@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Client;
 use App\Models\ClientPIC;
 use App\Models\Invoice;
+use App\Models\InvoicePayment;
 use App\Models\Phase;
 use App\Models\Project;
 use App\Models\ProjectGroup;
@@ -140,19 +141,19 @@ class TnbPurchaseOrderSeeder extends Seeder
                 if ($invoice) {
                     // Pair to the same document — shared INV_AVSB numbers reuse one invoice
                     // across projects. No duplicate invoice is created.
-                    $this->pairExistingInvoice($invoice, $project, $amountPaid, $paidDate, $poNumber);
+                    $this->pairExistingInvoice($invoice, $project, $amountPaid, $paidDate, $poNumber, $this->invoiceAmount($get));
                 } else {
                     // INV_AVSB invoice does not exist yet — create it as a legacy invoice
                     // using the INV_AVSB value as the invoice number.
-                    $this->createLegacyInvoice($client, $project, $get, $existingInvoiceNumber);
+                    $this->createLegacyInvoice($client, $project, $get, $existingInvoiceNumber, $poNumber);
                 }
             } else {
-                $this->createLegacyInvoice($client, $project, $get, $invoiceNumber);
+                $this->createLegacyInvoice($client, $project, $get, $invoiceNumber, $poNumber);
             }
         });
     }
 
-    private function createLegacyInvoice(Client $client, Project $project, callable $get, string $invoiceNumber): void
+    private function createLegacyInvoice(Client $client, Project $project, callable $get, string $invoiceNumber, string $poNumber): void
     {
         if ($invoiceNumber === '') {
             // Auto-numbered rows: idempotent — skip when the project was already invoiced
@@ -163,9 +164,8 @@ class TnbPurchaseOrderSeeder extends Seeder
         } elseif (Invoice::withTrashed()->where('invoice_number', $invoiceNumber)->exists()) {
             throw new RuntimeException('Invoice number "'.$invoiceNumber.'" already exists');
         }
-        $pelarasan = $this->toFloat($get('pelarasan'));
-        $amount = $pelarasan > 0 ? $pelarasan : $this->toFloat($get('po_amount'));
-        $this->importer->import([
+        $amount = $this->invoiceAmount($get);
+        $invoice = $this->importer->import([
             'invoice_number' => $invoiceNumber,
             'project_id' => $project->id,
             'client' => $client->company_name,
@@ -175,6 +175,19 @@ class TnbPurchaseOrderSeeder extends Seeder
             'date' => $this->parseDmyDate($get('invoice_date')),
             'paid_date' => $this->parsePaidDate($get('date_paid')),
         ]);
+        // Uniform line-item format: each PO is an item of the invoice document
+        $invoice->update([
+            'items' => [
+                ['description' => 'PO '.$poNumber.' — '.$project->name, 'unit' => 'Lot', 'quantity' => 1, 'unit_rate' => $amount, 'total' => $amount],
+            ],
+        ]);
+    }
+
+    private function invoiceAmount(callable $get): float
+    {
+        $pelarasan = $this->toFloat($get('pelarasan'));
+
+        return $pelarasan > 0 ? $pelarasan : $this->toFloat($get('po_amount'));
     }
 
     /** @param  array<int, string|null>  $row */
@@ -289,7 +302,7 @@ class TnbPurchaseOrderSeeder extends Seeder
         ]);
     }
 
-    private function pairExistingInvoice(Invoice $invoice, Project $project, float $amountPaid, ?string $paidDate, string $poNumber): void
+    private function pairExistingInvoice(Invoice $invoice, Project $project, float $amountPaid, ?string $paidDate, string $poNumber, float $itemAmount): void
     {
         $update = [];
         if (! $invoice->project_id) {
@@ -303,11 +316,29 @@ class TnbPurchaseOrderSeeder extends Seeder
             $update['status'] = 'paid';
             $update['processed_at'] = $paidDate ? $paidDate.' 00:00:00' : date('Y-m-d H:i:s');
         }
+
+        // Shared INV_AVSB = one invoice document; each PO is a line item.
+        $items = $invoice->items ?? [];
+        if (! collect($items)->contains(fn ($it) => str_contains((string) ($it['description'] ?? ''), 'PO '.$poNumber))) {
+            $items[] = [
+                'description' => 'PO '.$poNumber.' — '.$project->name,
+                'unit' => 'Lot',
+                'quantity' => 1,
+                'unit_rate' => $itemAmount,
+                'total' => $itemAmount,
+            ];
+            $sum = round(array_sum(array_map(fn ($it) => (float) ($it['total'] ?? 0), $items)), 2);
+            $update['items'] = $items;
+            $update['subtotal'] = $sum;
+            $update['total'] = $sum;
+        }
+
         if ($update !== []) {
             $invoice->update($update);
         }
 
-        if ($amountPaid > 0) {
+        // Single payment per shared invoice document
+        if ($amountPaid > 0 && ! InvoicePayment::where('invoice_id', $invoice->id)->exists()) {
             $amount = round(min($amountPaid, (float) $invoice->total), 2);
             $this->importer->recordPayment($invoice, $amount, $paidDate, 'TNB-'.$poNumber);
         }

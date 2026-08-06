@@ -212,6 +212,7 @@ describe('TnbPurchaseOrderSeeder', function () {
         expect($invoice)->not->toBeNull();
         expect($invoice->source)->toBe('legacy');
         expect((float) $invoice->total)->toBe(45703.88);
+        expect($invoice->items[0]['description'])->toContain('PO 42024474');
         expect($invoice->status)->toBe('paid');
         expect($invoice->project_id)->toBe(Project::where('po_number', '42024474')->first()->id);
         expect(InvoicePayment::where('invoice_id', $invoice->id)->sum('amount'))->toBe(45703.88);
@@ -227,10 +228,18 @@ describe('TnbPurchaseOrderSeeder', function () {
         ]);
 
         (new TnbPurchaseOrderSeeder($path))->run();
+        (new TnbPurchaseOrderSeeder($path))->run(); // idempotent re-run
 
         // One shared document — no duplicate invoice created
         expect(Invoice::count())->toBe(1);
-        expect(Invoice::where('invoice_number', 'AV/RC/2609')->count())->toBe(1);
+        $invoice = Invoice::where('invoice_number', 'AV/RC/2609')->first();
+        expect($invoice)->not->toBeNull();
+        // Each PO is a line item; invoice total = sum of items
+        expect(count($invoice->items))->toBe(2);
+        expect((float) $invoice->total)->toBe(91407.76); // 45703.88 x 2 items
+        expect($invoice->items[1]['description'])->toContain('PO 42028079');
+        // Single payment per shared invoice
+        expect(InvoicePayment::where('invoice_id', $invoice->id)->count())->toBe(1);
         // Second project has no separate invoice row — covered by the shared document
         $second = Project::where('po_number', '42028079')->first();
         expect(Invoice::where('project_id', $second->id)->count())->toBe(0);
