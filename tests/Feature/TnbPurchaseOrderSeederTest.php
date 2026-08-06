@@ -44,6 +44,25 @@ function writeTnbCsv(string $path, array $rows): void
     file_put_contents($path, implode("\n", $lines)."\n");
 }
 
+/** 32-col header matching the real CSV (includes PHASE_STATUS + PHASE_STATUS_REMARKS). */
+function writeTnbCsvV2(string $path, array $rows): void
+{
+    $header = [' IS_PROCEED', 'PO NUMBER', 'DATE', 'CLIENT', 'TNB_STATION', 'TNB_PIC', 'PO_AMOUNT', 'PROJECT_STATUS', 'PHASE_STATUS', 'PHASE_STATUS_REMARKS', 'PELARASAN', 'PO_CONFIRMATION', 'DATE_SE', 'INVOICE', 'INVOICE_DATE', 'PAYMENT_STATUS', 'DATE_PAID', 'TOTAL_PAID', 'SUBCON', 'SUBCON_FEE', 'MAINCON', 'MAINCON_FEE', 'DEDUCTION', 'BALANCE_PAYMENT', 'INV_AVSB', 'INV_SUBCON', 'INV_DATE', 'DATE _PAID', ' STATUS', '', '', ''];
+    $lines = [implode(',', $header)];
+    foreach ($rows as $row) {
+        $lines[] = implode(',', $row);
+    }
+    file_put_contents($path, implode("\n", $lines)."\n");
+}
+
+/** Row order: proceed, po, date, client, station, pic, po_amt, proj_status, phase_status, phase_status_remarks, pelarasan, po_conf, date_se, invoice, inv_date, pay_status, date_paid, total_paid, subcon, subcon_fee, maincon, maincon_fee, deduction, balance, inv_avsb, inv_subcon, inv_date, date_paid_alt, status */
+function tnbRowV2(array $overrides = []): array
+{
+    $base = ['TRUE', '42024474', '21/01/2025', 'TNB', 'SHAH ALAM', 'Ferdawatie', '28514.38', 'COMPLETED', 'PELARASAN', 'LAN', '45703.88', '4001821575', '', '5001357595', '20/03/2025', 'PAID', '4/17/25', '45703.88', '', '', '', '', '', '', '', '', '', '', '', '', ''];
+
+    return array_replace($base, $overrides);
+}
+
 /** Row order: proceed, po, date, client, station, pic, po_amt, proj_status, pelarasan, po_conf, date_se, invoice, inv_date, pay_status, date_paid, total_paid, subcon, subcon_fee, maincon, maincon_fee, deduction, balance, inv_avsb, inv_subcon, inv_date, date_paid_alt, status */
 function tnbRow(array $overrides = []): array
 {
@@ -359,6 +378,20 @@ describe('TnbPurchaseOrderSeeder', function () {
         $invoice = Invoice::first();
         expect($invoice)->not->toBeNull();
         expect($invoice->invoice_number)->toStartWith('INV-');
+
+        unlink($path);
+    });
+
+    it('stores PHASE_STATUS and PHASE_STATUS_REMARKS on the project description', function () {
+        $path = tempnam(sys_get_temp_dir(), 'tnb_');
+        writeTnbCsvV2($path, [tnbRowV2()]);
+
+        (new TnbPurchaseOrderSeeder($path))->run();
+
+        $project = Project::where('po_number', '42024474')->first();
+        expect($project->description)->toContain('"phase_status":"PELARASAN"');
+        expect($project->description)->toContain('"phase_status_remarks":"LAN"');
+        expect($project->description)->toContain('"pelarasan":45703.88'); // amount still captured
 
         unlink($path);
     });

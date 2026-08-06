@@ -165,6 +165,20 @@ class TnbPurchaseOrderSeeder extends Seeder
         });
     }
 
+    private function backfillPhaseStatusExtras(Project $project, callable $get): void
+    {
+        $phaseStatus = $get('phase_status');
+        $remarks = $get('phase_status_remarks');
+        if ($phaseStatus === '' && $remarks === '') {
+            return;
+        }
+
+        $extra = json_decode((string) $project->description, true) ?: [];
+        $extra['phase_status'] = $phaseStatus;
+        $extra['phase_status_remarks'] = $remarks;
+        $project->update(['description' => json_encode($extra, JSON_UNESCAPED_UNICODE)]);
+    }
+
     /**
      * Subcon invoice = AP bill (industry practice). Creates the subcontractor
      * master (code EB), the project-subcontractor link, the bill from the subcon
@@ -402,6 +416,7 @@ class TnbPurchaseOrderSeeder extends Seeder
                 $project->update(['start_date' => $rowStart]);
             }
             $this->applyStandardPhaseCompletion($project, $this->parseFlexibleDate($get('date_se')));
+            $this->backfillPhaseStatusExtras($project, $get);
 
             return $project;
         }
@@ -415,6 +430,8 @@ class TnbPurchaseOrderSeeder extends Seeder
 
         $extra = [
             'tnb_station' => $station,
+            'phase_status' => $get('phase_status'),
+            'phase_status_remarks' => $get('phase_status_remarks'),
             'po_confirmation' => $get('po_confirmation'),
             'po_amount' => $this->toFloat($get('po_amount')),
             'pelarasan' => $this->toFloat($get('pelarasan')),
