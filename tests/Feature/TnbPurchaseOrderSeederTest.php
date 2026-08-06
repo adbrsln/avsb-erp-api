@@ -219,6 +219,25 @@ describe('TnbPurchaseOrderSeeder', function () {
         unlink($path);
     });
 
+    it('creates a separate legacy invoice when INV_AVSB is owned by another project', function () {
+        $path = tempnam(sys_get_temp_dir(), 'tnb_');
+        writeTnbCsv($path, [
+            array_replace(tnbRow(), [11 => '', 22 => 'AV/RC/2609']),
+            array_replace(tnbRow(), [1 => '42028079', 11 => '', 22 => 'AV/RC/2609']),
+        ]);
+
+        (new TnbPurchaseOrderSeeder($path))->run();
+
+        expect(Invoice::count())->toBe(2);
+        expect(Invoice::where('invoice_number', 'AV/RC/2609')->count())->toBe(1);
+        $second = Project::where('po_number', '42028079')->first();
+        $secondInvoice = Invoice::where('project_id', $second->id)->first();
+        expect($secondInvoice)->not->toBeNull();
+        expect($secondInvoice->invoice_number)->toStartWith('INV-');
+
+        unlink($path);
+    });
+
     it('is idempotent on re-run — no duplicate project, invoice, phase, or payment', function () {
         $path = tempnam(sys_get_temp_dir(), 'tnb_');
         writeTnbCsv($path, [tnbRow()]);

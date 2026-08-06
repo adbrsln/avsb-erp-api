@@ -135,13 +135,21 @@ class TnbPurchaseOrderSeeder extends Seeder
             $invoiceNumber = $get('invoice');
             $existingInvoiceNumber = $get('inv_avsb');
 
-            if ($existingInvoiceNumber !== '' && Invoice::withTrashed()->where('invoice_number', $existingInvoiceNumber)->exists()) {
+            if ($existingInvoiceNumber !== '') {
                 $invoice = Invoice::withTrashed()->where('invoice_number', $existingInvoiceNumber)->first();
-                $this->pairExistingInvoice($invoice, $project, $amountPaid, $paidDate, $poNumber);
+                if ($invoice && ($invoice->project_id === null || $invoice->project_id === $project->id)) {
+                    $this->pairExistingInvoice($invoice, $project, $amountPaid, $paidDate, $poNumber);
+                } elseif ($invoice) {
+                    // INV_AVSB names an invoice already owned by another project (shared number).
+                    // Create this row's own legacy invoice with an auto-generated number.
+                    $this->createLegacyInvoice($client, $project, $get, '');
+                } else {
+                    // INV_AVSB invoice does not exist yet — create it as a legacy invoice
+                    // using the INV_AVSB value as the invoice number.
+                    $this->createLegacyInvoice($client, $project, $get, $existingInvoiceNumber);
+                }
             } else {
-                // INV_AVSB value used as the invoice number; when it names an invoice
-                // that does not exist yet, create it as a legacy invoice (same as INVOICE column).
-                $this->createLegacyInvoice($client, $project, $get, $existingInvoiceNumber !== '' ? $existingInvoiceNumber : $invoiceNumber);
+                $this->createLegacyInvoice($client, $project, $get, $invoiceNumber);
             }
         });
     }
@@ -181,14 +189,14 @@ class TnbPurchaseOrderSeeder extends Seeder
         };
     }
 
-    private function createProjectGroup(string $projectGroup): string
+    private function createProjectGroup(string $projectGroup): ProjectGroup|int|null
     {
         $projectGroup = trim($projectGroup);
         if ($projectGroup === '') {
             return $projectGroup;
         }
 
-        ProjectGroup::firstOrCreate(
+        $pg = ProjectGroup::firstOrCreate(
             ['name' => $projectGroup],
             [
                 'description' => 'TNB Station - '.$projectGroup,
@@ -196,12 +204,16 @@ class TnbPurchaseOrderSeeder extends Seeder
             ]
         );
 
-        return $projectGroup;
+        return $pg;
     }
 
     private function randomColor(): string
     {
-        return sprintf('#%06X', random_int(0, 0xFFFFFF));
+        $r = random_int(0, 0x80);
+        $g = random_int(0, 0x80);
+        $b = random_int(0, 0x80);
+
+        return sprintf('#%02X%02X%02X', $r, $g, $b);
     }
 
     private function resolveOrCreateProject(Client $client, callable $get, string $poNumber): Project
@@ -219,7 +231,7 @@ class TnbPurchaseOrderSeeder extends Seeder
         }
 
         $extra = [
-            'tnb_station' => $this->createProjectGroup($station),
+            'tnb_station' => $station,
             'po_confirmation' => $get('po_confirmation'),
             'po_amount' => $this->toFloat($get('po_amount')),
             'pelarasan' => $this->toFloat($get('pelarasan')),
@@ -247,6 +259,8 @@ class TnbPurchaseOrderSeeder extends Seeder
             'start_date' => $this->parseDmyDate($get('date')),
             'description' => json_encode(array_filter($extra, fn ($v) => $v !== '' && $v !== null), JSON_UNESCAPED_UNICODE),
         ]);
+
+        $project->groups()->sync($station !== '' ? $this->createProjectGroup($station) : []);
 
         $this->createStandardPhases($project);
 
