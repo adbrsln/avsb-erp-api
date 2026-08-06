@@ -417,6 +417,7 @@ class TnbPurchaseOrderSeeder extends Seeder
             }
             $this->applyStandardPhaseCompletion($project, $this->parseFlexibleDate($get('date_se')));
             $this->backfillPhaseStatusExtras($project, $get);
+            $this->applyPhaseStatus($project, $get);
 
             return $project;
         }
@@ -464,8 +465,51 @@ class TnbPurchaseOrderSeeder extends Seeder
 
         $this->createStandardPhases($project);
         $this->applyStandardPhaseCompletion($project, $this->parseFlexibleDate($get('date_se')));
+        $this->applyPhaseStatus($project, $get);
 
         return $project;
+    }
+
+    /**
+     * PHASE_STATUS names the project's current phase: it is marked in_progress
+     * and all phases before it are completed.
+     */
+    private function applyPhaseStatus(Project $project, callable $get): void
+    {
+        $status = $get('phase_status');
+        if ($status === '') {
+            return;
+        }
+
+        $phases = $project->phases()->orderBy('order')->get();
+        $target = $phases->firstWhere(function ($phase) use ($status) {
+            $name = strtoupper((string) $phase->name);
+            $value = strtoupper($status);
+
+            return $name === $value || str_contains($name, $value);
+        });
+        if (! $target) {
+            return;
+        }
+
+        $remarks = $get('phase_status_remarks');
+        foreach ($phases as $phase) {
+            if ($phase->id === $target->id) {
+                $update = [
+                    'status' => 'in_progress',
+                    'started_at' => ($phase->start_date?->format('Y-m-d') ?? date('Y-m-d')).' 08:00:00',
+                ];
+                if ($remarks !== '') {
+                    $update['description'] = $remarks;
+                }
+                $phase->update($update);
+            } elseif ($phase->order < $target->order && $phase->status !== 'completed') {
+                $phase->update([
+                    'status' => 'completed',
+                    'completed_at' => ($phase->end_date?->format('Y-m-d') ?? date('Y-m-d')).' 17:00:00',
+                ]);
+            }
+        }
     }
 
     /**

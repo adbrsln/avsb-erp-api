@@ -396,6 +396,29 @@ describe('TnbPurchaseOrderSeeder', function () {
         unlink($path);
     });
 
+    it('marks PHASE_STATUS as current phase in_progress with prior phases completed', function () {
+        $path = tempnam(sys_get_temp_dir(), 'tnb_');
+        writeTnbCsvV2($path, [array_replace(tnbRowV2(), [8 => 'JMS', 9 => 'Pending PO amount adjustment'])]);
+
+        (new TnbPurchaseOrderSeeder($path))->run();
+
+        $project = Project::where('po_number', '42024474')->first();
+        $phases = $project->phases()->orderBy('order')->get();
+        $jms = $phases->firstWhere('name', 'Joint Measurement Sheet (JMS)');
+        expect($jms->status)->toBe('in_progress');
+        expect($jms->started_at)->not->toBeNull();
+        expect($jms->description)->toBe('Pending PO amount adjustment');
+        foreach ($phases->where('order', '<', $jms->order) as $phase) {
+            expect($phase->status)->toBe('completed');
+            expect($phase->completed_at)->not->toBeNull();
+        }
+        foreach ($phases->where('order', '>', $jms->order) as $phase) {
+            expect($phase->status)->toBe('pending');
+        }
+
+        unlink($path);
+    });
+
     it('backfills start_date on an existing project that is missing it', function () {
         $client = Client::where('client_code', 'TNB')->first();
         $existing = Project::create([
