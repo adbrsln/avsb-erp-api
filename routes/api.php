@@ -89,7 +89,7 @@ Route::prefix('v1')->group(function () {
         Route::get('auth/me', [AuthController::class, 'me']);
         Route::post('auth/verify', [AuthController::class, 'verify']);
         Route::post('auth/logout', [AuthController::class, 'logout']);
-        Route::put('auth/change-password', [AuthController::class, 'changePassword']);
+        Route::match(['put', 'post'], 'auth/change-password', [AuthController::class, 'changePassword']);
         Route::post('auth/verify-password', [AuthController::class, 'verifyPassword']);
 
         // ── Staff ──

@@ -101,4 +101,16 @@ describe('Auth', function () {
             ->assertStatus(422);
     });
 
+    it('change-password accepts POST (frontend uses POST)', function () {
+        $user = User::where('email', 'superadmin@azamventures.com')->first();
+        $token = $user->createToken('test')->plainTextToken;
+
+        $this->postJson('/api/v1/auth/change-password', [
+            'current_password' => 'secret',
+            'new_password' => 'NewPass123',
+            'new_password_confirm' => 'NewPass123',
+        ], ['Authorization' => 'Bearer '.$token])
+            ->assertStatus(200);
+    });
+
 });
