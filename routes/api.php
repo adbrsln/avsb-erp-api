@@ -257,6 +257,7 @@ Route::prefix('v1')->group(function () {
         Route::get('projects/{projectId}/subcontractors/{id}', [ProjectSubcontractorController::class, 'show']);
         Route::delete('project-subcontractors/{id}', [ProjectSubcontractorController::class, 'destroy']);
         Route::get('project-subcontractors/{id}/claims', [SubcontractorClaimController::class, 'index']);
+        Route::post('project-subcontractors/{id}/claims', [SubcontractorClaimController::class, 'store']);
 
         // ── Quotations ──
         Route::get('quotations', [QuoteController::class, 'index']);
