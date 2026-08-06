@@ -270,15 +270,15 @@ describe('Legacy invoice integration guards', function () {
         expect(count($inv->items))->toBe(1);
     });
 
-    it('generateForProject applies maincon deduction line', function () {
+    it('generateForProject applies maincon deduction as a single net item', function () {
         postJson('/api/v1/projects/'.$this->project->id.'/generate-invoice', ['invoice_amount' => 10000, 'maincon_pct' => 15], $this->headers)
             ->assertStatus(201);
 
         $inv = Invoice::where('project_id', $this->project->id)->latest('id')->first();
         expect((float) $inv->total)->toBe(8500.0);
-        expect(count($inv->items))->toBe(2);
-        expect((float) $inv->items[1]['total'])->toBe(-1500.0);
-        expect($inv->items[1]['description'])->toContain('Maincon deduction');
+        expect(count($inv->items))->toBe(1);
+        expect((float) $inv->items[0]['total'])->toBe(8500.0);
+        expect($inv->items[0]['description'])->toContain('Project Completion');
     });
 
     it('generateForProject rejects maincon_pct outside 0-100', function () {

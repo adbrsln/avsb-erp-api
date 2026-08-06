@@ -799,23 +799,14 @@ class InvoiceController extends Controller
         }
 
         // No margin markup — only the maincon fee deduction is allowed.
+        // The invoice shows a single net item at the final deducted amount.
         $invoiceAmount = (float) ($body['invoice_amount'] ?? $project->budget_amount ?? 0);
-        $mainconName = $this->projectMainconName($project);
         $deduction = round($invoiceAmount * ($mainconPct / 100), 2);
         $total = round($invoiceAmount - $deduction, 2);
 
         $clientName = $project->client ?? ($project->clientRelation->company_name ?? '');
 
-        $items = [['description' => 'Project Completion - '.$project->name, 'unit' => 'Lot', 'quantity' => 1, 'unit_rate' => $invoiceAmount, 'total' => $invoiceAmount]];
-        if ($deduction > 0) {
-            $items[] = [
-                'description' => 'Maincon deduction - '.($mainconName !== '' ? $mainconName : $project->name),
-                'unit' => 'Lot',
-                'quantity' => 1,
-                'unit_rate' => -$deduction,
-                'total' => -$deduction,
-            ];
-        }
+        $items = [['description' => 'Project Completion - '.$project->name, 'unit' => 'Lot', 'quantity' => 1, 'unit_rate' => $total, 'total' => $total]];
 
         $invoice = Invoice::create([
             'invoice_number' => (new NumberingService)->generate('invoice'),
@@ -835,13 +826,6 @@ class InvoiceController extends Controller
         $invoice->load('project');
 
         return response()->json($invoice, 201);
-    }
-
-    private function projectMainconName(Project $project): string
-    {
-        $extra = json_decode((string) $project->description, true);
-
-        return is_array($extra) ? trim((string) ($extra['maincon'] ?? '')) : '';
     }
 
     private function calculateProjectCosts(Project $project): array
