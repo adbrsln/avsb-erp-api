@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\Bill;
+use App\Models\BillPayment;
 use App\Models\ChartOfAccount;
 use App\Models\Client;
 use App\Models\ClientPIC;
@@ -9,6 +11,9 @@ use App\Models\JournalEntry;
 use App\Models\Phase;
 use App\Models\Project;
 use App\Models\ProjectGroup;
+use App\Models\ProjectSubcontractor;
+use App\Models\Subcontractor;
+use App\Models\Vendor;
 use Database\Seeders\TnbPurchaseOrderSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
@@ -20,6 +25,7 @@ beforeEach(function () {
     ChartOfAccount::firstOrCreate(['code' => '1102'], ['code' => '1102', 'name' => 'Bank', 'type' => 'asset']);
     ChartOfAccount::firstOrCreate(['code' => '1104'], ['code' => '1104', 'name' => 'Accounts Receivable', 'type' => 'asset']);
     ChartOfAccount::firstOrCreate(['code' => '4101'], ['code' => '4101', 'name' => 'Revenue', 'type' => 'revenue']);
+    ChartOfAccount::firstOrCreate(['code' => '5101'], ['code' => '5101', 'name' => 'Subcontracting Costs', 'type' => 'expense']);
 
     Client::firstOrCreate(
         ['client_code' => 'TNB'],
@@ -273,6 +279,45 @@ describe('TnbPurchaseOrderSeeder', function () {
         expect($paymentJe)->not->toBeNull();
         expect((float) $paymentJe->lines()->where('debit', '>', 0)->first()->debit)->toBe(91407.76);
         expect((float) $paymentJe->lines()->where('credit', '>', 0)->first()->credit)->toBe(91407.76);
+
+        unlink($path);
+    });
+
+    it('creates subcon bill + payment JE when SUBCON present', function () {
+        $path = tempnam(sys_get_temp_dir(), 'tnb_');
+        writeTnbCsv($path, [array_replace(tnbRow(), [16 => 'Elektron Berkat', 17 => '25%', 20 => '19727.07', 23 => 'EB1523/2026'])]);
+
+        (new TnbPurchaseOrderSeeder($path))->run();
+
+        $sub = Subcontractor::where('subcontractor_code', 'EB')->first();
+        expect($sub)->not->toBeNull();
+        expect($sub->company_name)->toBe('Elektron Berkat');
+        expect(Vendor::where('vendor_code', 'EB')->first())->not->toBeNull();
+
+        $bill = Bill::where('bill_number', 'EB1523/2026')->first();
+        expect($bill)->not->toBeNull();
+        expect((float) $bill->total)->toBe(19727.07);
+        expect($bill->status)->toBe('paid');
+
+        $pay = BillPayment::where('bill_id', $bill->id)->first();
+        expect((float) $pay->amount)->toBe(19727.07);
+        expect(JournalEntry::where('reference_type', 'bill')->where('reference_id', $bill->id)->exists())->toBeTrue();
+        expect(JournalEntry::where('reference_type', 'bill_payment')->where('reference_id', $bill->id)->exists())->toBeTrue();
+        expect(ProjectSubcontractor::where('project_id', Project::where('po_number', '42024474')->first()->id)->exists())->toBeTrue();
+
+        unlink($path);
+    });
+
+    it('does not duplicate subcon bill on re-run', function () {
+        $path = tempnam(sys_get_temp_dir(), 'tnb_');
+        $row = [array_replace(tnbRow(), [16 => 'Elektron Berkat', 17 => '25%', 20 => '19727.07', 23 => 'EB1523/2026'])];
+        writeTnbCsv($path, $row);
+
+        (new TnbPurchaseOrderSeeder($path))->run();
+        (new TnbPurchaseOrderSeeder($path))->run();
+
+        expect(Bill::where('bill_number', 'EB1523/2026')->count())->toBe(1);
+        expect(BillPayment::count())->toBe(1);
 
         unlink($path);
     });

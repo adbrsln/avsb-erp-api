@@ -2,6 +2,10 @@
 
 namespace Database\Seeders;
 
+use App\Models\Bill;
+use App\Models\BillItem;
+use App\Models\BillPayment;
+use App\Models\ChartOfAccount;
 use App\Models\Client;
 use App\Models\ClientPIC;
 use App\Models\Invoice;
@@ -11,6 +15,9 @@ use App\Models\JournalEntryLine;
 use App\Models\Phase;
 use App\Models\Project;
 use App\Models\ProjectGroup;
+use App\Models\ProjectSubcontractor;
+use App\Models\Subcontractor;
+use App\Models\Vendor;
 use App\Services\LegacyInvoiceImporter;
 use App\Services\NumberingService;
 use Database\Seeders\Concerns\CreatesStandardPhases;
@@ -132,6 +139,7 @@ class TnbPurchaseOrderSeeder extends Seeder
 
             $project = $this->resolveOrCreateProject($client, $get, $poNumber);
             $this->createConfirmationPhase($project, $get);
+            $this->createSubcontractorBilling($project, $get, $poNumber);
 
             $amountPaid = $this->toFloat($get('total_paid'));
             $paidDate = $this->parseFlexibleDate($get('date_paid'));
@@ -154,6 +162,132 @@ class TnbPurchaseOrderSeeder extends Seeder
                 $this->createLegacyInvoice($client, $project, $get, $invoiceNumber, $poNumber);
             }
         });
+    }
+
+    /**
+     * Subcon invoice = AP bill (industry practice). Creates the subcontractor
+     * master (code EB), the project-subcontractor link, the bill from the subcon
+     * (bill_number = INV_SUBCON value), the bill receive JE and the payment JE.
+     * Subcon fee = DEDUCTION, else SUBCON_FEE percent of the invoice amount,
+     * else numeric SUBCON_FEE.
+     */
+    private function createSubcontractorBilling(Project $project, callable $get, string $poNumber): void
+    {
+        $subconName = $get('subcon');
+        if ($subconName === '') {
+            return;
+        }
+
+        $fee = $this->subconFeeAmount($get);
+        $invSubcon = $get('inv_subcon');
+        if ($fee <= 0 || $invSubcon === '') {
+            return; // nothing to bill without a fee or subcon invoice number
+        }
+
+        $subcon = Subcontractor::firstOrCreate(
+            ['subcontractor_code' => 'EB'],
+            ['company_name' => $subconName, 'status' => 'active']
+        );
+        $vendor = Vendor::firstOrCreate(
+            ['vendor_code' => 'EB'],
+            ['company_name' => $subconName, 'status' => 'active']
+        );
+        ProjectSubcontractor::firstOrCreate(
+            ['project_id' => $project->id, 'subcontractor_id' => $subcon->id],
+            [
+                'scope_of_work' => 'TNB subcon - PO '.$poNumber,
+                'contract_value' => $fee,
+                'status' => 'active',
+            ]
+        );
+
+        if (Bill::where('bill_number', $invSubcon)->exists()) {
+            return; // idempotent — bill already imported
+        }
+
+        $billDate = $this->parseFlexibleDate($get('inv_date')) ?? $this->parseFlexibleDate($get('date_paid')) ?? date('Y-m-d');
+        $bill = Bill::create([
+            'bill_number' => $invSubcon,
+            'vendor_id' => $vendor->id,
+            'vendor_bill_no' => $invSubcon,
+            'bill_date' => $billDate,
+            'due_date' => date('Y-m-d', strtotime($billDate.' +30 days')),
+            'status' => 'unpaid',
+            'subtotal' => $fee,
+            'tax' => 0,
+            'total' => $fee,
+            'paid_amount' => 0,
+            'balance' => $fee,
+        ]);
+        $expenseAccount = ChartOfAccount::where('code', '5101')->first();
+        BillItem::create([
+            'bill_id' => $bill->id,
+            'description' => 'PO '.$poNumber.' — '.$subconName,
+            'unit' => 'Lot',
+            'quantity' => 1,
+            'unit_price' => $fee,
+            'total' => $fee,
+            'account_id' => $expenseAccount?->id,
+        ]);
+
+        $apAccount = ChartOfAccount::where('code', '2101')->first();
+        if ($apAccount && $expenseAccount) {
+            $je = JournalEntry::create([
+                'entry_number' => (new NumberingService)->generate('journal'),
+                'entry_date' => $billDate,
+                'description' => 'Bill received - '.$invSubcon,
+                'reference_type' => 'bill',
+                'reference_id' => $bill->id,
+                'status' => 'posted',
+                'posted_at' => date('Y-m-d H:i:s'),
+            ]);
+            JournalEntryLine::create(['journal_entry_id' => $je->id, 'account_id' => $expenseAccount->id, 'debit' => $fee, 'description' => 'PO '.$poNumber.' — '.$subconName]);
+            JournalEntryLine::create(['journal_entry_id' => $je->id, 'account_id' => $apAccount->id, 'credit' => $fee, 'description' => $invSubcon]);
+        }
+
+        $bankAccount = ChartOfAccount::where('code', '1102')->first();
+        if ($apAccount && $bankAccount) {
+            $paidDate = $this->parseFlexibleDate($get('date_paid')) ?? $billDate;
+            BillPayment::create([
+                'bill_id' => $bill->id,
+                'amount' => $fee,
+                'payment_date' => $paidDate,
+                'debit_account_id' => $apAccount->id,
+                'credit_account_id' => $bankAccount->id,
+                'payment_reference' => $invSubcon,
+            ]);
+            $je = JournalEntry::create([
+                'entry_number' => (new NumberingService)->generate('journal'),
+                'entry_date' => $paidDate,
+                'description' => 'Bill payment - '.$invSubcon,
+                'reference_type' => 'bill_payment',
+                'reference_id' => $bill->id,
+                'status' => 'posted',
+                'posted_at' => date('Y-m-d H:i:s'),
+            ]);
+            JournalEntryLine::create(['journal_entry_id' => $je->id, 'account_id' => $apAccount->id, 'debit' => $fee, 'description' => $invSubcon]);
+            JournalEntryLine::create(['journal_entry_id' => $je->id, 'account_id' => $bankAccount->id, 'credit' => $fee, 'description' => $invSubcon]);
+
+            $bill->update(['paid_amount' => $fee, 'balance' => 0, 'status' => 'paid']);
+        }
+    }
+
+    /** Subcon fee: DEDUCTION if present, else SUBCON_FEE percent of invoice amount, else numeric fee. */
+    private function subconFeeAmount(callable $get): float
+    {
+        $deduction = $this->toFloat($get('deduction'));
+        if ($deduction > 0) {
+            return $deduction;
+        }
+
+        $feeStr = $get('subcon_fee');
+        if (str_ends_with($feeStr, '%')) {
+            $pct = (float) rtrim($feeStr, '%') / 100;
+
+            return round($this->invoiceAmount($get) * $pct, 2);
+        }
+
+        return $this->toFloat($feeStr);
     }
 
     private function createLegacyInvoice(Client $client, Project $project, callable $get, string $invoiceNumber, string $poNumber): void
