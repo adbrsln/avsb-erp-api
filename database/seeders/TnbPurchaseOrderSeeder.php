@@ -241,6 +241,7 @@ class TnbPurchaseOrderSeeder extends Seeder
             if (! $project->start_date && $rowStart) {
                 $project->update(['start_date' => $rowStart]);
             }
+            $this->applyStandardPhaseCompletion($project, $this->parseFlexibleDate($get('date_se')));
 
             return $project;
         }
@@ -285,8 +286,34 @@ class TnbPurchaseOrderSeeder extends Seeder
         $project->groups()->sync($station !== '' ? $this->createProjectGroup($station) : []);
 
         $this->createStandardPhases($project);
+        $this->applyStandardPhaseCompletion($project, $this->parseFlexibleDate($get('date_se')));
 
         return $project;
+    }
+
+    /**
+     * When DATE_SE is present: mark the SE phase completed at that date and
+     * complete all standard phases that precede it.
+     */
+    private function applyStandardPhaseCompletion(Project $project, ?string $dateSe): void
+    {
+        if ($dateSe === null) {
+            return;
+        }
+
+        $phases = $project->phases()->orderBy('order')->get();
+        $se = $phases->firstWhere(fn ($phase) => strtoupper((string) $phase->name) === 'SE');
+
+        foreach ($phases as $phase) {
+            if ($se && $phase->id === $se->id) {
+                $phase->update(['status' => 'completed', 'completed_at' => $dateSe.' 17:00:00']);
+            } elseif ($se && $phase->order < $se->order) {
+                $phase->update([
+                    'status' => 'completed',
+                    'completed_at' => ($phase->end_date?->format('Y-m-d') ?? $dateSe).' 17:00:00',
+                ]);
+            }
+        }
     }
 
     private function createConfirmationPhase(Project $project, callable $get): void

@@ -136,6 +136,27 @@ describe('TnbPurchaseOrderSeeder', function () {
         unlink($path);
     });
 
+    it('marks SE phase completed with DATE_SE and completes all prior standard phases', function () {
+        $path = tempnam(sys_get_temp_dir(), 'tnb_');
+        writeTnbCsv($path, [array_replace(tnbRow(), [10 => '15/04/2025'])]);
+
+        (new TnbPurchaseOrderSeeder($path))->run();
+
+        $project = Project::where('po_number', '42024474')->first();
+        $phases = $project->phases()->orderBy('order')->get();
+        // SE phase completed at date_se
+        $se = $phases->firstWhere('name', 'SE');
+        expect($se->status)->toBe('completed');
+        expect($se->completed_at->format('Y-m-d'))->toBe('2025-04-15');
+        // All phases before SE completed too
+        foreach ($phases->where('order', '<', $se->order) as $phase) {
+            expect($phase->status)->toBe('completed');
+            expect($phase->completed_at)->not->toBeNull();
+        }
+
+        unlink($path);
+    });
+
     it('creates a completed phase from PO_CONFIRMATION when DATE_SE is present', function () {
         $path = tempnam(sys_get_temp_dir(), 'tnb_');
         writeTnbCsv($path, [array_replace(tnbRow(), [10 => '15/04/2025'])]);
