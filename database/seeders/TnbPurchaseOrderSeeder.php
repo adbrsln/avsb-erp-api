@@ -137,12 +137,10 @@ class TnbPurchaseOrderSeeder extends Seeder
 
             if ($existingInvoiceNumber !== '') {
                 $invoice = Invoice::withTrashed()->where('invoice_number', $existingInvoiceNumber)->first();
-                if ($invoice && ($invoice->project_id === null || $invoice->project_id === $project->id)) {
+                if ($invoice) {
+                    // Pair to the same document — shared INV_AVSB numbers reuse one invoice
+                    // across projects. No duplicate invoice is created.
                     $this->pairExistingInvoice($invoice, $project, $amountPaid, $paidDate, $poNumber);
-                } elseif ($invoice) {
-                    // INV_AVSB names an invoice already owned by another project (shared number).
-                    // Create this row's own legacy invoice with an auto-generated number.
-                    $this->createLegacyInvoice($client, $project, $get, '');
                 } else {
                     // INV_AVSB invoice does not exist yet — create it as a legacy invoice
                     // using the INV_AVSB value as the invoice number.

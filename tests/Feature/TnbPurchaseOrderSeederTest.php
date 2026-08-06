@@ -219,7 +219,7 @@ describe('TnbPurchaseOrderSeeder', function () {
         unlink($path);
     });
 
-    it('creates a separate legacy invoice when INV_AVSB is owned by another project', function () {
+    it('shares the same invoice when INV_AVSB is owned by another project', function () {
         $path = tempnam(sys_get_temp_dir(), 'tnb_');
         writeTnbCsv($path, [
             array_replace(tnbRow(), [11 => '', 22 => 'AV/RC/2609']),
@@ -228,12 +228,12 @@ describe('TnbPurchaseOrderSeeder', function () {
 
         (new TnbPurchaseOrderSeeder($path))->run();
 
-        expect(Invoice::count())->toBe(2);
+        // One shared document — no duplicate invoice created
+        expect(Invoice::count())->toBe(1);
         expect(Invoice::where('invoice_number', 'AV/RC/2609')->count())->toBe(1);
+        // Second project has no separate invoice row — covered by the shared document
         $second = Project::where('po_number', '42028079')->first();
-        $secondInvoice = Invoice::where('project_id', $second->id)->first();
-        expect($secondInvoice)->not->toBeNull();
-        expect($secondInvoice->invoice_number)->toStartWith('INV-');
+        expect(Invoice::where('project_id', $second->id)->count())->toBe(0);
 
         unlink($path);
     });
