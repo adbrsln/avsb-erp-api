@@ -9,11 +9,15 @@ use App\Models\Phase;
 use App\Models\Project;
 use App\Services\LegacyInvoiceImporter;
 use App\Services\NumberingService;
+use Database\Seeders\Concerns\CreatesStandardPhases;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
-class TnbPurchaseOrderSeeder
+class TnbPurchaseOrderSeeder extends Seeder
 {
+    use CreatesStandardPhases;
+
     private const DEFAULT_CSV = __DIR__.'/../../database/data/tnb-purchase-orders.csv';
 
     private LegacyInvoiceImporter $importer;
@@ -196,7 +200,7 @@ class TnbPurchaseOrderSeeder
             'inv_date' => $get('inv_date'),
         ];
 
-        return Project::create([
+        $project = Project::create([
             'name' => $station !== '' ? 'TNB '.$station : 'TNB PO '.$poNumber,
             'project_code' => (new NumberingService)->generateProject($client->client_code),
             'client' => $client->company_name,
@@ -209,6 +213,10 @@ class TnbPurchaseOrderSeeder
             'start_date' => $this->parseDmyDate($get('date')),
             'description' => json_encode(array_filter($extra, fn ($v) => $v !== '' && $v !== null), JSON_UNESCAPED_UNICODE),
         ]);
+
+        $this->createStandardPhases($project);
+
+        return $project;
     }
 
     private function createConfirmationPhase(Project $project, callable $get): void

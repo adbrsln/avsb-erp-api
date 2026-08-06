@@ -70,6 +70,7 @@ describe('TnbPurchaseOrderSeeder', function () {
         expect($project->budget_amount)->toBe(28514.38);
         expect($project->description)->toContain('"subcon_fee":0');
         expect($project->description)->toContain('"po_confirmation":"4001821575"');
+        expect($project->phases()->count())->toBe(10); // 9 standard + 1 PO confirmation
 
         $invoice = Invoice::where('invoice_number', '5001357595')->first();
         expect($invoice)->not->toBeNull();
@@ -208,6 +209,7 @@ describe('TnbPurchaseOrderSeeder', function () {
         expect(Project::where('po_number', '42024474')->count())->toBe(1);
         expect(Invoice::where('invoice_number', '5001357595')->count())->toBe(1);
         expect(Phase::where('name', '4001821575')->count())->toBe(1);
+        expect(Project::where('po_number', '42024474')->first()->phases()->count())->toBe(10);
         expect(InvoicePayment::count())->toBe(1);
 
         unlink($path);
