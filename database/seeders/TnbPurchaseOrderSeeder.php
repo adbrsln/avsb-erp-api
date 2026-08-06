@@ -204,11 +204,33 @@ class TnbPurchaseOrderSeeder extends Seeder
         // Past project: the subcon claim is already completed and paid
         $projectSub->update(['status' => 'completed']);
 
+        $billDate = $this->parseFlexibleDate($get('inv_date')) ?? $this->parseFlexibleDate($get('date_paid')) ?? date('Y-m-d');
+        $paidAt = $this->parseFlexibleDate($get('date_paid')) ?? $billDate;
+        $claimDate = $this->parseFlexibleDate($get('inv_date')) ?? $billDate;
+        if (! SubcontractorClaim::where('claim_number', $invSubcon)->exists()) {
+            SubcontractorClaim::create([
+                'project_subcontractor_id' => $projectSub->id,
+                'claim_number' => $invSubcon,
+                'claim_date' => $claimDate,
+                'work_done_pct' => 100,
+                'cumulative_pct' => 100,
+                'claimed_amount' => $fee,
+                'retention_deducted' => 0,
+                'net_payable' => $fee,
+                'previous_paid' => 0,
+                'current_due' => 0,
+                'status' => 'paid',
+                'submitted_at' => $paidAt.' 08:00:00',
+                'verified_at' => $paidAt.' 12:00:00',
+                'approved_at' => $paidAt.' 16:00:00',
+                'paid_at' => $paidAt.' 17:00:00',
+                'payment_reference' => $invSubcon,
+                'notes' => 'PO '.$poNumber.' — imported from TNB tracker (completed & paid)',
+            ]);
+        }
         if (Bill::where('bill_number', $invSubcon)->exists()) {
             return; // idempotent — bill already imported
         }
-
-        $billDate = $this->parseFlexibleDate($get('inv_date')) ?? $this->parseFlexibleDate($get('date_paid')) ?? date('Y-m-d');
         $bill = Bill::create([
             'bill_number' => $invSubcon,
             'vendor_id' => $vendor->id,
@@ -274,29 +296,6 @@ class TnbPurchaseOrderSeeder extends Seeder
             $bill->update(['paid_amount' => $fee, 'balance' => 0, 'status' => 'paid']);
         }
 
-        $paidAt = $this->parseFlexibleDate($get('date_paid')) ?? $billDate;
-        $claimDate = $this->parseFlexibleDate($get('inv_date')) ?? $billDate;
-        if (! SubcontractorClaim::where('claim_number', $invSubcon)->exists()) {
-            SubcontractorClaim::create([
-                'project_subcontractor_id' => $projectSub->id,
-                'claim_number' => $invSubcon,
-                'claim_date' => $claimDate,
-                'work_done_pct' => 100,
-                'cumulative_pct' => 100,
-                'claimed_amount' => $fee,
-                'retention_deducted' => 0,
-                'net_payable' => $fee,
-                'previous_paid' => 0,
-                'current_due' => 0,
-                'status' => 'paid',
-                'submitted_at' => $paidAt.' 08:00:00',
-                'verified_at' => $paidAt.' 12:00:00',
-                'approved_at' => $paidAt.' 16:00:00',
-                'paid_at' => $paidAt.' 17:00:00',
-                'payment_reference' => $invSubcon,
-                'notes' => 'PO '.$poNumber.' — imported from TNB tracker (completed & paid)',
-            ]);
-        }
     }
 
     /** Subcon fee: DEDUCTION if present, else SUBCON_FEE percent of invoice amount, else numeric fee. */
@@ -326,7 +325,7 @@ class TnbPurchaseOrderSeeder extends Seeder
                 return;
             }
         } elseif (Invoice::withTrashed()->where('invoice_number', $invoiceNumber)->exists()) {
-            throw new RuntimeException('Invoice number "'.$invoiceNumber.'" already exists');
+            return; // idempotent — invoice already imported; keep other row records (billing, claim, phases)
         }
         $amount = $this->invoiceAmount($get);
         $invoice = $this->importer->import([
@@ -484,7 +483,8 @@ class TnbPurchaseOrderSeeder extends Seeder
             return;
         }
 
-        if (Phase::where('project_id', $project->id)->where('name', $name)->exists()) {
+        // Guard on the phase name we actually create ('PO Confirmation'), not the CSV value
+        if (Phase::where('project_id', $project->id)->where('name', 'PO Confirmation')->exists()) {
             return; // idempotent
         }
 
