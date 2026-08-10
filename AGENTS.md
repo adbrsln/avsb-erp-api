@@ -446,3 +446,19 @@ Full migration from Slim 4 (avsb-erp/api/) to Laravel 13 (avsb-erp-api/).
 
 ### Verification
 - Latest: 284 tests / 275 pass / 9 skip / 0 fail; pint clean. Commits this session: c889044 → eb7a1b7 (13 commits) + frontend 52bd1fd + 10377c8 + 3b702a7.
+
+## Session Memory — Aug 10, 2026 — Optional Statutory Deductions (EPF/SOCSO/EIS)
+
+### Per-staff opt-out, default ON
+- **Migration** `2026_08_10_000000_add_socso_contributing_to_staff_profiles.php` — `staff_profiles.socso_contributing` bool default **true** + active-staff NULL backfill (mirror 041200 pattern)
+- **Migration** `2026_08_10_000100_set_eis_contributing_default.php` — `eis_contributing` default **true** + NULL backfill (column existed nullable, was dead code)
+- **StaffProfile** — `socso_contributing` added to fillable + boolean cast
+- **`PayrollProcessor::process()`** — **REMOVED `where('epf_contributing', true)` filter** (non-contributors were excluded from the run entirely → no pay item → no payslip). All active staff now get pay items. Per-staff gates: `epf_contributing ? EPFCalculator : new EPFResult(determined schedule, 0, 0)`; socso/eis use zero-result equivalents; SKBBK now gated on `socso_contributing && socso_24h_enabled`
+- **epf_schedule_code FK gotcha** — column is NOT NULL FK → `epf_schedules.code`; storing 'NONE' violates. Opt-out keeps `(new ScheduleDeterminer)->determine($employee)` code (A/C/D/FLAT) with **zero amounts** — schedule shown but amounts 0
+- **`PayrollController::recalculateStatutory()`** — same gates on earnings adjustment. Gotcha: citizenship for `calculateRaw` derived from `nationality` (str_contains 'Malaysian' → citizen), NOT the `citizenship` field — staff with non-Malaysian nationality hit FLAT
+- **Factory/`ImportStaff`/`MalaysianDataGenerator`** — `socso_contributing` true (ImportStaff: derived from `socso_no` presence, mirrors epf pattern); factory `eis_contributing` fixed true (was random 80%)
+- **Frontend** — SOCSO Contributing checkbox in `StaffFormDialog` (default ON) + `StaffDetailPanel` row + `types.ts`. EPF/EIS toggles pre-existed (unchanged)
+- **Tests** — `PayrollProcessorTest` (11): per-flag opt-outs, all-three-off, SKBBK gate, recalc respects flags, full process→confirm→mark-paid→payslip download
+- **Test gotchas**: EPF FLAT seeded **2%/2%** by migration 014000 (NOT 12%) — use non-citizen + non-PR + not-elected staff for deterministic FLAT; add Socso/EisContributionTier covering salary range in beforeEach; **Sanctum guard caches authenticated user across requests within ONE test** (first token wins) → split owner-scoped download test into its own test; downloadPayslip is owner-scoped (403 if requester's staff id ≠ item.employee_id)
+- **Broken 2-arg convenience routes (pre-existing, dead)**: `/payroll/items/{id}/confirm`, `/payroll/items/{id}/mark-paid` → controller methods need 3 args; `/payroll/items/{itemId}/recalculate` → method `recalculateItem` doesn't exist. FE uses 3-arg routes (`/payroll/periods/{id}/items/{itemId}/...`) — unaffected. Fix on request
+- **Verification**: 302 tests / 293 pass / 9 skip / 0 fail; pint clean; FE `tsc --noEmit` clean. Commits: b96ac4d (API), 90b0800 (FE)
