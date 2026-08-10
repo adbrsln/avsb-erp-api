@@ -128,6 +128,7 @@ class ImportStaff extends Command
                 'epf_voluntary_employer_rate' => null,
                 'pcb_borne_by_employer' => false,
                 'socso_contribution_type' => 'full',
+                'socso_contributing' => ! empty(trim($data['socso_no'] ?? '')),
                 'eis_contributing' => true,
                 'reported_to_lhdn' => true,
                 'payroll_policy' => 'standard',

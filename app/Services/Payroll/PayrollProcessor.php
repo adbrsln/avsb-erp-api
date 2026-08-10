@@ -33,7 +33,6 @@ class PayrollProcessor
         }
 
         $query = StaffProfile::where('is_active', true)
-            ->where('epf_contributing', true)
             ->whereDoesntHave('user.roles', fn ($q) => $q->where('role', 'super_admin'));
         if ($employeeIds !== null) {
             $query->whereIn('id', $employeeIds);
@@ -69,11 +68,17 @@ class PayrollProcessor
 
             $salary = (float) ($employee->basic_salary ?? 0);
 
-            $epf = $this->epfCalculator->calculate($employee);
-            $socso = $this->socsoCalculator->calculate($salary);
-            $eis = $this->eisCalculator->calculate($salary);
+            $epf = $employee->epf_contributing
+                ? $this->epfCalculator->calculate($employee)
+                : new EPFResult((new ScheduleDeterminer)->determine($employee), $salary, 0.0, 0.0);
+            $socso = $employee->socso_contributing
+                ? $this->socsoCalculator->calculate($salary)
+                : new SocsoResult($salary, 0.0, 0.0);
+            $eis = $employee->eis_contributing
+                ? $this->eisCalculator->calculate($salary)
+                : new EisResult($salary, 0.0, 0.0);
             $socso24Amount = 0;
-            if ($employee->socso_24h_enabled) {
+            if ($employee->socso_contributing && $employee->socso_24h_enabled) {
                 $category = $employee->socso_category ?? 'first';
                 $socso24Amount = $this->socso24Calculator->calculate($salary, $category)['amount'];
             }

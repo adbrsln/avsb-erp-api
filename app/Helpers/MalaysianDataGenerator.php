@@ -212,6 +212,7 @@ class MalaysianDataGenerator
                 'epf_member_before_aug_1998' => false,
                 'pcb_borne_by_employer' => false,
                 'socso_contribution_type' => 'full',
+                'socso_contributing' => true,
                 'eis_contributing' => true,
                 'reported_to_lhdn' => true,
                 'payroll_policy' => 'standard',

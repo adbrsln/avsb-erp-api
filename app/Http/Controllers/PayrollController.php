@@ -11,10 +11,14 @@ use App\Services\FileStorageService;
 use App\Services\Notification\NotificationEvent;
 use App\Services\Notification\NotificationService;
 use App\Services\Payroll\EisCalculator;
+use App\Services\Payroll\EisResult;
 use App\Services\Payroll\EPFCalculator;
+use App\Services\Payroll\EPFResult;
 use App\Services\Payroll\PayrollProcessor;
+use App\Services\Payroll\ScheduleDeterminer;
 use App\Services\Payroll\Socso24Calculator;
 use App\Services\Payroll\SocsoCalculator;
+use App\Services\Payroll\SocsoResult;
 use App\Services\PayslipGenerator;
 use App\Traits\PaginatedResponse;
 use Carbon\Carbon;
@@ -414,16 +418,24 @@ class PayrollController extends Controller
 
         $adjustedSalary = $item->salary + $earningsTotal;
 
-        $epf = (new EPFCalculator)->calculateRaw(
-            $adjustedSalary,
-            str_contains((string) $employee->nationality, 'Malaysian') ? 'citizen' : 'non_citizen',
-            (bool) $employee->has_pr,
-            (bool) $employee->epf_member_before_aug_1998,
-            (string) $employee->date_of_birth,
-        );
-        $socso = (new SocsoCalculator)->calculate($adjustedSalary);
-        $eis = (new EisCalculator)->calculate($adjustedSalary);
-        $socso24 = (new Socso24Calculator)->calculate($adjustedSalary);
+        $epf = $employee->epf_contributing
+            ? (new EPFCalculator)->calculateRaw(
+                $adjustedSalary,
+                str_contains((string) $employee->nationality, 'Malaysian') ? 'citizen' : 'non_citizen',
+                (bool) $employee->has_pr,
+                (bool) $employee->epf_member_before_aug_1998,
+                (string) $employee->date_of_birth,
+            )
+            : new EPFResult((new ScheduleDeterminer)->determine($employee), $adjustedSalary, 0.0, 0.0);
+        $socso = $employee->socso_contributing
+            ? (new SocsoCalculator)->calculate($adjustedSalary)
+            : new SocsoResult($adjustedSalary, 0.0, 0.0);
+        $eis = $employee->eis_contributing
+            ? (new EisCalculator)->calculate($adjustedSalary)
+            : new EisResult($adjustedSalary, 0.0, 0.0);
+        $socso24 = $employee->socso_contributing
+            ? (new Socso24Calculator)->calculate($adjustedSalary)
+            : ['amount' => 0];
 
         $item->update([
             'epf_schedule_code' => $epf->scheduleCode,
