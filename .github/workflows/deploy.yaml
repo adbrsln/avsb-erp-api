@@ -30,8 +30,28 @@ jobs:
           key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
           restore-keys: ${{ runner.os }}-composer-
 
+      - name: Cache vendor
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: ${{ runner.os }}-vendor-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-vendor-
+
       - name: Install dependencies
-        run: composer install --no-interaction --prefer-dist
+        env:
+          COMPOSER_MAX_PARALLEL_HTTP: "4"
+        run: |
+          set +e
+          code=1
+          for attempt in 1 2 3 4; do
+            composer install --no-interaction
+            code=$?
+            if [ $code -eq 0 ]; then break; fi
+            echo "composer install attempt ${attempt} failed (exit ${code}); retrying in 15s"
+            sleep 15
+          done
+          set -e
+          exit $code
 
       - name: Create .env for CI
         run: |
