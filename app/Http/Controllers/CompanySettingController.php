@@ -54,6 +54,12 @@ class CompanySettingController extends Controller
                 'geofence_enforced' => array_key_exists('geofence_enforced', $body)
                     ? (bool) $body['geofence_enforced']
                     : $settings->geofence_enforced,
+                'auto_clock_out_enabled' => array_key_exists('auto_clock_out_enabled', $body)
+                    ? (bool) $body['auto_clock_out_enabled']
+                    : $settings->auto_clock_out_enabled,
+                'auto_clock_out_grace_minutes' => array_key_exists('auto_clock_out_grace_minutes', $body)
+                    ? (int) $body['auto_clock_out_grace_minutes']
+                    : $settings->auto_clock_out_grace_minutes,
             ]));
         }
 

@@ -23,6 +23,7 @@ class Attendance extends Model
         'geofence_id', 'clock_out_geofence_id',
         'flagged', 'flagged_reason', 'flagged_cleared_by', 'flagged_cleared_at',
         'schedule_flagged', 'schedule_flag_reason',
+        'auto_closed', 'auto_close_reason', 'auto_closed_at',
     ];
 
     protected $casts = [
@@ -32,6 +33,8 @@ class Attendance extends Model
         'total_hours' => 'float',
         'flagged' => 'boolean',
         'schedule_flagged' => 'boolean',
+        'auto_closed' => 'boolean',
+        'auto_closed_at' => 'datetime',
         'flagged_cleared_at' => 'datetime',
     ];
 

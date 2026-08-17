@@ -20,9 +20,12 @@ class CompanySetting extends Model
         'socso_24h_phase', 'logo_path',
         'work_start_time', 'work_end_time',
         'geofence_enforced',
+        'auto_clock_out_enabled', 'auto_clock_out_grace_minutes',
     ];
 
     protected $casts = [
         'geofence_enforced' => 'boolean',
+        'auto_clock_out_enabled' => 'boolean',
+        'auto_clock_out_grace_minutes' => 'integer',
     ];
 }
