@@ -462,3 +462,39 @@ Full migration from Slim 4 (avsb-erp/api/) to Laravel 13 (avsb-erp-api/).
 - **Test gotchas**: EPF FLAT seeded **2%/2%** by migration 014000 (NOT 12%) — use non-citizen + non-PR + not-elected staff for deterministic FLAT; add Socso/EisContributionTier covering salary range in beforeEach; **Sanctum guard caches authenticated user across requests within ONE test** (first token wins) → split owner-scoped download test into its own test; downloadPayslip is owner-scoped (403 if requester's staff id ≠ item.employee_id)
 - **Broken 2-arg convenience routes (pre-existing, dead)**: `/payroll/items/{id}/confirm`, `/payroll/items/{id}/mark-paid` → controller methods need 3 args; `/payroll/items/{itemId}/recalculate` → method `recalculateItem` doesn't exist. FE uses 3-arg routes (`/payroll/periods/{id}/items/{itemId}/...`) — unaffected. Fix on request
 - **Verification**: 302 tests / 293 pass / 9 skip / 0 fail; pint clean; FE `tsc --noEmit` clean. Commits: b96ac4d (API), 90b0800 (FE)
+
+## Session Memory — Aug 17, 2026 — Attendance Auto Clock-Out
+
+### Feature
+- **Purpose**: auto-close open attendance sessions when staff forget to clock out, at each staff's scheduled `work_end_time` + configurable grace. Flagged (`auto_closed`) for HR review, never silent.
+- **Command** `attendance:auto-clock-out` (`app/Console/Commands/AutoClockOut.php`) — options `--dry-run` (preview, zero writes), `--grace=` (override). Self-gated: `CompanySetting::value('auto_clock_out_enabled')` false → info + SUCCESS. Scheduled in `routes/console.php`: **everyFiveMinutes()** (self-gating makes always-scheduled safe).
+- **Close time = `work_end + grace`, NEVER `now()`** — prevents OT cut (Employment Act 1955). OT/correctness handled via re-punch (multiple punches/day) or PM/HR adjust.
+- **Window resolution**: staff `work_end_time` override → `company_settings.work_end_time` default → none → **skip** (opt-in, mirrors `scheduleFlagReason()`).
+- **Skips**: `worker_status == 'part_time'` (matches scheduleFlagReason; per-project billing must not auto-close).
+- **Overnight shifts**: `resolveCloseAt()` — build `Carbon::createFromFormat('H:i', end, 'Asia/Kuala_Lumpur')` + grace → `->utc()`; if `<= clock_in` add a day (close next morning). Verified by test (22:00→06:00 shift, 9h).
+- **Race guard**: re-read `Attendance::whereKey(id)->whereNull('clock_out')->first()` before update — manual clock-out wins, sweep skips (no photo/coords overwrite).
+
+### Schema / models
+- Migrations: `2026_08_17_000000` → `attendance.auto_closed` (bool, default false, after `schedule_flag_reason`) + `auto_close_reason` (string nullable) + `auto_closed_at` (timestamp nullable). `2026_08_17_000100` → `company_settings.auto_clock_out_enabled` (bool default false) + `auto_clock_out_grace_minutes` (unsignedInt default 60).
+- `Attendance` + `CompanySetting`: fillable + casts (`auto_closed` bool, `auto_closed_at` datetime, `auto_clock_out_enabled` bool, `auto_clock_out_grace_minutes` integer).
+- `CompanySettingController::update()` — new keys in **BOTH** branches (`array_key_exists` in update branch; create branch defaults `?? false` / `?? 60`). Create-branch omission = settings silently dropped when no row exists (caught by PUT test).
+
+### Controller changes (`AttendanceController`)
+- **L1 stale-close upgrade** (`clockIn()`, previous-day open session): now sets `auto_closed=true`, `auto_close_reason='stale_session'`, `auto_closed_at` + queues `attendance.auto-closed` notification. Sweep normally preempts L1 (closes before next-day clock-in).
+- **clockOut guard**: `$record->auto_closed` → 422 `"Your session was auto-clocked out at {H:i MY}. Clock in again if you are still working."` (old generic "Already clocked out").
+
+### Notifications
+- `NotificationEvent::ATTENDANCE_AUTO_CLOSED = 'attendance.auto-closed'` + template in `NotificationTemplateSeeder` (context: `date`, `clock_in`, `clock_out` MY times, `hours`, `url`).
+- **Gotcha**: `NotificationTemplateSeeder` is a PLAIN class (no `extends Seeder`) — CANNOT run standalone via `php artisan db:seed --class=...` (`setContainer()` undefined). Seed via `php artisan tinker --execute '(new Database\Seeders\NotificationTemplateSeeder)->run();'` or full `db:seed`. `NotificationService::queue()` silently no-ops (returns null) without template row.
+- **TZ gotcha (pre-existing, NOT fixed)**: `config('app.timezone')` hardcoded `'UTC'` (`config/app.php:68`, no `env()`). Stored timestamps UTC. Command does window math in `Asia/Kuala_Lumpur`, converts to UTC. **`scheduleFlagReason()` compares UTC time-of-day vs MY-configured windows → off-by-8h inconsistency in prod; sweep uses correct MY math. Separate bugfix offered, out of scope.**
+
+### Frontend (avsb-erp)
+- `types.ts` — `AttendanceRecord` += `auto_closed`/`auto_close_reason`/`auto_closed_at`; `CompanySetting` += `auto_clock_out_enabled`/`auto_clock_out_grace_minutes`.
+- `Attendance.tsx` — "Auto" badge (`Badge variant="secondary"`, tooltip explains reason) on today completed rows + monthly expanded rows.
+- `Punch.tsx` — amber "Session auto-closed at {time}. Clock in again if still working." banner (after schedule-flag block); `isWorking` false → Clock In available (recovery path).
+- `CompanySettings.tsx` — "Auto clock-out at end of work hours" checkbox + Grace minutes input (shown when enabled; mirror geofence toggle markup).
+
+### Tests
+- `AutoClockOutTest.php` (12): disabled no-op, closes past end+grace (asserts exact `clock_out` UTC + `total_hours`), window intact, part-time skip, no-work-times skip, overnight (23:00 UTC close, 9h), dry-run no-writes, idempotent re-run, notification queued, 422 auto-closed message, stale-session L1 flags, settings PUT persist. Helpers: `autoCloseStaff()` (staff + work times), `enableAutoClose($grace)`, `openSession($staff, $clockInUtc)`; `beforeEach` creates `attendance.auto-closed` template defensively.
+- **Test timing**: work window math — 08:00 MY = 00:00 UTC, 17:00 MY = 09:00 UTC, +60m = 10:00 UTC. Set `Carbon::setTestNow` in UTC.
+- **Verification**: 314 tests / 304 pass / 9 skip / **1 pre-existing flake** — `LeaveCancelTest "withdraws an approved leave"` fails 422 "already started" (fixed leave dates from Aug 3 fix now past real date Aug 17; environmental date-drift, clean-tree + isolated fail proves NOT this feature). Pint clean; FE `tsc --noEmit` clean. API commits: 43e6f04, 8046277, a321689; FE commits: f21b2c5, 02299c6.
