@@ -222,7 +222,29 @@ class AttendanceController extends Controller
                 'clock_out' => $now,
                 'total_hours' => $hours,
                 'clock_out_ip' => $request->ip(),
+                'auto_closed' => true,
+                'auto_close_reason' => 'stale_session',
+                'auto_closed_at' => $now,
             ]);
+
+            try {
+                NotificationService::queue(
+                    NotificationEvent::ATTENDANCE_AUTO_CLOSED,
+                    $staffProfile->email,
+                    $staffProfile->name,
+                    [
+                        'date' => $activeSession->date->format('Y-m-d'),
+                        'clock_in' => $activeSession->clock_in->setTimezone('Asia/Kuala_Lumpur')->format('H:i'),
+                        'clock_out' => $now->setTimezone('Asia/Kuala_Lumpur')->format('H:i'),
+                        'hours' => number_format($hours, 2),
+                        'url' => '/attendance',
+                    ],
+                    'App\\Models\\Attendance',
+                    $activeSession->id
+                );
+            } catch (\Throwable $e) {
+                logger()->error('Notification failed: attendance.auto-closed (stale)', ['attendance_id' => $activeSession->id, 'error' => $e->getMessage()]);
+            }
         }
 
         $existing = Attendance::where('staff_id', $staffId)->where('date', $today)->latest()->first();
@@ -295,6 +317,12 @@ class AttendanceController extends Controller
         }
 
         if ($record->clock_out) {
+            if ($record->auto_closed) {
+                return response()->json([
+                    'error' => 'Your session was auto-clocked out at '.$record->clock_out->setTimezone('Asia/Kuala_Lumpur')->format('H:i').'. Clock in again if you are still working.',
+                ], 422);
+            }
+
             return response()->json(['error' => 'Already clocked out'], 422);
         }
 

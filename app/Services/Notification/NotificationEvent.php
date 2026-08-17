@@ -102,6 +102,8 @@ class NotificationEvent
 
     const ATTENDANCE_FLAGGED = 'attendance.flagged';
 
+    const ATTENDANCE_AUTO_CLOSED = 'attendance.auto-closed';
+
     const LICENSE_EXPIRING = 'license.expiring';
 
     const INVENTORY_LOW_STOCK = 'inventory.low-stock';

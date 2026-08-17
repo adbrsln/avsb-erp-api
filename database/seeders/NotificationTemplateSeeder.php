@@ -276,6 +276,12 @@ class NotificationTemplateSeeder
                 'subject_template' => 'Attendance Alert — {{staff_name}} ({{date}})',
                 'body_template' => '<p><strong>{{staff_name}}</strong> clocked in/out for <strong>{{date}}</strong> and the session exceeded 14 hours.</p><p><a href="{{url}}">Review in AVSB ERP</a></p>',
             ],
+            [
+                'event_type' => 'attendance.auto-closed',
+                'category' => 'status',
+                'subject_template' => 'Attendance auto-closed — {{date}}',
+                'body_template' => '<p>Your attendance for <strong>{{date}}</strong> was auto-closed at <strong>{{clock_out}}</strong> (clocked in {{clock_in}}, {{hours}} hours).</p><p>If this is incorrect, ask HR to adjust your record, or <a href="{{url}}">view your attendance</a>.</p>',
+            ],
 
             // ── Alerts ──
             [

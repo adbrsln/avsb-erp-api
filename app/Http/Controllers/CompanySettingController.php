@@ -39,6 +39,8 @@ class CompanySettingController extends Controller
                 'epf_no' => $body['epf_no'] ?? null,
                 'socso_no' => $body['socso_no'] ?? null,
                 'eis_no' => $body['eis_no'] ?? null,
+                'auto_clock_out_enabled' => $body['auto_clock_out_enabled'] ?? false,
+                'auto_clock_out_grace_minutes' => $body['auto_clock_out_grace_minutes'] ?? 60,
             ]));
         } else {
             $settings->update(fillableData($settings, [
