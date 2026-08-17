@@ -119,6 +119,15 @@ class AutoClockOut extends Command
 
     private function resolveCloseAt(Attendance $session, string $end, int $grace): ?Carbon
     {
+        // Normalize: MySQL `time` columns return "17:00:00", UI sends "17:00"
+        $end = trim($end);
+        if (strlen($end) > 5) {
+            $end = substr($end, 0, 5);
+        }
+        if (! preg_match('/^\d{1,2}:\d{2}$/', $end)) {
+            return null;
+        }
+
         $closeAt = Carbon::createFromFormat('H:i', $end, 'Asia/Kuala_Lumpur')
             ->addMinutes($grace)
             ->utc();

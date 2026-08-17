@@ -161,6 +161,21 @@ it('dry-run writes nothing', function () {
     expect($session->refresh()->clock_out)->toBeNull();
 });
 
+it('handles MySQL time column format (H:i:s)', function () {
+    $ctx = autoCloseStaff();
+    // MySQL `time` columns return "17:00:00", UI sends "17:00"
+    $ctx['staff']->update(['work_end_time' => '17:00:00']);
+    $session = openSession($ctx['staff'], '2026-08-17 00:00:00');
+    Carbon::setTestNow('2026-08-17 10:30:00');
+    enableAutoClose();
+
+    artisan('attendance:auto-clock-out')->assertSuccessful();
+
+    $session->refresh();
+    expect($session->clock_out->toDateTimeString())->toBe('2026-08-17 10:00:00');
+    expect($session->total_hours)->toBe(10.0);
+});
+
 it('is idempotent on re-run', function () {
     $ctx = autoCloseStaff();
     $session = openSession($ctx['staff'], '2026-08-17 00:00:00');
