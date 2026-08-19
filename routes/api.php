@@ -28,6 +28,7 @@ use App\Http\Controllers\GeocodeController;
 use App\Http\Controllers\GeofenceController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\KnowledgeArticleController;
 use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\LeaveGroupController;
 use App\Http\Controllers\NotificationController;
@@ -521,6 +522,15 @@ Route::prefix('v1')->group(function () {
         Route::get('audit-logs', [ActivityLogController::class, 'index']);
         Route::get('activity-logs/{id}', [ActivityLogController::class, 'show']);
         Route::get('audit-logs/{id}', [ActivityLogController::class, 'show']);
+
+        // ── Knowledge Base ──
+        Route::get('knowledge', [KnowledgeArticleController::class, 'index']);
+        Route::get('knowledge/meta', [KnowledgeArticleController::class, 'meta']);
+        Route::get('knowledge/slug/{slug}', [KnowledgeArticleController::class, 'showBySlug']);
+        Route::get('knowledge/{id}', [KnowledgeArticleController::class, 'show']);
+        Route::post('knowledge', [KnowledgeArticleController::class, 'store']);
+        Route::put('knowledge/{id}', [KnowledgeArticleController::class, 'update']);
+        Route::delete('knowledge/{id}', [KnowledgeArticleController::class, 'destroy']);
 
         // ── System ──
         Route::get('system/ping', function () {
