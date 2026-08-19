@@ -67,6 +67,7 @@ use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TimecardController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VendorController;
+use App\Http\Middleware\SetCauserMiddleware;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -83,7 +84,7 @@ Route::prefix('v1')->group(function () {
     Route::post('auth/verify-password', [AuthController::class, 'verifyPassword'])->middleware('throttle:5,60');
 
     // ── Authenticated Routes ──
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', SetCauserMiddleware::class])->group(function () {
 
         // ── Auth ──
         Route::get('auth/me', [AuthController::class, 'me']);

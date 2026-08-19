@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\ActivityLogContext;
+use App\Services\ActivityLogger;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -51,6 +53,21 @@ class AuthController extends Controller
         return ($result['success'] ?? false) === true;
     }
 
+    private function logAuthEvent(?User $user, string $event, string $description, array $extra = []): void
+    {
+        ActivityLogContext::setCauser($user);
+
+        ActivityLogger::on($user ?? new User)
+            ->withProperties([
+                'email' => $user?->email ?? ($extra['email'] ?? null),
+                'ip' => request()->ip(),
+                'user_agent' => substr(request()->userAgent() ?? '', 0, 255),
+                ...$extra,
+            ])
+            ->inLog('auth')
+            ->log($description, $event);
+    }
+
     public function login(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -72,6 +89,8 @@ class AuthController extends Controller
                 ? $user->locked_until
                 : Carbon::parse($user->locked_until);
             if ($lockedUntil->isFuture()) {
+                $this->logAuthEvent($user, 'login_blocked', "Login blocked for {$user->email} — account locked", ['reason' => 'locked']);
+
                 return response()->json(['error' => 'Account temporarily locked. Try again later.'], 423);
             }
         }
@@ -87,7 +106,12 @@ class AuthController extends Controller
                 $user->increment('login_attempts');
                 if ($user->login_attempts >= 5) {
                     $user->update(['locked_until' => Carbon::now()->addMinutes(15)]);
+                    $this->logAuthEvent($user, 'account_locked', "Account locked for {$user->email} after {$user->login_attempts} failed attempts", ['attempts' => $user->login_attempts]);
+                } else {
+                    $this->logAuthEvent($user, 'login_failed', "Failed login attempt for {$user->email}", ['attempts' => $user->login_attempts]);
                 }
+            } else {
+                $this->logAuthEvent(null, 'login_failed', "Failed login attempt for {$data['email']}", ['email' => $data['email']]);
             }
 
             return response()->json(['error' => 'Invalid credentials'], 401);
@@ -95,6 +119,8 @@ class AuthController extends Controller
 
         // Success — reset attempts
         $user->update(['login_attempts' => 0, 'locked_until' => null]);
+
+        $this->logAuthEvent($user, 'login', "User {$user->email} logged in");
 
         $roles = $user->getRoleNames();
         $token = $user->createToken('api')->plainTextToken;
