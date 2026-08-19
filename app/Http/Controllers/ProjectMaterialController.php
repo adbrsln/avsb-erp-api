@@ -11,6 +11,7 @@ use App\Traits\NotifiesProjectParticipants;
 use App\Traits\ProjectAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 
 class ProjectMaterialController extends Controller
@@ -126,15 +127,13 @@ class ProjectMaterialController extends Controller
         return response()->json($usage, 201);
     }
 
-    public function destroy(Request $request, int $projectId, int $usageId): JsonResponse
+    public function destroy(Request $request, int $id): Response|JsonResponse
     {
         if (! $this->isPmPlus($request)) {
             return response()->json(['error' => 'Forbidden'], 403);
         }
 
-        $usage = ProjectMaterialUsage::with('item')
-            ->where('project_id', $projectId)
-            ->findOrFail($usageId);
+        $usage = ProjectMaterialUsage::with('item')->findOrFail($id);
 
         $item = $usage->item;
         $qty = $usage->qty;

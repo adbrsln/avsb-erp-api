@@ -8,6 +8,7 @@ use App\Services\Notification\NotificationEvent;
 use App\Services\Notification\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 class ProjectStaffPicController extends Controller
 {
@@ -55,7 +56,7 @@ class ProjectStaffPicController extends Controller
         return response()->json($project->staffPics);
     }
 
-    public function destroy(Request $request, int $id, int $staffId): JsonResponse
+    public function destroy(Request $request, int $id, int $staffId): JsonResponse|Response
     {
         $project = Project::findOrFail($id);
         $project->staffPics()->detach($staffId);

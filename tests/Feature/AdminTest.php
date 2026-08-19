@@ -111,7 +111,7 @@ describe('Company Settings', function () {
             $this->markTestSkipped('No company settings in database');
         }
 
-        getJson('/api/v1/company-settings', $this->headers)
+        getJson('/api/v1/settings/company', $this->headers)
             ->assertStatus(200);
     });
 

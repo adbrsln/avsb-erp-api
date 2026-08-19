@@ -11,6 +11,7 @@ use App\Services\FileStorageService;
 use App\Traits\NotifiesProjectParticipants;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 class ProjectDocumentController extends Controller
 {
@@ -168,7 +169,7 @@ class ProjectDocumentController extends Controller
         return response()->json($doc, 201);
     }
 
-    public function show(Request $request, int $id): JsonResponse
+    public function show(Request $request, int $id): JsonResponse|Response
     {
         $doc = ProjectDocument::with('uploader', 'project')->findOrFail($id);
         $project = $doc->project;

@@ -286,11 +286,11 @@ Route::prefix('v1')->group(function () {
         Route::post('contracts/{id}/generate-invoice', [ContractController::class, 'generateInvoice']);
         Route::get('contracts/{id}/variations', [ContractVariationController::class, 'index']);
         Route::post('contracts/{contractId}/variations', [ContractVariationController::class, 'store']);
-        Route::get('contract-variations/{id}', [ContractVariationController::class, 'show']);
-        Route::put('contract-variations/{id}', [ContractVariationController::class, 'update']);
-        Route::delete('contract-variations/{id}', [ContractVariationController::class, 'destroy']);
-        Route::post('contract-variations/{id}/approve', [ContractVariationController::class, 'approve']);
-        Route::post('contract-variations/{id}/reject', [ContractVariationController::class, 'reject']);
+        Route::get('contracts/{id}/variations/{vid}', [ContractVariationController::class, 'show']);
+        Route::put('contracts/{id}/variations/{vid}', [ContractVariationController::class, 'update']);
+        Route::delete('contracts/{id}/variations/{vid}', [ContractVariationController::class, 'destroy']);
+        Route::post('contracts/{id}/variations/{vid}/approve', [ContractVariationController::class, 'approve']);
+        Route::post('contracts/{id}/variations/{vid}/reject', [ContractVariationController::class, 'reject']);
 
         // ── Invoices ──
         Route::get('invoices', [InvoiceController::class, 'index']);
@@ -561,7 +561,7 @@ Route::prefix('v1')->group(function () {
         // ── Project Staff PICs ──
         Route::get('projects/{projectId}/staff-pics', [ProjectStaffPicController::class, 'index']);
         Route::post('projects/{projectId}/staff-pics', [ProjectStaffPicController::class, 'store']);
-        Route::delete('project-staff-pics/{id}', [ProjectStaffPicController::class, 'destroy']);
+        Route::delete('project-staff-pics/{projectId}/{staffId}', [ProjectStaffPicController::class, 'destroy']);
 
         // ── Project Materials ──
         Route::get('projects/{projectId}/materials', [ProjectMaterialController::class, 'index']);
