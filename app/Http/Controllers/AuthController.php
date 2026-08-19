@@ -99,8 +99,12 @@ class AuthController extends Controller
 
         if (! $passwordValid) {
             $attempts = $user ? ($user->login_attempts ?? 0) : 0;
-            $delay = (int) min(500000 * pow(2, min($attempts, 3)), 4000000);
-            usleep($delay);
+
+            // Skip the anti-bruteforce delay in tests so the suite stays fast.
+            if (! app()->environment('testing')) {
+                $delay = (int) min(500000 * pow(2, min($attempts, 3)), 4000000);
+                usleep($delay);
+            }
 
             if ($user) {
                 $user->increment('login_attempts');

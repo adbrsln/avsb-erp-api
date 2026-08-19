@@ -60,7 +60,7 @@ jobs:
           # CI uses SQLite in-memory (phpunit.xml already sets this)
 
       - name: Run tests
-        run: php artisan test --compact
+        run: php artisan test --parallel --compact
 
   deploy:
     runs-on: ubuntu-latest

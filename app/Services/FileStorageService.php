@@ -93,7 +93,14 @@ class FileStorageService
         $storage = config('services.storage');
         $this->driver = $storage['driver'] ?? 'local';
         $this->bucket = $storage['bucket'] ?? 'avsb-uploads';
-        $this->localRoot = __DIR__.'/../../uploads';
+
+        // In tests, isolate uploads per-process so parallel workers never collide
+        // and test files stay out of the repo's uploads/ directory.
+        if (app()->environment('testing')) {
+            $this->localRoot = sys_get_temp_dir().'/avsb-test-uploads-'.getmypid();
+        } else {
+            $this->localRoot = __DIR__.'/../../uploads';
+        }
 
         if ($this->driver === 'r2') {
             $accountId = $storage['r2_account_id'] ?? '';
