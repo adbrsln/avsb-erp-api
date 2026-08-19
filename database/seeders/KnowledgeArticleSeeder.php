@@ -3,13 +3,13 @@
 namespace Database\Seeders;
 
 use App\Models\KnowledgeArticle;
+use Illuminate\Database\Seeder;
 
-class KnowledgeArticleSeeder
+class KnowledgeArticleSeeder extends Seeder
 {
     /**
      * Full user-manual content for AVSB-ERP. Idempotent — keyed on unique slug.
      * Run standalone: php artisan db:seed --class=KnowledgeArticleSeeder
-     * (plain class — use tinker: (new Database\Seeders\KnowledgeArticleSeeder)->run();)
      */
     public function run(): void
     {
@@ -1602,6 +1602,6 @@ HTML,
             );
         }
 
-        echo '  Seeded ' . count($articles) . " knowledge articles.\n";
+        echo '  Seeded '.count($articles)." knowledge articles.\n";
     }
 }
