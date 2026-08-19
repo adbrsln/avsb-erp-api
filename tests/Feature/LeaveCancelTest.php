@@ -43,6 +43,18 @@ function makeLeaveFor(StaffProfile $staff, string $status, string $startDate, st
     ]);
 }
 
+// Next upcoming Mon-Tue-Wed window that starts today or later (start_date >= today
+// passes the "already started" guard). Guarantees exactly 3 working days, any run date.
+function nextMonWedWindow(): array
+{
+    $start = Carbon::today();
+    while ($start->dayOfWeek !== Carbon::MONDAY) {
+        $start->addDay();
+    }
+
+    return [$start->toDateString(), $start->addDays(2)->toDateString()];
+}
+
 beforeEach(function () {
     $this->user = User::where('email', 'superadmin@azamventures.com')->first();
     $this->token = $this->user->createToken('test')->plainTextToken;
@@ -75,8 +87,9 @@ describe('Leave cancel', function () {
             'balance' => 11,
         ]);
 
-        // Mon 10 Aug 2026 - Wed 12 Aug 2026 = 3 working days (no holidays seeded)
-        $leave = makeLeaveFor($ctx['staff'], 'approved', '2026-08-10', '2026-08-12');
+        // Next upcoming Mon-Wed = 3 working days (weekends/holidays excluded)
+        [$startDate, $endDate] = nextMonWedWindow();
+        $leave = makeLeaveFor($ctx['staff'], 'approved', $startDate, $endDate);
 
         postJson('/api/v1/leaves/'.$leave->id.'/cancel', [], $ctx['headers'])
             ->assertStatus(200)
