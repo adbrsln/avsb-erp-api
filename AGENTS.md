@@ -499,3 +499,45 @@ Full migration from Slim 4 (avsb-erp/api/) to Laravel 13 (avsb-erp-api/).
 - `AutoClockOutTest.php` (12): disabled no-op, closes past end+grace (asserts exact `clock_out` UTC + `total_hours`), window intact, part-time skip, no-work-times skip, overnight (23:00 UTC close, 9h), dry-run no-writes, idempotent re-run, notification queued, 422 auto-closed message, stale-session L1 flags, settings PUT persist. Helpers: `autoCloseStaff()` (staff + work times), `enableAutoClose($grace)`, `openSession($staff, $clockInUtc)`; `beforeEach` creates `attendance.auto-closed` template defensively.
 - **Test timing**: work window math — 08:00 MY = 00:00 UTC, 17:00 MY = 09:00 UTC, +60m = 10:00 UTC. Set `Carbon::setTestNow` in UTC.
 - **Verification**: 314 tests / 304 pass / 9 skip / **1 pre-existing flake** — `LeaveCancelTest "withdraws an approved leave"` fails 422 "already started" (fixed leave dates from Aug 3 fix now past real date Aug 17; environmental date-drift, clean-tree + isolated fail proves NOT this feature). Pint clean; FE `tsc --noEmit` clean. API commits: 43e6f04, 8046277, a321689; FE commits: f21b2c5, 02299c6.
+
+## Session Memory — Aug 19, 2026 — Login Audit, KB (User Manual), Test Fix
+
+### Login audit
+- **Purpose**: record login outcomes to `activity_log` (success/failure/lockout/blocked) with IP + user-agent.
+- **`AuthController::login`** — `logAuthEvent(?User, event, desc, extra)` helper: `ActivityLogContext::setCauser($user)`, `ActivityLogger::on($user ?? new User)->withProperties([email, ip, user_agent, ...extra])->inLog('auth')->log(desc, event)`. Branches: `login` (success), `login_failed` (bad creds; causer=user if found else null), `account_locked` (≥5 attempts, props `attempts`), `login_blocked` (locked_until active, props `reason=locked`). **`on(null)` is a TypeError** — must pass `$user ?? new User` (subject nullable but not null).
+- **`SetCauserMiddleware`** (`app/Http/Middleware/`) — `ActivityLogContext::setCauser($request->user())`; registered in `routes/api.php` on the `auth:sanctum` group: `Route::middleware(['auth:sanctum', SetCauserMiddleware::class])`. **Pre-existing gap fixed**: `setCauser` was never called anywhere → all audit logs had `causer_id=null`. Now authenticated actions record causer.
+- **`User::$fillable` bug fixed** — was only `[name,email,password]` → `update(['locked_until'...])` silently dropped → **account lockout was dead code** (never actually locked). Added `login_attempts`, `locked_until` to fillable. In-scope (login_blocked path needs it).
+- **Frontend** — `AuditLogs.tsx`: `EVENT_COLORS` += login/login_failed/account_locked/login_blocked; `EVENT_CHIPS` += login filters.
+- **Tests** — `LoginAuditTest.php` (5): success login, known-user failure, unknown-email failure, 5-fail lockout + blocked, audit-logs endpoint filter. `getJson($uri, $headers)` is **2-arg** (3rd arg = json flags → breaks).
+- **Verification**: 311→ series; full suite green after fix.
+
+### LeaveCancelTest date drift — FIXED
+- **Flake root**: `withdraws an approved leave` hardcoded dates `2026-08-10`→`2026-08-12`; real date passed them → `LeaveController::cancel()` line 274 `start_date->lt(Carbon::today())` → 422.
+- **Fix**: `nextMonWedWindow()` helper — next upcoming Mon–Wed (start >= today), guarantees exactly 3 working days any run date. Replaced hardcoded dates. Full suite: 311 pass / 9 skip / 0 fail.
+
+### Knowledge Base (user manual) — new feature
+- **Schema** — migration `2026_08_19_000000_create_knowledge_articles_table.php`: `knowledge_articles` (title, unique slug, category[30], module[50] nullable, tags json, summary text, body longText, is_published bool default false, sort_order, created_by FK→users nullOnDelete; indexes category/module/is_published). No fulltext — portability `LIKE` search.
+- **Model** `KnowledgeArticle` — `Auditable`, casts (tags array, is_published bool), `CATEGORIES = [how-to, faq, statutory, reference]`, static `generateSlug(title)` (Str::slug, unique with `-N` suffix).
+- **Controller** `KnowledgeArticleController` — `use PaginatedResponse`. **Read all-auth; write super_admin only** (`$user->hasRole('super_admin')` → else 403). `index` (search title/summary/body, category, module, `?all=true`; **`include_unpublished=true` skips published filter** for admin), `meta` (categories + distinct modules), `show`, `showBySlug`, `store` (auto-slug if blank), `update` (regen slug only if title set & slug blank), `destroy`. Draft/publish via `is_published`.
+- **Routes** (`routes/api.php`) — order matters: `knowledge`, `knowledge/meta`, `knowledge/slug/{slug}`, `knowledge/{id}` (GET) + POST/PUT/DELETE, inside auth:sanctum group.
+- **Seeder** `KnowledgeArticleSeeder` — **80 curated articles** across all modules (getting-started, punch/attendance, leaves, claims/approvals, payroll, quotations/contracts, invoices, purchasing, payments/accounting, projects, clients/team, subcontractors/vendors/assets, config/settings, admin/system, board/timecards). Bodies Tiptap-compatible HTML (h3/h4/p/ul/ol/strong/em/blockquote only). `firstOrCreate` keyed on slug → idempotent.
+  - **CLI fix**: class was plain → `db:seed --class` failed (`setContainer()` undefined). Now **`extends Seeder`** → `php artisan db:seed --class=KnowledgeArticleSeeder --force` works. Standalone/opt-in (NOT in AvsbSeeder initial chain — curated content, authored by superadmin, like TnbPurchaseOrderSeeder).
+- **Tests** — `KnowledgeArticleTest.php` (14): read matrix all roles, draft hidden, include_unpublished, category/module/search filters, show + slug, meta, write 403 for staff/pm/hr/finance/**admin** (proves superadmin-only), superadmin create/update/delete, validation 422, audit log, seeder validity (all fields/categories/slug format), idempotency.
+- **Frontend (avsb-erp)**:
+  - `types.ts` — `KnowledgeArticle` interface.
+  - `main.tsx` — routes `/knowledge`, `/knowledge/:id`, `/knowledge/admin`.
+  - `RootLayout.tsx` — new **"Help & Docs"** nav group: Knowledge Base (BookMarked, all roles) + Manage Knowledge (BookOpenCheck, `superAdminOnly`).
+  - `auth.tsx` — `STAFF_PATHS` += `/knowledge`; **`super_admin` ROLE_PATHS is EXPLICIT (no STAFF_PATHS inheritance) → must add `/knowledge` there too** or superadmin (main test login) can't see it. Sidebar + ⌘K both filter via `canAccess`.
+  - `CommandPalette.tsx` — both KB entries (`superAdminOnly` on admin).
+  - `src/features/knowledge/` — `categories.ts` (category badge/color meta), `KnowledgeBase.tsx` (search + category chips + color-coded left-border cards + PaginationBar), `KnowledgeArticle.tsx` (standalone reader, RichTextViewer), `KnowledgeAdmin.tsx` (table CRUD + RichTextEditor dialog + draft/publish toggle).
+  - Reused existing `RichTextEditor`/`RichTextViewer` (Tiptap) — no new editor dep.
+- **Verification**: API 334 tests / 325 pass / 9 skip / 0 fail; pint clean; FE `tsc --noEmit` clean; browser-verified superadmin sidebar + ⌘K + /knowledge + /knowledge/admin.
+- **Commits**: API `9e6d287` (KB), `cf764d0` (seeder extends Seeder); FE `631ee68`. (login audit FE `e087078`, API `c4dfda5`, test fix `18f50d6` were prior sessions/requests.)
+- **Dev DB**: migration applied + 80 KB articles seeded. Seeder re-runs stay at 80 (idempotent).
+
+### Frontend design skill (used for KB UI)
+- Loaded `frontend-design` skill. KB stays **native to existing Tailwind design system** — no foreign palette. Signature = category color-coded left-border cards (how-to/faq/statutory/reference), quiet elsewhere. Reused Tiptap editor/viewer. Action-oriented copy, empty/error states handled.
+- `database-table-creator` / `api-endpoint-creator` skills are for a **different stack** (Kotlin/Micronaut/Exposed) — NOT applicable to this Laravel+React repo; follow repo AGENTS.md conventions instead.
+
+### Phase 2 (future, NOT built)
+- RAG "Ask the KB" chatbot over curated manual only. Needs embedding provider + vector store + `POST /knowledge/search`/`/chat`. KB schema already chatbot-ready (structured metadata + searchable body). No AI deps added.
