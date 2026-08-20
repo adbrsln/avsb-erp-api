@@ -42,6 +42,15 @@ class LeaveController extends Controller
     {
         $params = $request->query();
         $query = LeaveApplication::with('staff', 'approver');
+
+        $user = $request->user();
+        $userRoles = $user ? $user->getRoleNames() : [];
+        $isAdmin = (bool) array_intersect($userRoles, ['admin', 'hr', 'super_admin']);
+        if (! $isAdmin) {
+            $staff = $user->email ? StaffProfile::where('email', $user->email)->first() : null;
+            $query->where('staff_id', $staff?->id ?? 0);
+        }
+
         if (isset($params['staff_id'])) {
             $query->where('staff_id', $params['staff_id']);
         }
@@ -79,6 +88,17 @@ class LeaveController extends Controller
 
         if (! empty($errors)) {
             return response()->json(['errors' => $errors], 422);
+        }
+
+        $user = $request->user();
+        $userRoles = $user ? $user->getRoleNames() : [];
+        $isAdmin = (bool) array_intersect($userRoles, ['admin', 'hr', 'super_admin']);
+        if (! $isAdmin) {
+            $callerStaff = $user->email ? StaffProfile::where('email', $user->email)->first() : null;
+            if (! $callerStaff) {
+                return response()->json(['errors' => ['No staff profile linked to your account']], 403);
+            }
+            $data['staff_id'] = $callerStaff->id;
         }
 
         $staffId = (int) $data['staff_id'];
@@ -197,6 +217,16 @@ class LeaveController extends Controller
     public function show(Request $request, int $id): JsonResponse
     {
         $item = LeaveApplication::with('staff', 'approver')->findOrFail($id);
+
+        $user = $request->user();
+        $userRoles = $user ? $user->getRoleNames() : [];
+        $isAdmin = (bool) array_intersect($userRoles, ['admin', 'hr', 'super_admin']);
+        if (! $isAdmin) {
+            $staff = $user->email ? StaffProfile::where('email', $user->email)->first() : null;
+            if (! $staff || $item->staff_id !== $staff->id) {
+                return response()->json(['error' => 'Forbidden'], 403);
+            }
+        }
 
         return response()->json($item);
     }

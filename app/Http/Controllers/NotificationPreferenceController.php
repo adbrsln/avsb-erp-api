@@ -43,6 +43,13 @@ class NotificationPreferenceController extends Controller
             return response()->json(['error' => 'Not authenticated'], 401);
         }
 
+        $currentUser = $request->user();
+        $userRoles = $currentUser ? $currentUser->getRoleNames() : [];
+        $isAdmin = (bool) array_intersect($userRoles, ['admin', 'super_admin']);
+        if ($userId !== ($currentUser->id ?? null) && ! $isAdmin) {
+            return response()->json(['error' => 'Forbidden'], 403);
+        }
+
         $body = $request->all();
         $eventType = $body['event_type'] ?? '';
         $channel = $body['channel'] ?? '';

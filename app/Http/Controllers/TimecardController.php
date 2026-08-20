@@ -19,6 +19,12 @@ class TimecardController extends Controller
     {
         $params = $request->query();
         $query = Timecard::query();
+
+        if (! $this->isAdmin($request)) {
+            $staff = $this->resolveStaff($request);
+            $query->where('staff_id', $staff?->id ?? 0);
+        }
+
         if (isset($params['staff_id'])) {
             $query->where('staff_id', $params['staff_id']);
         }
@@ -41,6 +47,13 @@ class TimecardController extends Controller
         }
         if (! empty($errors)) {
             return response()->json(['errors' => $errors], 422);
+        }
+        if (! $this->isAdmin($request)) {
+            $callerStaff = $this->resolveStaff($request);
+            if (! $callerStaff) {
+                return response()->json(['errors' => ['No staff profile linked to your account']], 403);
+            }
+            $data['staff_id'] = $callerStaff->id;
         }
         $data['status'] = 'pending';
         $item = Timecard::create(fillableData(new Timecard, $data));
@@ -70,6 +83,10 @@ class TimecardController extends Controller
     public function show(Request $request, int $id): JsonResponse
     {
         $item = Timecard::findOrFail($id);
+        $staff = $this->resolveStaff($request);
+        if (! $this->isAdmin($request) && (! $staff || $item->staff_id !== $staff->id)) {
+            return response()->json(['error' => 'Forbidden'], 403);
+        }
 
         return response()->json($item);
     }
@@ -130,6 +147,9 @@ class TimecardController extends Controller
 
     public function reject(Request $request, int $id): JsonResponse
     {
+        if (! $this->isAdmin($request)) {
+            return response()->json(['error' => 'Forbidden'], 403);
+        }
         $item = Timecard::findOrFail($id);
         $item->update(['status' => 'rejected']);
 

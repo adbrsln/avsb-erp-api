@@ -123,25 +123,25 @@ class PaymentController extends Controller
 
         $summary = [];
 
-        if (! $typeFilter || $typeFilter === 'expense-claim') {
+        if ((! $typeFilter || $typeFilter === 'expense-claim') && array_intersect($userRoles, ['admin', 'hr', 'finance', 'super_admin'])) {
             $expCount = ExpenseClaim::where('status', 'approved')->whereNull('paid_at')->count();
             $expTotal = ExpenseClaim::where('status', 'approved')->whereNull('paid_at')->sum('total_amount');
             $summary['expense-claim'] = ['count' => $expCount, 'total' => round((float) $expTotal, 2)];
         }
 
-        if (! $typeFilter || $typeFilter === 'project-claim') {
+        if ((! $typeFilter || $typeFilter === 'project-claim') && array_intersect($userRoles, ['admin', 'finance', 'super_admin'])) {
             $projCount = ProjectClaim::where('status', 'approved')->whereNull('paid_at')->count();
             $projTotal = ProjectClaim::where('status', 'approved')->whereNull('paid_at')->sum('amount');
             $summary['project-claim'] = ['count' => $projCount, 'total' => round((float) $projTotal, 2)];
         }
 
-        if (! $typeFilter || $typeFilter === 'subcon-claim') {
+        if ((! $typeFilter || $typeFilter === 'subcon-claim') && array_intersect($userRoles, ['admin', 'pm', 'finance', 'super_admin'])) {
             $subCount = SubcontractorClaim::where('status', 'approved')->whereNull('paid_at')->count();
             $subTotal = SubcontractorClaim::where('status', 'approved')->whereNull('paid_at')->sum('net_payable');
             $summary['subcon-claim'] = ['count' => $subCount, 'total' => round((float) $subTotal, 2)];
         }
 
-        if (! $typeFilter || $typeFilter === 'payroll') {
+        if ((! $typeFilter || $typeFilter === 'payroll') && array_intersect($userRoles, ['admin', 'hr', 'super_admin'])) {
             $payCount = PayrollRunItem::where('confirmed', true)->where('paid', false)->count();
             $payTotal = PayrollRunItem::where('confirmed', true)->where('paid', false)->sum(DB::raw('salary + COALESCE(epf_employer,0) + COALESCE(socso_employer,0) + COALESCE(eis_employer,0)'));
             $summary['payroll'] = ['count' => $payCount, 'total' => round((float) $payTotal, 2)];

@@ -53,6 +53,8 @@ class StaffController extends Controller
             }
         }
 
+        $this->assertCanAssignRoles($request, $roles);
+
         $data['employee_id'] = (new NumberingService)->generate('employee');
         $item = StaffProfile::create(fillableData(new StaffProfile, $data));
 
@@ -94,8 +96,10 @@ class StaffController extends Controller
             }
             if (isset($data['roles'])) {
                 $roles = is_string($data['roles']) ? [$data['roles']] : $data['roles'];
+                $this->assertCanAssignRoles($request, $roles);
                 $user->syncRoles($roles);
             } elseif (isset($data['role'])) {
+                $this->assertCanAssignRoles($request, [$data['role']]);
                 $user->syncRoles([$data['role']]);
             }
         }
@@ -284,5 +288,16 @@ class StaffController extends Controller
         $staff->load('leaveGroup');
 
         return response()->json($staff);
+    }
+
+    private function assertCanAssignRoles(Request $request, array $roles): void
+    {
+        $user = $request->user();
+        if (in_array('super_admin', $roles, true)) {
+            $isSuperAdmin = $user && in_array('super_admin', $user->getRoleNames(), true);
+            if (! $isSuperAdmin) {
+                abort(403, 'Only super_admin can assign the super_admin role');
+            }
+        }
     }
 }

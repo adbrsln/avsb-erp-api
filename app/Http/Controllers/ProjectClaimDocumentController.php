@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Project;
 use App\Models\ProjectClaim;
 use App\Models\ProjectClaimDocument;
 use App\Models\StaffProfile;
@@ -63,6 +64,18 @@ class ProjectClaimDocumentController extends Controller
     public function download(Request $request, int $docId): JsonResponse
     {
         $doc = ProjectClaimDocument::with('claim.project')->findOrFail($docId);
+
+        $user = $request->user();
+        $userRoles = $user ? $user->getRoleNames() : [];
+        if (! array_intersect($userRoles, ['admin', 'finance', 'super_admin'])) {
+            $staff = $user && $user->email ? StaffProfile::where('email', $user->email)->first() : null;
+            $isMember = $staff && Project::whereKey($doc->claim->project_id)
+                ->whereHas('staffPics', fn ($q) => $q->where('staff_id', $staff->id))
+                ->exists();
+            if (! $isMember && (! $staff || $doc->uploaded_by !== $staff->id)) {
+                return response()->json(['error' => 'Forbidden'], 403);
+            }
+        }
 
         if (! $this->storage->exists($doc->file_path)) {
             return response()->json(['error' => 'File not found'], 404);

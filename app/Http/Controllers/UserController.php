@@ -52,6 +52,8 @@ class UserController extends Controller
             }
         }
 
+        $this->assertCanAssignRoles($request, $roles);
+
         $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
@@ -124,6 +126,8 @@ class UserController extends Controller
             }
         }
 
+        $this->assertCanAssignRoles($request, $roles);
+
         $user->syncRoles($roles);
         $user->load('roles');
 
@@ -140,5 +144,16 @@ class UserController extends Controller
             'message' => 'Password reset successful',
             'generated_password' => $password,
         ]);
+    }
+
+    private function assertCanAssignRoles(Request $request, array $roles): void
+    {
+        $user = $request->user();
+        if (in_array('super_admin', $roles, true)) {
+            $isSuperAdmin = $user && in_array('super_admin', $user->getRoleNames(), true);
+            if (! $isSuperAdmin) {
+                abort(403, 'Only super_admin can assign the super_admin role');
+            }
+        }
     }
 }

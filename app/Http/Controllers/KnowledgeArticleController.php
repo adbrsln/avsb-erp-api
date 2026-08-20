@@ -27,8 +27,8 @@ class KnowledgeArticleController extends Controller
         $params = $request->query();
         $query = KnowledgeArticle::query();
 
-        // Public browse: only published articles unless explicitly asked for all
-        if (! empty($params['include_unpublished']) && $params['include_unpublished'] === 'true') {
+        // Public browse: only published articles unless superadmin asks for all
+        if (! empty($params['include_unpublished']) && $params['include_unpublished'] === 'true' && $this->isSuperAdmin($request)) {
             // superadmin management view — no is_published filter applied
         } else {
             $query->where('is_published', true);
@@ -75,6 +75,9 @@ class KnowledgeArticleController extends Controller
     public function show(Request $request, int $id): JsonResponse
     {
         $article = KnowledgeArticle::findOrFail($id);
+        if (! $article->is_published && ! $this->isSuperAdmin($request)) {
+            return response()->json(['error' => 'Not found'], 404);
+        }
 
         return response()->json($article);
     }
@@ -82,6 +85,9 @@ class KnowledgeArticleController extends Controller
     public function showBySlug(Request $request, string $slug): JsonResponse
     {
         $article = KnowledgeArticle::where('slug', $slug)->firstOrFail();
+        if (! $article->is_published && ! $this->isSuperAdmin($request)) {
+            return response()->json(['error' => 'Not found'], 404);
+        }
 
         return response()->json($article);
     }

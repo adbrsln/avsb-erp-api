@@ -215,7 +215,7 @@ describe('Project Claims workflow', function () {
         ]);
 
         postJson('/api/v1/project-claims/'.$claim->id.'/mark-paid', [], $ctx['headers'])
-            ->assertStatus(200);
+            ->assertStatus(403);
     });
 
 });
