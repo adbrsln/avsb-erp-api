@@ -55,6 +55,9 @@ class PcbTaxSeeder extends Seeder
             'disabled_spouse' => ['Disabled spouse', 6000],
             'disabled_child' => ['Disabled child (additional)', 6000],
             'epf' => ['EPF employee contribution', 4000],
+            'rebate_individual' => ['Individual tax rebate', 400],
+            'rebate_spouse' => ['Spouse tax rebate (KA2)', 400],
+            'rebate_threshold' => ['Rebate chargeable-income threshold', 35000],
         ];
 
         foreach ($reliefs as $code => [$label, $cap]) {

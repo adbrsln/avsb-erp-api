@@ -64,7 +64,7 @@ class PcbCalculator
         // Flat-rate categories (non-resident 30%, REP/IRDA/C-suite 15%).
         if ($workerCategory !== 'pemastautin') {
             $rate = $this->flatRate($taxYear, $workerCategory);
-            $amount = $this->roundSen5($monthlyGross * $rate / 100);
+            $amount = $this->ceilSen5($monthlyGross * $rate / 100);
 
             return new PcbResult(
                 amount: $this->applyMinimumPcb($amount),
@@ -80,12 +80,15 @@ class PcbCalculator
 
         $reliefs = $this->schedule->reliefs($taxYear);
 
-        // EPF relief: capped at RM4,000/year, applied cumulatively.
-        $epfCap = (float) ($reliefs['epf'] ?? 4000.0);
-        $epfRelief = min($ytdEpf + $employeeEpf, $epfCap);
-        $effectiveEpf = max(0.0, $epfRelief - $ytdEpf);
+        $month = max(1, min(12, $month));
+        $remainingMonths = 13 - $month;
 
-        $monthlyChargeable = max(0.0, $monthlyGross - $effectiveEpf);
+        // Annualise gross directly; EPF relief is the ANNUAL cap (RM4,000),
+        // not the monthly contribution × 12 (verified against calcpcbplus:
+        // RM8,000 + EPF 880 → chargeable 83,000 = 96,000 − 4,000 − 9,000).
+        $annualGross = ($monthlyGross * 12) + $additionalRemuneration;
+        $epfCap = (float) ($reliefs['epf'] ?? 4000.0);
+        $annualEpf = min($ytdEpf + ($employeeEpf * $remainingMonths), $epfCap);
 
         $reliefTotal = $this->annualReliefs(
             $reliefs,
@@ -96,17 +99,16 @@ class PcbCalculator
             $abilityStatus
         );
 
-        $chargeableIncome = max(0.0, ($monthlyChargeable * 12) + $additionalRemuneration - $reliefTotal);
+        $chargeableIncome = max(0.0, $annualGross - $annualEpf - $reliefTotal);
 
         $annualTax = $this->taxOn($this->schedule->brackets($taxYear, 'pemastautin'), $chargeableIncome);
+        $annualTax = $this->applyRebate($annualTax, $chargeableIncome, $reliefs, $maritalStatus, $spouseWorking);
 
         $annualZakat = $zakat * 12;
         $annualPcb = max(0.0, $annualTax - $annualZakat);
 
-        $month = max(1, min(12, $month));
-        $remainingMonths = 13 - $month;
         $amount = max(0.0, ($annualPcb - $ytdPcb) / $remainingMonths);
-        $amount = $this->applyMinimumPcb($this->roundSen5($amount));
+        $amount = $this->applyMinimumPcb($this->ceilSen5($amount));
 
         return new PcbResult(
             amount: $amount,
@@ -120,14 +122,34 @@ class PcbCalculator
                 'worker_category' => $workerCategory,
                 'monthly_gross' => $monthlyGross,
                 'epf_employee' => $employeeEpf,
-                'epf_relief_applied' => $effectiveEpf,
-                'monthly_chargeable' => $monthlyChargeable,
+                'annual_epf_relief' => $annualEpf,
+                'annual_gross' => $annualGross,
                 'annual_chargeable' => $chargeableIncome,
                 'reliefs_total' => $reliefTotal,
                 'annual_zakat' => $annualZakat,
                 'remaining_months' => $remainingMonths,
             ],
         );
+    }
+
+    private function applyRebate(
+        float $annualTax,
+        float $chargeableIncome,
+        array $reliefs,
+        ?string $maritalStatus,
+        ?bool $spouseWorking,
+    ): float {
+        $rebate = 0.0;
+        $threshold = (float) ($reliefs['rebate_threshold'] ?? 35000.0);
+
+        if ($chargeableIncome <= $threshold) {
+            $rebate += (float) ($reliefs['rebate_individual'] ?? 400.0);
+            if ($maritalStatus === 'married' && $spouseWorking === false) {
+                $rebate += (float) ($reliefs['rebate_spouse'] ?? 400.0);
+            }
+        }
+
+        return max(0.0, $annualTax - $rebate);
     }
 
     private function flatRate(int $taxYear, string $workerCategory): float
@@ -196,9 +218,9 @@ class PcbCalculator
         return $tax;
     }
 
-    private function roundSen5(float $amount): float
+    private function ceilSen5(float $amount): float
     {
-        return round($amount * 20) / 20;
+        return ceil($amount * 20) / 20;
     }
 
     /**

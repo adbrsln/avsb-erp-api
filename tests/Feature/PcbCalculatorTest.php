@@ -29,7 +29,7 @@ it('returns zero PCB when annual chargeable income is within the 0% band', funct
     expect($pcb->amount)->toBe(0.0);
 });
 
-it('calculates PCB for a single resident (RM8,000, EPF 11%)', function () {
+it('calculates PCB for a single resident (RM8,000, EPF 11%) — live-verified 514.20', function () {
     $pcb = (new PcbCalculator)->calculateRaw(
         monthlyGross: 8000,
         employeeEpf: 880,
@@ -43,7 +43,8 @@ it('calculates PCB for a single resident (RM8,000, EPF 11%)', function () {
         month: 1,
     );
 
-    expect($pcb->amount)->toBe(410.30);
+    expect($pcb->amount)->toBe(514.20);
+    expect($pcb->chargeableIncome)->toBe(83000.0);
 });
 
 it('applies spouse + child relief for married KA2 with two children', function () {
@@ -60,7 +61,7 @@ it('applies spouse + child relief for married KA2 with two children', function (
         month: 1,
     );
 
-    expect($pcb->amount)->toBe(294.05);
+    expect($pcb->amount)->toBe(387.50);
 });
 
 it('gives no spouse relief when spouse is working (KA3)', function () {
@@ -77,7 +78,7 @@ it('gives no spouse relief when spouse is working (KA3)', function () {
         month: 1,
     );
 
-    expect($pcb->amount)->toBe(410.30);
+    expect($pcb->amount)->toBe(514.20);
 });
 
 it('applies flat 30% for non-resident', function () {
@@ -127,11 +128,11 @@ it('carries forward YTD PCB into the monthly deduction (month 2)', function () {
         abilityStatus: 'normal',
         month: 2,
         ytdGross: 8000,
-        ytdPcb: 410.30,
+        ytdPcb: 514.20,
         ytdEpf: 880,
     );
 
-    expect($pcb->amount)->toBe(410.30);
+    expect($pcb->amount)->toBe(514.20);
 });
 
 it('reduces PCB by monthly zakat (annualised)', function () {
@@ -149,7 +150,7 @@ it('reduces PCB by monthly zakat (annualised)', function () {
         zakat: 100,
     );
 
-    expect($pcb->amount)->toBe(310.30);
+    expect($pcb->amount)->toBe(414.20);
 });
 
 it('applies extra relief for a disabled individual (OKU self)', function () {
@@ -166,7 +167,25 @@ it('applies extra relief for a disabled individual (OKU self)', function () {
         month: 1,
     );
 
-    expect($pcb->amount)->toBe(315.30);
+    expect($pcb->amount)->toBe(419.20);
+});
+
+it('applies the RM400 individual rebate for chargeable income within threshold', function () {
+    $pcb = (new PcbCalculator)->calculateRaw(
+        monthlyGross: 3500,
+        employeeEpf: 0,
+        taxYear: 2026,
+        workerCategory: 'pemastautin',
+        maritalStatus: 'single',
+        spouseWorking: null,
+        spouseDisabled: false,
+        childrenTax: null,
+        abilityStatus: 'normal',
+        month: 1,
+    );
+
+    // P = 42,000 − 9,000 = 33,000 → tax 540 − rebate 400 = 140 → /12 = 11.67 → ceil 11.70
+    expect($pcb->amount)->toBe(11.70);
 });
 
 it('does not charge PCB when the monthly amount is below RM10 (LHDN rule)', function () {
