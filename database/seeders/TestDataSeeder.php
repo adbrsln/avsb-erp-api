@@ -102,11 +102,22 @@ class TestDataSeeder extends Seeder
         // ── Chart of Accounts ──
         if (ChartOfAccount::count() === 0) {
             ChartOfAccount::create(['code' => '1001', 'name' => 'Cash at Bank', 'type' => 'asset', 'category' => 'current_asset', 'is_active' => true]);
+            ChartOfAccount::create(['code' => '1102', 'name' => 'Maybank Current Account', 'type' => 'asset', 'category' => 'current_asset', 'is_active' => true]);
             ChartOfAccount::create(['code' => '1104', 'name' => 'Trade Receivables', 'type' => 'asset', 'category' => 'current_asset', 'is_active' => true]);
             ChartOfAccount::create(['code' => '2101', 'name' => 'Trade Payables', 'type' => 'liability', 'category' => 'current_liability', 'is_active' => true]);
+            ChartOfAccount::create(['code' => '2103', 'name' => 'EPF Payable', 'type' => 'liability', 'category' => 'current_liability', 'is_active' => true]);
+            ChartOfAccount::create(['code' => '2104', 'name' => 'SOCSO Payable', 'type' => 'liability', 'category' => 'current_liability', 'is_active' => true]);
+            ChartOfAccount::create(['code' => '2105', 'name' => 'EIS Payable', 'type' => 'liability', 'category' => 'current_liability', 'is_active' => true]);
+            ChartOfAccount::create(['code' => '2106', 'name' => 'PCB Payable', 'type' => 'liability', 'category' => 'current_liability', 'is_active' => true]);
             ChartOfAccount::create(['code' => '4101', 'name' => 'Revenue', 'type' => 'income', 'category' => 'operating_income', 'is_active' => true]);
             ChartOfAccount::create(['code' => '6101', 'name' => 'Salary Expense', 'type' => 'expense', 'category' => 'operating_expense', 'is_active' => true]);
+            ChartOfAccount::create(['code' => '6102', 'name' => 'EPF Employer', 'type' => 'expense', 'category' => 'operating_expense', 'is_active' => true]);
+            ChartOfAccount::create(['code' => '6103', 'name' => 'SOCSO Employer', 'type' => 'expense', 'category' => 'operating_expense', 'is_active' => true]);
+            ChartOfAccount::create(['code' => '6104', 'name' => 'EIS Employer', 'type' => 'expense', 'category' => 'operating_expense', 'is_active' => true]);
         }
+
+        // ── PCB tax schedule (brackets + reliefs) ──
+        (new PcbTaxSeeder)->run();
 
         // ── Projects + Phases + Tasks ──
         if (Project::count() === 0) {

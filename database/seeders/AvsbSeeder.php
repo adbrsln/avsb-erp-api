@@ -31,6 +31,7 @@ class AvsbSeeder
             240 => InventoryItemSeeder::class,
             245 => ServiceCatalogSeeder::class,
             250 => SocsoEisSeeder::class,
+            255 => PcbTaxSeeder::class,
             270 => ClientSeeder::class,
             280 => MillPaveSeeder::class,
             290 => RoadMarkingSeeder::class,
