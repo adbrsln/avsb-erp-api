@@ -19,7 +19,7 @@ class PayslipGenerator
         $employee = StaffProfile::find($item->employee_id);
         $company = CompanySetting::first();
 
-        $totalEe = $item->epf_employee + $item->socso_employee + $item->eis_employee + (float) ($item->socso_24h_employee ?? 0);
+        $totalEe = $item->epf_employee + $item->socso_employee + $item->eis_employee + (float) ($item->socso_24h_employee ?? 0) + (float) ($item->pcb_employee ?? 0) + (float) ($item->zakat ?? 0);
         $totalEr = $item->epf_employer + $item->socso_employer + $item->eis_employer;
         $netSalary = $item->salary - $totalEe;
         $isHourly = $item->wage_type === 'hourly_timesheet';
@@ -88,8 +88,16 @@ class PayslipGenerator
         $tEr = number_format($totalEr, 2);
         $socso24Ee = number_format($item->socso_24h_employee ?? 0, 2);
         $tEe = number_format($totalEe, 2);
+        $pcbEe = number_format($item->pcb_employee ?? 0, 2);
+        $zakatEe = number_format($item->zakat ?? 0, 2);
         $socso24EeDisplay = ($item->socso_24h_employee ?? 0) > 0
             ? '<tr><td></td><td class="amt"></td><td>SKBBK</td><td class="amt">'.$socso24Ee.'</td></tr>'
+            : '';
+        $pcbEeDisplay = ($item->pcb_employee ?? 0) > 0
+            ? '<tr><td></td><td class="amt"></td><td>PCB (Monthly Tax)</td><td class="amt">'.$pcbEe.'</td></tr>'
+            : '';
+        $zakatEeDisplay = ($item->zakat ?? 0) > 0
+            ? '<tr><td></td><td class="amt"></td><td>Zakat</td><td class="amt">'.$zakatEe.'</td></tr>'
             : '';
         $net = number_format($netSalary, 2);
         $adjNet = number_format($adjustedNet, 2);
@@ -199,6 +207,8 @@ class PayslipGenerator
 <tr><td></td><td class="amt"></td><td>SOCSO (Employee)</td><td class="amt">{$socsoEeDisplay}</td></tr>
 {$socso24EeDisplay}
 <tr><td></td><td class="amt"></td><td>EIS (Employee)</td><td class="amt">{$eisEeDisplay}</td></tr>
+{$pcbEeDisplay}
+{$zakatEeDisplay}
 {$adjDeductionsRows}
 <tr class="total"><td>TOTAL EARNINGS</td><td class="amt">{$grossEarningsFormatted}</td><td>TOTAL DEDUCTIONS</td><td class="amt">{$totalDeductionsFormatted}</td></tr>
 </table>
