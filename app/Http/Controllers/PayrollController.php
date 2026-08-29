@@ -14,6 +14,7 @@ use App\Services\Payroll\EisCalculator;
 use App\Services\Payroll\EisResult;
 use App\Services\Payroll\EPFCalculator;
 use App\Services\Payroll\EPFResult;
+use App\Services\Payroll\PayrollJournalService;
 use App\Services\Payroll\PayrollProcessor;
 use App\Services\Payroll\PcbCalculator;
 use App\Services\Payroll\ScheduleDeterminer;
@@ -312,6 +313,12 @@ class PayrollController extends Controller
         $item->update(['paid' => true, 'paid_at' => Carbon::now()]);
 
         try {
+            (new PayrollJournalService)->post($item);
+        } catch (\Throwable $e) {
+            logger()->error('Payroll journal entry failed', ['item_id' => $item->id, 'error' => $e->getMessage()]);
+        }
+
+        try {
             (new PayslipGenerator)->generate($item->id);
         } catch (\Exception $e) {
             logger()->error('Payslip PDF generation failed', ['item_id' => $item->id, 'error' => $e->getMessage()]);
@@ -379,6 +386,11 @@ class PayrollController extends Controller
                 continue;
             }
             $item->update(['paid' => true, 'paid_at' => $now]);
+            try {
+                (new PayrollJournalService)->post($item);
+            } catch (\Throwable $e) {
+                logger()->error('Payroll journal entry failed (bulk)', ['item_id' => $item->id, 'error' => $e->getMessage()]);
+            }
             try {
                 (new PayslipGenerator)->generate($item->id);
             } catch (\Exception $e) {

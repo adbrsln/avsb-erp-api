@@ -105,6 +105,7 @@ class TestDataSeeder extends Seeder
             ChartOfAccount::create(['code' => '1102', 'name' => 'Maybank Current Account', 'type' => 'asset', 'category' => 'current_asset', 'is_active' => true]);
             ChartOfAccount::create(['code' => '1104', 'name' => 'Trade Receivables', 'type' => 'asset', 'category' => 'current_asset', 'is_active' => true]);
             ChartOfAccount::create(['code' => '2101', 'name' => 'Trade Payables', 'type' => 'liability', 'category' => 'current_liability', 'is_active' => true]);
+            ChartOfAccount::create(['code' => '2102', 'name' => 'Other Payables', 'type' => 'liability', 'category' => 'current_liability', 'is_active' => true]);
             ChartOfAccount::create(['code' => '2103', 'name' => 'EPF Payable', 'type' => 'liability', 'category' => 'current_liability', 'is_active' => true]);
             ChartOfAccount::create(['code' => '2104', 'name' => 'SOCSO Payable', 'type' => 'liability', 'category' => 'current_liability', 'is_active' => true]);
             ChartOfAccount::create(['code' => '2105', 'name' => 'EIS Payable', 'type' => 'liability', 'category' => 'current_liability', 'is_active' => true]);

@@ -10,6 +10,7 @@ use App\Models\StaffProfile;
 use App\Models\SubcontractorClaim;
 use App\Services\Notification\NotificationEvent;
 use App\Services\Notification\NotificationService;
+use App\Services\Payroll\PayrollJournalService;
 use App\Services\PayslipGenerator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -322,6 +323,12 @@ class PaymentController extends Controller
             $updateData['paid_by'] = $staffId;
         }
         $item->update($updateData);
+
+        try {
+            (new PayrollJournalService)->post($item);
+        } catch (\Throwable $e) {
+            Log::error('Payroll journal entry failed', ['item_id' => $item->id, 'error' => $e->getMessage()]);
+        }
 
         try {
             (new PayslipGenerator)->generate($item->id);
