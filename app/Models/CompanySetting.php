@@ -21,6 +21,7 @@ class CompanySetting extends Model
         'work_start_time', 'work_end_time',
         'geofence_enforced',
         'auto_clock_out_enabled', 'auto_clock_out_grace_minutes',
+        'payroll_bank_account',
     ];
 
     protected $casts = [

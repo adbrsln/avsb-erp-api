@@ -22,6 +22,7 @@ class PayrollRunItem extends Model
         'socso_employer', 'socso_employee',
         'eis_employer', 'eis_employee',
         'socso_24h_employee',
+        'pcb_employee', 'zakat', 'pcb_tax_year', 'pcb_method',
         'paid', 'paid_at', 'paid_by',
         'confirmed', 'confirmed_at', 'confirmed_by',
     ];
@@ -40,6 +41,10 @@ class PayrollRunItem extends Model
         'eis_employer' => 'float',
         'eis_employee' => 'float',
         'socso_24h_employee' => 'float',
+        'pcb_employee' => 'float',
+        'zakat' => 'float',
+        'pcb_tax_year' => 'integer',
+        'pcb_method' => 'array',
         'paid' => 'boolean',
         'paid_at' => 'datetime',
         'paid_by' => 'integer',
@@ -74,7 +79,9 @@ class PayrollRunItem extends Model
             - (float) ($this->epf_employee ?? 0)
             - (float) ($this->socso_employee ?? 0)
             - (float) ($this->eis_employee ?? 0)
-            - (float) ($this->socso_24h_employee ?? 0),
+            - (float) ($this->socso_24h_employee ?? 0)
+            - (float) ($this->pcb_employee ?? 0)
+            - (float) ($this->zakat ?? 0),
             2
         );
     }
