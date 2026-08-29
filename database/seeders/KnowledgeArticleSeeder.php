@@ -521,16 +521,76 @@ HTML,
                 'title' => 'PCB tax deductions',
                 'category' => 'statutory',
                 'module' => 'payroll',
-                'summary' => 'How monthly income tax deductions are calculated for staff.',
+                'summary' => 'How monthly income tax (PCB/MTD) is calculated for staff — and what keeps it accurate.',
                 'sort_order' => 250,
                 'is_published' => true,
-                'tags' => ['pcb', 'tax', 'income tax', 'payroll', 'statutory'],
+                'tags' => ['pcb', 'tax', 'income tax', 'payroll', 'statutory', 'mtd'],
                 'body' => <<<'HTML'
 <h3>Monthly tax deduction</h3>
-<p>PCB (Potongan Cukai Bulanan) is the monthly income tax deducted from salaries. It is calculated from the staff member's wages and tax schedule.</p>
-<h4>Citizenship matters</h4>
-<p>Malaysian citizens and permanent residents follow the standard schedule; non-citizens are treated under the flat-rate rules. Keep nationality up to date on the staff profile.</p>
-<blockquote>Tax calculations are estimates for payroll purposes. Annual filing is handled with the LHDN forms by your finance team.</blockquote>
+<p>PCB (Potongan Cukai Bulanan) is the monthly income tax deducted from salaries. It is calculated automatically when payroll is processed, using the LHDN computerised MTD method.</p>
+<h4>How it is calculated</h4>
+<ul>
+<li>Annual chargeable income is the monthly gross pay multiplied by 12, minus the EPF relief (capped at RM4,000 a year) and minus personal reliefs (individual, spouse, children, disabled).</li>
+<li>Tax applies at the progressive resident rates; the RM400 individual rebate applies when chargeable income is RM35,000 or below.</li>
+<li>The monthly deduction is the annual tax spread over the remaining months of the year, rounded up to the nearest 5 sen. No PCB is deducted when the monthly amount is below RM10.</li>
+<li>A one-off bonus or allowance added as an earnings adjustment is treated as additional remuneration — its tax is deducted in the month it is paid.</li>
+</ul>
+<h4>What keeps it accurate</h4>
+<p>The calculation reads the staff profile fields: worker category, marital status, spouse working status, monthly zakat, and tax children. See the <strong>Staff profile fields for PCB</strong> article for the full list.</p>
+<p>Non-residents are taxed at a flat 30%; REP, IRDA, and C-Suite categories use 15%.</p>
+<blockquote>PCB uses the tax-year schedule that matches the payroll period. When LHDN changes the brackets, the schedule is updated centrally — no per-staff changes are needed.</blockquote>
+HTML,
+            ],
+            [
+                'slug' => 'pcb-staff-profile-fields',
+                'title' => 'Staff profile fields for PCB',
+                'category' => 'statutory',
+                'module' => 'payroll',
+                'summary' => 'The staff profile fields that drive the monthly tax deduction — keep them up to date.',
+                'sort_order' => 255,
+                'is_published' => true,
+                'tags' => ['pcb', 'staff', 'profile', 'tax', 'statutory', 'children'],
+                'body' => <<<'HTML'
+<h3>Fields that feed the PCB calculation</h3>
+<p>Open the staff member's profile (Team, then edit) and check the Statutory and Family sections. The monthly tax deduction is only as accurate as these fields.</p>
+<h4>Statutory section</h4>
+<ul>
+<li><strong>Worker category (PCB)</strong> — Resident (Pemastautin) for the standard schedule; Non-Resident (30%), REP, IRDA, or C-Suite for flat rates.</li>
+<li><strong>Tax No</strong> — the LHDN tax reference number.</li>
+<li><strong>Monthly Zakat (RM)</strong> — optional; reduces PCB when the staff member pays zakat through payroll.</li>
+<li><strong>EPF Contributing</strong> — the EPF relief (capped RM4,000 a year) applies only when EPF is contributed.</li>
+</ul>
+<h4>Family section</h4>
+<ul>
+<li><strong>Marital status</strong> — single, married, divorced, or widowed.</li>
+<li><strong>Spouse working</strong> (married only) — the RM4,000 spouse relief applies only when the spouse does not work.</li>
+<li><strong>Spouse disabled</strong> (married only) — adds the RM6,000 disabled-spouse relief.</li>
+<li><strong>Tax children</strong> — a count per LHDN category: age 18 and below, studying in Malaysia, diploma or degree level, disabled, and disabled while studying. Each has a 100% or 50% eligibility figure.</li>
+<li><strong>Ability status</strong> — set to Disabled for the RM6,000 individual relief.</li>
+</ul>
+<blockquote>If a staff member's PCB looks wrong, check these fields first.</blockquote>
+HTML,
+            ],
+            [
+                'slug' => 'pcb-tax-schedule-years',
+                'title' => 'PCB tax years and the annual schedule',
+                'category' => 'statutory',
+                'module' => 'payroll',
+                'summary' => 'How tax brackets and reliefs are versioned per year and updated when LHDN changes rates.',
+                'sort_order' => 258,
+                'is_published' => true,
+                'tags' => ['pcb', 'tax year', 'schedule', 'brackets', 'lhdn', 'admin'],
+                'body' => <<<'HTML'
+<h3>Tax years and the PCB schedule</h3>
+<p>PCB brackets and reliefs are stored per tax year. Payroll automatically uses the schedule that matches the payroll period's year.</p>
+<h4>When LHDN changes the rates</h4>
+<ol>
+<li>The schedule data lives in the server configuration file <strong>config/pcb.php</strong>.</li>
+<li>An administrator adds or updates the year's brackets and reliefs there.</li>
+<li>Run the command <strong>php artisan pcb:sync-schedule --year=2027</strong> to load the new year into the database. It is idempotent, so re-running it is safe.</li>
+</ol>
+<p>Adding a year is data-only — no code changes and no downtime. Existing payroll items keep the schedule they were calculated with.</p>
+<blockquote>If a payroll period's year has no schedule yet, payroll reports a clear error instead of guessing, so an outdated year can never silently under-deduct.</blockquote>
 HTML,
             ],
             [
@@ -1595,11 +1655,15 @@ HTML,
             ],
         ];
 
+        // Corrected articles re-apply on re-seed (admin edits to these are overwritten).
+        $upsertSlugs = ['pcb-tax-deduction-explained'];
+
         foreach ($articles as $a) {
-            KnowledgeArticle::firstOrCreate(
-                ['slug' => $a['slug']],
-                $a
-            );
+            if (in_array($a['slug'], $upsertSlugs, true)) {
+                KnowledgeArticle::updateOrCreate(['slug' => $a['slug']], $a);
+            } else {
+                KnowledgeArticle::firstOrCreate(['slug' => $a['slug']], $a);
+            }
         }
 
         echo '  Seeded '.count($articles)." knowledge articles.\n";
