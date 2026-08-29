@@ -541,3 +541,33 @@ Full migration from Slim 4 (avsb-erp/api/) to Laravel 13 (avsb-erp-api/).
 
 ### Phase 2 (future, NOT built)
 - RAG "Ask the KB" chatbot over curated manual only. Needs embedding provider + vector store + `POST /knowledge/search`/`/chat`. KB schema already chatbot-ready (structured metadata + searchable body). No AI deps added.
+
+---
+
+## Session Memory — Aug 29, 2026 — PCB (MTD) Engine + Payroll Journal Entries + Authorization
+
+### PCB (Monthly Tax Deduction) — implemented, live-verified
+- **Purpose**: LHDN PCB/MTD deduction in payroll, data-versioned (year-keyed tables) so bracket changes are seed-only.
+- **Tables**: `pcb_tax_brackets` (year, worker_category, min/max, rate), `pcb_reliefs` (year, code, label, annual_cap). `PcbTaxSeeder` (2026: 10 resident brackets 0→30%, flat stubs non-resident 30% / REP/IRDA/C-suite 15%, 8 reliefs + 3 rebate rows). Seeder has `?int $year` param; TestDataSeeder seeds 2025/2026/2027.
+- **Fields**: `staff_profiles.worker_category` (pemastautin|bukan_pemastautin|rep|irda|c_suite), `spouse_working`, `spouse_disabled`, `zakat_monthly`, `children_tax` (5 LHDN cats × total/eligible_50); `payroll_run_items.pcb_employee`, `zakat`, `pcb_tax_year`, `pcb_method` (snapshot); `company_settings.payroll_bank_account`.
+- **Services** (`app/Services/Payroll/`): `PcbCalculator` (`calculate`/`calculateRaw`/`additionalRemunerationPcb`), `PcbResult`, `PcbContext`, `PcbTaxSchedule`.
+- **Formula (live-verified vs calcpcbplus.hasil.gov.my)**:
+  - `P = (monthlyGross×12 + additional) − min(EPF annual, 4000) − reliefs` (individual 9k, spouse 4k KA2, children, OKU) — EPF is the ANNUAL cap, NOT monthly×12 (bug fixed, was under-taxing).
+  - `tax` progressive; `− rebate` (RM400 individual + RM400 spouse KA2, chargeable ≤ 35k).
+  - `monthly = ceil((tax − zakat×12 − ytdPcb) / (13 − month))` to **nearest 5 sen UP** ("5 sen teratas"); **0 if < RM10**.
+  - Bonus (saraan tambahan): one-shot `PCB(C) = CS − [PCB(B) + Z]` in the bonus month; subsequent months converge via YTD. Earnings adjustments = additional remuneration, not salary growth.
+  - Verified live: 8000/EPF880 single Jan → **514.20**; 3500 no-EPF → **11.70** (rebate). calcpcbplus is an OutSystems SPA; **DOM automation fragile** (currency inputs re-scale: "8000" → 80.00) — engine must not depend on it.
+- **`pcb_borne_by_employer`**: snapshot in `pcb_method`; net_pay excludes PCB when borne; JE adds DR 6101 (PCB = salary expense).
+- **Net pay** now = salary − EPF/SOCSO/EIS/SOCSO-24h/PCB/zakat (PCB skipped if employer-borne).
+
+### Payroll journal entries (was: none)
+- `PayrollJournalService` posts at mark-paid, per item, idempotent (delete+recreate): DR 6101 gross + 6102/6103/6104 employer EPF/SOCSO/EIS; CR 2103/2104/2105/2106 (employee+employer + SOCSO-24h folded into 2104) + 2102 zakat + bank (1102 default via `company_settings.payroll_bank_account`). Part-time = 2-line DR 6101/CR bank. `reference_type='payroll'`, `reference_id=item id`. Account map keyed by **raw code** (ChartOfAccount casts `code` to int — pluck keys were ints, array_merge renumbered).
+- Hooks: `markItemPaid`, `bulkMarkPaid`, `PaymentController::markPayrollItemPaid` (try/catch + log, like payslip).
+
+### Roles/permissions (prior session, committed a0c1cbf)
+- Role middleware + controller gates across the API (user/staff mgmt super_admin-only, finance/payroll/claims ownership). `AuthorizationTest` (28 cases). PM excluded from payroll payments (summary blocks gated).
+
+### Misc
+- Stale broken payroll route aliases removed (`payroll/items/{id}/confirm|mark-paid|adjustments|recalculate` — 2-arg vs 3-arg methods; FE uses `/payroll/periods/{id}/items/{itemId}/...`).
+- Deferred: 17 TP1 reliefs, prior-employer YTD (TP3), bonus UI in FE (formula done).
+- Verification: 445 tests / 436 pass / 9 skip / 0 fail; pint clean; FE tsc clean. Commits: 09a1311→21a1611 (11 commits). NOT pushed.
