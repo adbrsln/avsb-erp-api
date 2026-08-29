@@ -98,6 +98,9 @@ class PayrollProcessor
                 )
             );
 
+            $pcbMethod = $pcb->breakdown;
+            $pcbMethod['pcb_borne_by_employer'] = (bool) $employee->pcb_borne_by_employer;
+
             PayrollRunItem::updateOrCreate(
                 ['period_id' => $periodId, 'employee_id' => $employee->id],
                 [
@@ -113,7 +116,7 @@ class PayrollProcessor
                     'pcb_employee' => $pcb->amount,
                     'zakat' => $pcb->zakat,
                     'pcb_tax_year' => $taxYear,
-                    'pcb_method' => $pcb->breakdown,
+                    'pcb_method' => $pcbMethod,
                 ]
             );
 

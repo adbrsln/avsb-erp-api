@@ -72,6 +72,12 @@ class PayrollJournalService
             ['account_id' => $accounts['bank'], 'credit' => $item->net_pay, 'description' => 'Net pay'],
         ];
 
+        // Employer-borne PCB: no employee deduction (net_pay excludes it) so
+        // the employer pays it as an extra salary expense (DR 6101).
+        if ($item->pcbBorne() && (float) $item->pcb_employee > 0) {
+            $lines[] = ['account_id' => $accounts['6101'], 'debit' => $item->pcb_employee, 'description' => 'PCB borne by employer'];
+        }
+
         if ((float) $item->zakat > 0) {
             $lines[] = ['account_id' => $accounts['2102'], 'credit' => $item->zakat, 'description' => 'Zakat payable'];
         }

@@ -442,7 +442,8 @@ class PayrollController extends Controller
             ->where('type', 'earnings')
             ->sum('amount');
 
-        $adjustedSalary = $item->salary + $earningsTotal;
+        $baseSalary = (float) $item->salary;
+        $adjustedSalary = $baseSalary + $earningsTotal;
 
         $epf = $employee->epf_contributing
             ? (new EPFCalculator)->calculateRaw(
@@ -465,9 +466,22 @@ class PayrollController extends Controller
 
         $taxYear = $item->period?->year ?? (int) date('Y');
         $month = (int) ($item->period?->month ?? (int) date('n'));
+
+        // PCB: ordinary salary is the base; earnings adjustments are treated
+        // as LHDN additional remuneration (one-shot), not salary growth.
+        $epfBase = $employee->epf_contributing
+            ? (new EPFCalculator)->calculateRaw(
+                $baseSalary,
+                str_contains((string) $employee->nationality, 'Malaysian') ? 'citizen' : 'non_citizen',
+                (bool) $employee->has_pr,
+                (bool) $employee->epf_member_before_aug_1998,
+                (string) $employee->date_of_birth,
+            )
+            : new EPFResult((new ScheduleDeterminer)->determine($employee), $baseSalary, 0.0, 0.0);
+
         $pcb = (new PcbCalculator)->calculateRaw(
-            monthlyGross: $adjustedSalary,
-            employeeEpf: $epf->employeeAmount,
+            monthlyGross: $baseSalary,
+            employeeEpf: $epfBase->employeeAmount,
             taxYear: $taxYear,
             workerCategory: $employee->worker_category ?? 'pemastautin',
             maritalStatus: $employee->marital_status,
@@ -482,6 +496,21 @@ class PayrollController extends Controller
             month: $month,
         );
 
+        $additionalPcb = 0.0;
+        if ($earningsTotal > 0) {
+            $additionalPcb = (new PcbCalculator)->additionalRemunerationPcb(
+                $pcb,
+                $earningsTotal,
+                max(0.0, $epf->employeeAmount - $epfBase->employeeAmount),
+            );
+        }
+
+        $pcbTotal = $pcb->amount + $additionalPcb;
+        $pcbMethod = $pcb->breakdown;
+        $pcbMethod['additional_remuneration'] = $earningsTotal;
+        $pcbMethod['additional_pcb'] = $additionalPcb;
+        $pcbMethod['pcb_borne_by_employer'] = (bool) $employee->pcb_borne_by_employer;
+
         $item->update([
             'epf_schedule_code' => $epf->scheduleCode,
             'epf_employer' => $epf->employerAmount,
@@ -491,10 +520,10 @@ class PayrollController extends Controller
             'eis_employer' => $eis->employerAmount,
             'eis_employee' => $eis->employeeAmount,
             'socso_24h_employee' => $socso24['amount'],
-            'pcb_employee' => $pcb->amount,
+            'pcb_employee' => $pcbTotal,
             'zakat' => $pcb->zakat,
             'pcb_tax_year' => $taxYear,
-            'pcb_method' => $pcb->breakdown,
+            'pcb_method' => $pcbMethod,
         ]);
     }
 

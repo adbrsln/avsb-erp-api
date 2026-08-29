@@ -152,6 +152,38 @@ class PcbCalculator
         return max(0.0, $annualTax - $rebate);
     }
 
+    /**
+     * LHDN additional-remuneration (saraan tambahan) PCB — one-shot in the
+     * month the bonus is paid: PCB(C) = CS − [PCB(B) + Z], where
+     * CS = annual tax on (ordinary chargeable + additional net),
+     * PCB(B) = cumulative PCB incl. this month's ordinary deduction,
+     * Z = accumulated zakat. Subsequent months converge to zero because
+     * the year's tax was front-loaded in this month.
+     */
+    public function additionalRemunerationPcb(PcbResult $base, float $additionalGross, float $additionalEpf = 0): float
+    {
+        if ($base->workerCategory !== 'pemastautin') {
+            $rate = $this->flatRate($base->taxYear, $base->workerCategory);
+
+            return max(0.0, $this->ceilSen5($additionalGross * $rate / 100));
+        }
+
+        $reliefs = $this->schedule->reliefs($base->taxYear);
+        $epfCap = (float) ($reliefs['epf'] ?? 4000.0);
+        $annualEpfBase = (float) ($base->breakdown['annual_epf_relief'] ?? 0);
+        $combinedEpf = min($annualEpfBase + $additionalEpf, $epfCap);
+        $additionalNet = $additionalGross - max(0.0, $combinedEpf - $annualEpfBase);
+
+        $cs = $this->taxOn(
+            $this->schedule->brackets($base->taxYear, 'pemastautin'),
+            $base->chargeableIncome + $additionalNet
+        );
+        $pcbB = $base->ytdPcb + $base->amount;
+        $zAccum = (float) ($base->breakdown['annual_zakat'] ?? 0);
+
+        return max(0.0, $this->ceilSen5($cs - $pcbB - $zAccum));
+    }
+
     private function flatRate(int $taxYear, string $workerCategory): float
     {
         $brackets = $this->schedule->brackets($taxYear, $workerCategory);

@@ -72,15 +72,22 @@ class PayrollRunItem extends Model
         return $this->belongsTo(StaffProfile::class, 'confirmed_by');
     }
 
+    public function pcbBorne(): bool
+    {
+        return (bool) ($this->pcb_method['pcb_borne_by_employer'] ?? false);
+    }
+
     public function getNetPayAttribute(): float
     {
+        $pcbDeduction = $this->pcbBorne() ? 0.0 : (float) ($this->pcb_employee ?? 0);
+
         return round(
             (float) ($this->salary ?? 0)
             - (float) ($this->epf_employee ?? 0)
             - (float) ($this->socso_employee ?? 0)
             - (float) ($this->eis_employee ?? 0)
             - (float) ($this->socso_24h_employee ?? 0)
-            - (float) ($this->pcb_employee ?? 0)
+            - $pcbDeduction
             - (float) ($this->zakat ?? 0),
             2
         );

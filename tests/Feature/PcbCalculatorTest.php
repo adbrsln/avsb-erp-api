@@ -188,6 +188,43 @@ it('applies the RM400 individual rebate for chargeable income within threshold',
     expect($pcb->amount)->toBe(11.70);
 });
 
+it('computes one-shot PCB for additional remuneration (bonus)', function () {
+    $base = (new PcbCalculator)->calculateRaw(
+        monthlyGross: 8000,
+        employeeEpf: 880,
+        taxYear: 2026,
+        workerCategory: 'pemastautin',
+        maritalStatus: 'single',
+        spouseWorking: null,
+        spouseDisabled: false,
+        childrenTax: null,
+        abilityStatus: 'normal',
+        month: 1,
+    );
+
+    // CS = tax(83,000 + 10,000) = tax(93,000) = 8,070; PCB(B) = 0 + 514.20
+    $additional = (new PcbCalculator)->additionalRemunerationPcb($base, 10000, 1100);
+
+    expect($additional)->toBe(7555.80);
+});
+
+it('applies the flat rate to additional remuneration for non-residents', function () {
+    $base = (new PcbCalculator)->calculateRaw(
+        monthlyGross: 8000,
+        employeeEpf: 0,
+        taxYear: 2026,
+        workerCategory: 'bukan_pemastautin',
+        maritalStatus: 'single',
+        spouseWorking: null,
+        spouseDisabled: false,
+        childrenTax: null,
+        abilityStatus: 'normal',
+        month: 1,
+    );
+
+    expect((new PcbCalculator)->additionalRemunerationPcb($base, 1000, 0))->toBe(300.00);
+});
+
 it('does not charge PCB when the monthly amount is below RM10 (LHDN rule)', function () {
     $pcb = (new PcbCalculator)->calculateRaw(
         monthlyGross: 2000,
