@@ -15,6 +15,7 @@ use App\Services\Payroll\EisResult;
 use App\Services\Payroll\EPFCalculator;
 use App\Services\Payroll\EPFResult;
 use App\Services\Payroll\PayrollProcessor;
+use App\Services\Payroll\PcbCalculator;
 use App\Services\Payroll\ScheduleDeterminer;
 use App\Services\Payroll\Socso24Calculator;
 use App\Services\Payroll\SocsoCalculator;
@@ -221,6 +222,18 @@ class PayrollController extends Controller
         $socso = (new SocsoCalculator)->calculate($salary);
         $eis = (new EisCalculator)->calculate($salary);
         $socso24 = (new Socso24Calculator)->calculate($salary);
+        $pcb = (new PcbCalculator)->calculateRaw(
+            monthlyGross: $salary,
+            employeeEpf: $epf->employeeAmount,
+            taxYear: (int) date('Y'),
+            workerCategory: 'pemastautin',
+            maritalStatus: 'single',
+            spouseWorking: null,
+            spouseDisabled: false,
+            childrenTax: null,
+            abilityStatus: 'normal',
+            month: 1,
+        );
 
         return response()->json([
             'salary' => $salary,
@@ -232,8 +245,9 @@ class PayrollController extends Controller
             'eis_employer' => $eis->employerAmount,
             'eis_employee' => $eis->employeeAmount,
             'socso_24h_employee' => $socso24['amount'],
+            'pcb' => $pcb->amount,
             'total_employer' => round($epf->employerAmount + $socso->employerAmount + $eis->employerAmount, 2),
-            'total_employee' => round($epf->employeeAmount + $socso->employeeAmount + $eis->employeeAmount + $socso24['amount'], 2),
+            'total_employee' => round($epf->employeeAmount + $socso->employeeAmount + $eis->employeeAmount + $socso24['amount'] + $pcb->amount, 2),
         ]);
     }
 
@@ -437,6 +451,25 @@ class PayrollController extends Controller
             ? (new Socso24Calculator)->calculate($adjustedSalary)
             : ['amount' => 0];
 
+        $taxYear = $item->period?->year ?? (int) date('Y');
+        $month = (int) ($item->period?->month ?? (int) date('n'));
+        $pcb = (new PcbCalculator)->calculateRaw(
+            monthlyGross: $adjustedSalary,
+            employeeEpf: $epf->employeeAmount,
+            taxYear: $taxYear,
+            workerCategory: $employee->worker_category ?? 'pemastautin',
+            maritalStatus: $employee->marital_status,
+            spouseWorking: $employee->spouse_working,
+            spouseDisabled: (bool) $employee->spouse_disabled,
+            childrenTax: $employee->children_tax,
+            abilityStatus: $employee->ability_status ?? 'normal',
+            zakat: (float) ($employee->zakat_monthly ?? 0),
+            ytdGross: $this->pcbYtdSum($item, 'salary'),
+            ytdPcb: $this->pcbYtdSum($item, 'pcb_employee'),
+            ytdEpf: $this->pcbYtdSum($item, 'epf_employee'),
+            month: $month,
+        );
+
         $item->update([
             'epf_schedule_code' => $epf->scheduleCode,
             'epf_employer' => $epf->employerAmount,
@@ -446,7 +479,23 @@ class PayrollController extends Controller
             'eis_employer' => $eis->employerAmount,
             'eis_employee' => $eis->employeeAmount,
             'socso_24h_employee' => $socso24['amount'],
+            'pcb_employee' => $pcb->amount,
+            'zakat' => $pcb->zakat,
+            'pcb_tax_year' => $taxYear,
+            'pcb_method' => $pcb->breakdown,
         ]);
+    }
+
+    private function pcbYtdSum(PayrollRunItem $item, string $column): float
+    {
+        $month = (int) ($item->period?->month ?? 0);
+        if ($month <= 1) {
+            return 0.0;
+        }
+
+        return (float) PayrollRunItem::where('employee_id', $item->employee_id)
+            ->whereHas('period', fn ($q) => $q->where('year', $item->period->year)->where('month', '<', $month))
+            ->sum($column);
     }
 
     public function getItemAdjustments(Request $request, int $id, int $itemId): JsonResponse

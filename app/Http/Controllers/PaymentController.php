@@ -143,7 +143,7 @@ class PaymentController extends Controller
 
         if ((! $typeFilter || $typeFilter === 'payroll') && array_intersect($userRoles, ['admin', 'hr', 'super_admin'])) {
             $payCount = PayrollRunItem::where('confirmed', true)->where('paid', false)->count();
-            $payTotal = PayrollRunItem::where('confirmed', true)->where('paid', false)->sum(DB::raw('salary + COALESCE(epf_employer,0) + COALESCE(socso_employer,0) + COALESCE(eis_employer,0)'));
+            $payTotal = PayrollRunItem::where('confirmed', true)->where('paid', false)->sum(DB::raw('salary + COALESCE(epf_employer,0) + COALESCE(socso_employer,0) + COALESCE(eis_employer,0) + COALESCE(pcb_employee,0) + COALESCE(zakat,0)'));
             $summary['payroll'] = ['count' => $payCount, 'total' => round((float) $payTotal, 2)];
         }
 

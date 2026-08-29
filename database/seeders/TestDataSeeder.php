@@ -116,8 +116,10 @@ class TestDataSeeder extends Seeder
             ChartOfAccount::create(['code' => '6104', 'name' => 'EIS Employer', 'type' => 'expense', 'category' => 'operating_expense', 'is_active' => true]);
         }
 
-        // ── PCB tax schedule (brackets + reliefs) ──
-        (new PcbTaxSeeder)->run();
+        // ── PCB tax schedule (brackets + reliefs) — cover fixture years ──
+        foreach ([2025, 2026, 2027] as $year) {
+            (new PcbTaxSeeder)->run($year);
+        }
 
         // ── Projects + Phases + Tasks ──
         if (Project::count() === 0) {

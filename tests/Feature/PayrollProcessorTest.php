@@ -298,3 +298,33 @@ describe('PayrollProcessor statutory opt-outs', function () {
     });
 
 });
+
+describe('PayrollProcessor PCB', function () {
+
+    it('populates PCB, zakat, and tax-year snapshot on processed items', function () {
+        $staff = makePayrollStaff(['zakat_monthly' => 50]);
+        [$period] = runPayroll();
+
+        $item = payrollItemFor($staff, $period);
+
+        expect($item)->not->toBeNull();
+        expect($item->pcb_employee)->toBeGreaterThan(0);
+        expect($item->zakat)->toBe(50.0);
+        expect($item->pcb_tax_year)->toBe((int) $period->year);
+        expect($item->pcb_method)->toBeArray()
+            ->toHaveKeys(['worker_category', 'annual_chargeable', 'remaining_months']);
+    });
+
+    it('stores the same PCB across process re-runs (idempotent)', function () {
+        $staff = makePayrollStaff();
+        [$period] = runPayroll();
+
+        $first = payrollItemFor($staff, $period);
+        (new PayrollProcessor)->process($period->id);
+        $second = payrollItemFor($staff, $period);
+
+        expect($second->id)->toBe($first->id);
+        expect($second->pcb_employee)->toBe($first->pcb_employee);
+    });
+
+});

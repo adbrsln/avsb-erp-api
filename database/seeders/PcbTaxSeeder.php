@@ -8,9 +8,9 @@ use Illuminate\Database\Seeder;
 
 class PcbTaxSeeder extends Seeder
 {
-    public function run(): void
+    public function run(?int $year = null): void
     {
-        $year = 2026;
+        $year = $year ?? 2026;
 
         $residentBrackets = [
             [0, 5000, 0],

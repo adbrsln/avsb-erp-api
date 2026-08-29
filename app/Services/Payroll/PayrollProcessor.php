@@ -83,6 +83,21 @@ class PayrollProcessor
                 $socso24Amount = $this->socso24Calculator->calculate($salary, $category)['amount'];
             }
 
+            $taxYear = $period->year ?? (int) date('Y');
+            $pcb = (new PcbCalculator)->calculate(
+                $employee,
+                $taxYear,
+                new PcbContext(
+                    monthlyGross: $salary,
+                    employeeEpf: $epf->employeeAmount,
+                    ytdGross: $this->ytdSum($employee->id, $period, 'salary'),
+                    ytdPcb: $this->ytdSum($employee->id, $period, 'pcb_employee'),
+                    ytdEpf: $this->ytdSum($employee->id, $period, 'epf_employee'),
+                    zakat: (float) ($employee->zakat_monthly ?? 0),
+                    month: (int) ($period->month ?? (int) date('n')),
+                )
+            );
+
             PayrollRunItem::updateOrCreate(
                 ['period_id' => $periodId, 'employee_id' => $employee->id],
                 [
@@ -95,6 +110,10 @@ class PayrollProcessor
                     'eis_employer' => $eis->employerAmount,
                     'eis_employee' => $eis->employeeAmount,
                     'socso_24h_employee' => $socso24Amount,
+                    'pcb_employee' => $pcb->amount,
+                    'zakat' => $pcb->zakat,
+                    'pcb_tax_year' => $taxYear,
+                    'pcb_method' => $pcb->breakdown,
                 ]
             );
 
@@ -115,6 +134,9 @@ class PayrollProcessor
                 'eis_employer' => $eis->employerAmount,
                 'eis_employee' => $eis->employeeAmount,
                 'socso_24h_employee' => $socso24Amount,
+                'pcb_employee' => $pcb->amount,
+                'zakat' => $pcb->zakat,
+                'pcb_tax_year' => $taxYear,
             ];
         }
 
@@ -124,6 +146,18 @@ class PayrollProcessor
             'total_employees' => count($items),
             'items' => $items,
         ];
+    }
+
+    private function ytdSum(int $employeeId, PayrollPeriod $period, string $column): float
+    {
+        $month = (int) $period->month;
+        if ($month <= 1) {
+            return 0.0;
+        }
+
+        return (float) PayrollRunItem::where('employee_id', $employeeId)
+            ->whereHas('period', fn ($q) => $q->where('year', $period->year)->where('month', '<', $month))
+            ->sum($column);
     }
 
     public function processPartTime(int $periodId): array
