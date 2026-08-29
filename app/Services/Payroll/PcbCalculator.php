@@ -67,7 +67,7 @@ class PcbCalculator
             $amount = $this->roundSen5($monthlyGross * $rate / 100);
 
             return new PcbResult(
-                amount: $amount,
+                amount: $this->applyMinimumPcb($amount),
                 taxYear: $taxYear,
                 workerCategory: $workerCategory,
                 chargeableIncome: 0.0,
@@ -106,7 +106,7 @@ class PcbCalculator
         $month = max(1, min(12, $month));
         $remainingMonths = 13 - $month;
         $amount = max(0.0, ($annualPcb - $ytdPcb) / $remainingMonths);
-        $amount = $this->roundSen5($amount);
+        $amount = $this->applyMinimumPcb($this->roundSen5($amount));
 
         return new PcbResult(
             amount: $amount,
@@ -199,5 +199,14 @@ class PcbCalculator
     private function roundSen5(float $amount): float
     {
         return round($amount * 20) / 20;
+    }
+
+    /**
+     * LHDN rule (per calcpcbplus note): no PCB charged when the monthly
+     * deduction is less than RM10.
+     */
+    private function applyMinimumPcb(float $amount): float
+    {
+        return $amount < 10.0 ? 0.0 : $amount;
     }
 }

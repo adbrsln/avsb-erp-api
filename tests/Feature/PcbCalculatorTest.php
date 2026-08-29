@@ -169,6 +169,23 @@ it('applies extra relief for a disabled individual (OKU self)', function () {
     expect($pcb->amount)->toBe(315.30);
 });
 
+it('does not charge PCB when the monthly amount is below RM10 (LHDN rule)', function () {
+    $pcb = (new PcbCalculator)->calculateRaw(
+        monthlyGross: 2000,
+        employeeEpf: 0,
+        taxYear: 2026,
+        workerCategory: 'pemastautin',
+        maritalStatus: 'single',
+        spouseWorking: null,
+        spouseDisabled: false,
+        childrenTax: null,
+        abilityStatus: 'normal',
+        month: 1,
+    );
+
+    expect($pcb->amount)->toBe(0.0);
+});
+
 it('throws when no tax schedule exists for the year', function () {
     (new PcbCalculator)->calculateRaw(
         monthlyGross: 8000,
