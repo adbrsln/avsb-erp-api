@@ -415,12 +415,6 @@ Route::prefix('v1')->group(function () {
         Route::get('payroll/periods/{id}/items/{itemId}/adjustments', [PayrollController::class, 'getItemAdjustments'])->middleware('role:hr,finance,admin,super_admin');
         Route::post('payroll/periods/{id}/items/{itemId}/adjustments', [PayrollController::class, 'createItemAdjustment'])->middleware('role:hr,admin,super_admin');
         Route::delete('payroll/periods/{periodId}/items/{itemId}/adjustments/{adjustmentId}', [PayrollController::class, 'deleteItemAdjustment'])->middleware('role:hr,admin,super_admin');
-        Route::post('payroll/items/{itemId}/confirm', [PayrollController::class, 'confirmItem'])->middleware('role:hr,admin,super_admin');
-        Route::post('payroll/items/{itemId}/mark-paid', [PayrollController::class, 'markItemPaid'])->middleware('role:hr,admin,super_admin');
-        Route::get('payroll/items/{itemId}/adjustments', [PayrollController::class, 'getItemAdjustments'])->middleware('role:hr,finance,admin,super_admin');
-        Route::post('payroll/items/{itemId}/adjustments', [PayrollController::class, 'createItemAdjustment'])->middleware('role:hr,admin,super_admin');
-        Route::delete('payroll/adjustments/{id}', [PayrollController::class, 'deleteItemAdjustment'])->middleware('role:hr,admin,super_admin');
-        Route::post('payroll/items/{itemId}/recalculate', [PayrollController::class, 'recalculateItem'])->middleware('role:hr,admin,super_admin');
         Route::get('payroll/me/payslips', [PayrollController::class, 'myPayslips']);
         Route::get('payroll/payslips/{itemId}/download', [PayrollController::class, 'downloadPayslip']);
         Route::get('my-payslips', [PayrollController::class, 'myPayslips']);
