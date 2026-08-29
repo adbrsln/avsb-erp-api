@@ -118,6 +118,20 @@ it('treats employer-borne PCB as salary expense and keeps net pay un-reduced', f
     expect(round($salaryDebit, 2))->toBe(round(4000 + 46.80, 2));
 });
 
+it('omits the PCB payable line when the item has no PCB', function () {
+    $item = makePaidItem($this->period, $this->staff, [
+        'pcb_employee' => 0,
+        'zakat' => 0,
+    ]);
+
+    (new PayrollJournalService)->post($item);
+
+    $je = JournalEntry::where('reference_type', 'payroll')->where('reference_id', $item->id)->first();
+    $pcbAcct = ChartOfAccount::where('code', '2106')->value('id');
+    expect($je->lines->where('account_id', $pcbAcct))->toHaveCount(0);
+    expect(round($je->lines->sum('debit'), 2))->toBe(round($je->lines->sum('credit'), 2));
+});
+
 it('throws without leaving a partial journal when an account is missing', function () {
     $item = makePaidItem($this->period, $this->staff);
     ChartOfAccount::where('code', '2103')->delete();

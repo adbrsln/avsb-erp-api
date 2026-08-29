@@ -84,21 +84,26 @@ class PayrollProcessor
             }
 
             $taxYear = $period->year ?? (int) date('Y');
-            $pcb = (new PcbCalculator)->calculate(
-                $employee,
-                $taxYear,
-                new PcbContext(
-                    monthlyGross: $salary,
-                    employeeEpf: $epf->employeeAmount,
-                    ytdGross: $this->ytdSum($employee->id, $period, 'salary'),
-                    ytdPcb: $this->ytdSum($employee->id, $period, 'pcb_employee'),
-                    ytdEpf: $this->ytdSum($employee->id, $period, 'epf_employee'),
-                    zakat: (float) ($employee->zakat_monthly ?? 0),
-                    month: (int) ($period->month ?? (int) date('n')),
-                )
-            );
+            if ($employee->pcb_contributing) {
+                $pcb = (new PcbCalculator)->calculate(
+                    $employee,
+                    $taxYear,
+                    new PcbContext(
+                        monthlyGross: $salary,
+                        employeeEpf: $epf->employeeAmount,
+                        ytdGross: $this->ytdSum($employee->id, $period, 'salary'),
+                        ytdPcb: $this->ytdSum($employee->id, $period, 'pcb_employee'),
+                        ytdEpf: $this->ytdSum($employee->id, $period, 'epf_employee'),
+                        zakat: (float) ($employee->zakat_monthly ?? 0),
+                        month: (int) ($period->month ?? (int) date('n')),
+                    )
+                );
+                $pcbMethod = $pcb->breakdown;
+            } else {
+                $pcb = null;
+                $pcbMethod = ['pcb_contributing' => false];
+            }
 
-            $pcbMethod = $pcb->breakdown;
             $pcbMethod['pcb_borne_by_employer'] = (bool) $employee->pcb_borne_by_employer;
 
             PayrollRunItem::updateOrCreate(
@@ -113,9 +118,9 @@ class PayrollProcessor
                     'eis_employer' => $eis->employerAmount,
                     'eis_employee' => $eis->employeeAmount,
                     'socso_24h_employee' => $socso24Amount,
-                    'pcb_employee' => $pcb->amount,
-                    'zakat' => $pcb->zakat,
-                    'pcb_tax_year' => $taxYear,
+                    'pcb_employee' => $pcb?->amount ?? 0,
+                    'zakat' => $pcb?->zakat ?? 0,
+                    'pcb_tax_year' => $pcb ? $taxYear : null,
                     'pcb_method' => $pcbMethod,
                 ]
             );
@@ -137,9 +142,9 @@ class PayrollProcessor
                 'eis_employer' => $eis->employerAmount,
                 'eis_employee' => $eis->employeeAmount,
                 'socso_24h_employee' => $socso24Amount,
-                'pcb_employee' => $pcb->amount,
-                'zakat' => $pcb->zakat,
-                'pcb_tax_year' => $taxYear,
+                'pcb_employee' => $pcb?->amount ?? 0,
+                'zakat' => $pcb?->zakat ?? 0,
+                'pcb_tax_year' => $pcb ? $taxYear : null,
             ];
         }
 

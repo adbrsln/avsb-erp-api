@@ -479,36 +479,42 @@ class PayrollController extends Controller
             )
             : new EPFResult((new ScheduleDeterminer)->determine($employee), $baseSalary, 0.0, 0.0);
 
-        $pcb = (new PcbCalculator)->calculateRaw(
-            monthlyGross: $baseSalary,
-            employeeEpf: $epfBase->employeeAmount,
-            taxYear: $taxYear,
-            workerCategory: $employee->worker_category ?? 'pemastautin',
-            maritalStatus: $employee->marital_status,
-            spouseWorking: $employee->spouse_working,
-            spouseDisabled: (bool) $employee->spouse_disabled,
-            childrenTax: $employee->children_tax,
-            abilityStatus: $employee->ability_status ?? 'normal',
-            zakat: (float) ($employee->zakat_monthly ?? 0),
-            ytdGross: $this->pcbYtdSum($item, 'salary'),
-            ytdPcb: $this->pcbYtdSum($item, 'pcb_employee'),
-            ytdEpf: $this->pcbYtdSum($item, 'epf_employee'),
-            month: $month,
-        );
-
         $additionalPcb = 0.0;
-        if ($earningsTotal > 0) {
-            $additionalPcb = (new PcbCalculator)->additionalRemunerationPcb(
-                $pcb,
-                $earningsTotal,
-                max(0.0, $epf->employeeAmount - $epfBase->employeeAmount),
+        $pcbMethod = ['pcb_contributing' => false];
+        $pcb = null;
+
+        if ($employee->pcb_contributing) {
+            $pcb = (new PcbCalculator)->calculateRaw(
+                monthlyGross: $baseSalary,
+                employeeEpf: $epfBase->employeeAmount,
+                taxYear: $taxYear,
+                workerCategory: $employee->worker_category ?? 'pemastautin',
+                maritalStatus: $employee->marital_status,
+                spouseWorking: $employee->spouse_working,
+                spouseDisabled: (bool) $employee->spouse_disabled,
+                childrenTax: $employee->children_tax,
+                abilityStatus: $employee->ability_status ?? 'normal',
+                zakat: (float) ($employee->zakat_monthly ?? 0),
+                ytdGross: $this->pcbYtdSum($item, 'salary'),
+                ytdPcb: $this->pcbYtdSum($item, 'pcb_employee'),
+                ytdEpf: $this->pcbYtdSum($item, 'epf_employee'),
+                month: $month,
             );
+
+            if ($earningsTotal > 0) {
+                $additionalPcb = (new PcbCalculator)->additionalRemunerationPcb(
+                    $pcb,
+                    $earningsTotal,
+                    max(0.0, $epf->employeeAmount - $epfBase->employeeAmount),
+                );
+            }
+
+            $pcbMethod = $pcb->breakdown;
+            $pcbMethod['additional_remuneration'] = $earningsTotal;
+            $pcbMethod['additional_pcb'] = $additionalPcb;
         }
 
-        $pcbTotal = $pcb->amount + $additionalPcb;
-        $pcbMethod = $pcb->breakdown;
-        $pcbMethod['additional_remuneration'] = $earningsTotal;
-        $pcbMethod['additional_pcb'] = $additionalPcb;
+        $pcbTotal = ($pcb?->amount ?? 0) + $additionalPcb;
         $pcbMethod['pcb_borne_by_employer'] = (bool) $employee->pcb_borne_by_employer;
 
         $item->update([
@@ -521,8 +527,8 @@ class PayrollController extends Controller
             'eis_employee' => $eis->employeeAmount,
             'socso_24h_employee' => $socso24['amount'],
             'pcb_employee' => $pcbTotal,
-            'zakat' => $pcb->zakat,
-            'pcb_tax_year' => $taxYear,
+            'zakat' => $pcb?->zakat ?? 0,
+            'pcb_tax_year' => $pcb ? $taxYear : null,
             'pcb_method' => $pcbMethod,
         ]);
     }

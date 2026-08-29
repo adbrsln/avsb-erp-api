@@ -68,9 +68,13 @@ class PayrollJournalService
             ['account_id' => $accounts['2103'], 'credit' => $item->epf_employee + $item->epf_employer, 'description' => 'EPF payable (employee + employer)'],
             ['account_id' => $accounts['2104'], 'credit' => $item->socso_employee + $item->socso_employer + $item->socso_24h_employee, 'description' => 'SOCSO payable (employee + employer + 24h)'],
             ['account_id' => $accounts['2105'], 'credit' => $item->eis_employee + $item->eis_employer, 'description' => 'EIS payable (employee + employer)'],
-            ['account_id' => $accounts['2106'], 'credit' => $item->pcb_employee, 'description' => 'PCB payable'],
-            ['account_id' => $accounts['bank'], 'credit' => $item->net_pay, 'description' => 'Net pay'],
         ];
+
+        if ((float) $item->pcb_employee > 0) {
+            $lines[] = ['account_id' => $accounts['2106'], 'credit' => $item->pcb_employee, 'description' => 'PCB payable'];
+        }
+
+        $lines[] = ['account_id' => $accounts['bank'], 'credit' => $item->net_pay, 'description' => 'Net pay'];
 
         // Employer-borne PCB: no employee deduction (net_pay excludes it) so
         // the employer pays it as an extra salary expense (DR 6101).

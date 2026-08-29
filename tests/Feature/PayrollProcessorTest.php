@@ -327,4 +327,28 @@ describe('PayrollProcessor PCB', function () {
         expect($second->pcb_employee)->toBe($first->pcb_employee);
     });
 
+    it('zeroes PCB when pcb_contributing is disabled for the staff', function () {
+        $staff = makePayrollStaff(['pcb_contributing' => false]);
+        [$period] = runPayroll();
+
+        $item = payrollItemFor($staff, $period);
+
+        expect($item->pcb_employee)->toBe(0.0);
+        expect($item->zakat)->toBe(0.0);
+        expect($item->pcb_tax_year)->toBeNull();
+        expect($item->pcb_method)->toBeArray()
+            ->toHaveKey('pcb_contributing')
+            ->and($item->pcb_method['pcb_contributing'])->toBeFalse();
+    });
+
+    it('calculates PCB by default when pcb_contributing is unset', function () {
+        $staff = makePayrollStaff();
+
+        [$period] = runPayroll();
+
+        $item = payrollItemFor($staff, $period);
+
+        expect($item->pcb_employee)->toBeGreaterThan(0);
+    });
+
 });

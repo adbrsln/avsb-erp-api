@@ -556,6 +556,7 @@ HTML,
 <h4>Statutory section</h4>
 <ul>
 <li><strong>Worker category (PCB)</strong> — Resident (Pemastautin) for the standard schedule; Non-Resident (30%), REP, IRDA, or C-Suite for flat rates.</li>
+<li><strong>PCB Contributing</strong> — on by default. Turn it off to exempt a staff member from monthly tax deduction entirely.</li>
 <li><strong>Tax No</strong> — the LHDN tax reference number.</li>
 <li><strong>Monthly Zakat (RM)</strong> — optional; reduces PCB when the staff member pays zakat through payroll.</li>
 <li><strong>EPF Contributing</strong> — the EPF relief (capped RM4,000 a year) applies only when EPF is contributed.</li>
@@ -1656,7 +1657,7 @@ HTML,
         ];
 
         // Corrected articles re-apply on re-seed (admin edits to these are overwritten).
-        $upsertSlugs = ['pcb-tax-deduction-explained'];
+        $upsertSlugs = ['pcb-tax-deduction-explained', 'pcb-staff-profile-fields'];
 
         foreach ($articles as $a) {
             if (in_array($a['slug'], $upsertSlugs, true)) {
