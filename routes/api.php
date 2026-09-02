@@ -102,17 +102,17 @@ Route::prefix('v1')->group(function () {
         Route::get('staff/me/tasks', [StaffController::class, 'myTasks']);
         Route::get('staff/me/projects/{projectId}/project-phases', [StaffController::class, 'projectPhases']);
         Route::get('staff', [StaffController::class, 'index']);
-        Route::post('staff', [StaffController::class, 'store'])->middleware('role:admin,super_admin');
+        Route::post('staff', [StaffController::class, 'store'])->middleware('role:hr,admin,super_admin');
         Route::get('staff/{id}', [StaffController::class, 'show']);
-        Route::put('staff/{id}', [StaffController::class, 'update'])->middleware('role:admin,super_admin');
-        Route::delete('staff/{id}', [StaffController::class, 'destroy'])->middleware('role:admin,super_admin');
-        Route::post('staff/{id}/reset-password', [StaffController::class, 'resetPassword'])->middleware('role:admin,super_admin');
-        Route::post('staff/{id}/status', [StaffController::class, 'updateStatus'])->middleware('role:admin,super_admin');
-        Route::get('staff/{id}/projects', [StaffController::class, 'myProjects'])->middleware('role:admin,super_admin');
-        Route::get('staff/{id}/tasks', [StaffController::class, 'myTasks'])->middleware('role:admin,super_admin');
-        Route::get('staff/{id}/phases', [StaffController::class, 'projectPhases'])->middleware('role:admin,super_admin');
-        Route::get('staff/{id}/leave-balance', [LeaveGroupController::class, 'staffBalance'])->middleware('role:admin,super_admin');
-        Route::post('staff/{id}/resign', [StaffController::class, 'resign'])->middleware('role:admin,super_admin');
+        Route::put('staff/{id}', [StaffController::class, 'update'])->middleware('role:hr,admin,super_admin');
+        Route::delete('staff/{id}', [StaffController::class, 'destroy'])->middleware('role:hr,admin,super_admin');
+        Route::post('staff/{id}/reset-password', [StaffController::class, 'resetPassword'])->middleware('role:hr,admin,super_admin');
+        Route::post('staff/{id}/status', [StaffController::class, 'updateStatus'])->middleware('role:hr,admin,super_admin');
+        Route::get('staff/{id}/projects', [StaffController::class, 'myProjects'])->middleware('role:hr,admin,super_admin');
+        Route::get('staff/{id}/tasks', [StaffController::class, 'myTasks'])->middleware('role:hr,admin,super_admin');
+        Route::get('staff/{id}/phases', [StaffController::class, 'projectPhases'])->middleware('role:hr,admin,super_admin');
+        Route::get('staff/{id}/leave-balance', [LeaveGroupController::class, 'staffBalance'])->middleware('role:hr,admin,super_admin');
+        Route::post('staff/{id}/resign', [StaffController::class, 'resign'])->middleware('role:hr,admin,super_admin');
 
         // ── Users ──
         Route::get('users', [UserController::class, 'index'])->middleware('role:super_admin');

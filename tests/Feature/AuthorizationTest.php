@@ -206,6 +206,54 @@ describe('Authorization: staff is blocked from privileged operations', function 
 
 });
 
+describe('Authorization: HR can manage staff (roles stay gated)', function () {
+
+    it('allows hr to update a staff profile', function () {
+        $hr = makeAuthUser('hr');
+        $target = makeAuthUser('staff');
+
+        putJson('/api/v1/staff/'.$target['staff']->id, ['name' => 'Updated Name'], $hr['headers'])
+            ->assertStatus(200);
+    });
+
+    it('allows hr to create a staff member with a staff/pm role', function () {
+        $hr = makeAuthUser('hr');
+
+        postJson('/api/v1/staff', [
+            'name' => 'New Hire',
+            'email' => 'newhire_'.uniqid().'@example.com',
+            'roles' => ['staff'],
+        ], $hr['headers'])->assertStatus(201);
+    });
+
+    it('blocks hr from assigning a role beyond staff/pm', function () {
+        $hr = makeAuthUser('hr');
+        $target = makeAuthUser('staff');
+
+        putJson('/api/v1/staff/'.$target['staff']->id, ['roles' => ['admin']], $hr['headers'])
+            ->assertStatus(403);
+    });
+
+    it('blocks hr from assigning the super_admin role', function () {
+        $hr = makeAuthUser('hr');
+        $target = makeAuthUser('staff');
+
+        putJson('/api/v1/staff/'.$target['staff']->id, ['roles' => ['super_admin']], $hr['headers'])
+            ->assertStatus(403);
+    });
+
+    it('still blocks plain staff from creating staff', function () {
+        $staff = makeAuthUser('staff');
+
+        postJson('/api/v1/staff', [
+            'name' => 'Hacker',
+            'email' => 'hacker2@example.com',
+            'roles' => ['staff'],
+        ], $staff['headers'])->assertStatus(403);
+    });
+
+});
+
 describe('Authorization: PM cannot access payroll payments', function () {
 
     it('excludes payroll items from payments/pending for pm', function () {

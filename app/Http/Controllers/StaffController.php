@@ -293,10 +293,19 @@ class StaffController extends Controller
     private function assertCanAssignRoles(Request $request, array $roles): void
     {
         $user = $request->user();
-        if (in_array('super_admin', $roles, true)) {
-            $isSuperAdmin = $user && in_array('super_admin', $user->getRoleNames(), true);
-            if (! $isSuperAdmin) {
-                abort(403, 'Only super_admin can assign the super_admin role');
+        $userRoles = $user ? $user->getRoleNames() : [];
+
+        if (in_array('super_admin', $roles, true) && ! in_array('super_admin', $userRoles, true)) {
+            abort(403, 'Only super_admin can assign the super_admin role');
+        }
+
+        // HR (non-admin) manages staff but may only assign staff/pm roles.
+        if (! array_intersect($userRoles, ['admin', 'super_admin'])) {
+            $assignable = ['staff', 'pm'];
+            foreach ($roles as $r) {
+                if (! in_array($r, $assignable, true)) {
+                    abort(403, 'Only admin or super_admin can assign roles beyond staff/pm');
+                }
             }
         }
     }
