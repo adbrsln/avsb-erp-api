@@ -252,6 +252,37 @@ describe('Authorization: HR can manage staff (roles stay gated)', function () {
         ], $staff['headers'])->assertStatus(403);
     });
 
+    it('allows hr to update an admin staff profile when roles are echoed unchanged', function () {
+        $hr = makeAuthUser('hr');
+        $admin = makeAuthUser('admin');
+
+        putJson('/api/v1/staff/'.$admin['staff']->id, ['name' => 'Renamed Admin', 'roles' => ['admin']], $hr['headers'])
+            ->assertStatus(200);
+
+        expect($admin['user']->fresh()->getRoleNames())->toBe(['admin']);
+    });
+
+    it('blocks hr from changing an admin staff roles without a partial save', function () {
+        $hr = makeAuthUser('hr');
+        $admin = makeAuthUser('admin');
+
+        putJson('/api/v1/staff/'.$admin['staff']->id, ['name' => 'ShouldNotSave', 'roles' => ['staff']], $hr['headers'])
+            ->assertStatus(403);
+
+        expect($admin['staff']->fresh()->name)->not->toBe('ShouldNotSave');
+        expect($admin['user']->fresh()->getRoleNames())->toBe(['admin']);
+    });
+
+    it('blocks hr from changing roles even within staff/pm (any change = admin+)', function () {
+        $hr = makeAuthUser('hr');
+        $target = makeAuthUser('staff');
+
+        putJson('/api/v1/staff/'.$target['staff']->id, ['roles' => ['pm']], $hr['headers'])
+            ->assertStatus(403);
+
+        expect($target['user']->fresh()->getRoleNames())->toBe(['staff']);
+    });
+
 });
 
 describe('Authorization: PM cannot access payroll payments', function () {

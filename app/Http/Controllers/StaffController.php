@@ -86,21 +86,36 @@ class StaffController extends Controller
         $item = StaffProfile::findOrFail($id);
         $oldGroupId = $item->leave_group_id;
 
+        $user = User::where('email', $item->getOriginal('email'))->first();
+
+        // Resolve role changes BEFORE any writes so a 403 never leaves a
+        // partially-saved profile. Echoing the current roles (unchanged) is
+        // allowed for any caller — HR may edit an admin's profile, just not
+        // change their roles.
+        $rolesToSync = null;
+        if (isset($data['roles'])) {
+            $roles = is_string($data['roles']) ? [$data['roles']] : $data['roles'];
+            if ($this->rolesChanged($user, $roles)) {
+                $this->assertCanChangeRoles($request, $roles);
+                $rolesToSync = $roles;
+            }
+        } elseif (isset($data['role'])) {
+            $roles = [$data['role']];
+            if ($this->rolesChanged($user, $roles)) {
+                $this->assertCanChangeRoles($request, $roles);
+                $rolesToSync = $roles;
+            }
+        }
+
         $item->update(fillableData($item, $data));
 
-        $user = User::where('email', $item->getOriginal('email'))->first();
         if ($user) {
             $userData = array_intersect_key($data, array_flip(['name', 'email']));
             if (! empty($userData)) {
                 $user->update($userData);
             }
-            if (isset($data['roles'])) {
-                $roles = is_string($data['roles']) ? [$data['roles']] : $data['roles'];
-                $this->assertCanAssignRoles($request, $roles);
-                $user->syncRoles($roles);
-            } elseif (isset($data['role'])) {
-                $this->assertCanAssignRoles($request, [$data['role']]);
-                $user->syncRoles([$data['role']]);
+            if ($rolesToSync !== null) {
+                $user->syncRoles($rolesToSync);
             }
         }
 
@@ -290,6 +305,36 @@ class StaffController extends Controller
         return response()->json($staff);
     }
 
+    private function rolesChanged(?User $user, array $roles): bool
+    {
+        $current = $user ? $user->getRoleNames() : ['staff'];
+        sort($roles, SORT_STRING);
+        sort($current, SORT_STRING);
+
+        return $roles !== $current;
+    }
+
+    /**
+     * Role CHANGES on an existing staff require admin/super_admin. HR may
+     * edit staff data but never roles.
+     */
+    private function assertCanChangeRoles(Request $request, array $roles): void
+    {
+        $user = $request->user();
+        $userRoles = $user ? $user->getRoleNames() : [];
+
+        if (! array_intersect($userRoles, ['admin', 'super_admin'])) {
+            abort(403, 'Only admin or super_admin can update roles');
+        }
+
+        if (in_array('super_admin', $roles, true) && ! in_array('super_admin', $userRoles, true)) {
+            abort(403, 'Only super_admin can assign the super_admin role');
+        }
+    }
+
+    /**
+     * Initial role assignment (staff creation): HR may assign staff/pm only.
+     */
     private function assertCanAssignRoles(Request $request, array $roles): void
     {
         $user = $request->user();
