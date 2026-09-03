@@ -351,4 +351,14 @@ describe('PayrollProcessor PCB', function () {
         expect($item->pcb_employee)->toBeGreaterThan(0);
     });
 
+    it('applies employer-borne PCB only for periods ending on or before pcb_borne_until', function () {
+        $future = makePayrollStaff(['pcb_borne_by_employer' => true, 'pcb_borne_until' => '2030-12-31']);
+        $past = makePayrollStaff(['pcb_borne_by_employer' => true, 'pcb_borne_until' => '2020-01-01']);
+
+        [$period] = runPayroll();
+
+        expect(payrollItemFor($future, $period)->pcb_method['pcb_borne_by_employer'])->toBeTrue();
+        expect(payrollItemFor($past, $period)->pcb_method['pcb_borne_by_employer'])->toBeFalse();
+    });
+
 });

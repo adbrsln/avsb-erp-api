@@ -556,6 +556,7 @@ HTML,
 <h4>Statutory section</h4>
 <ul>
 <li><strong>Worker category (PCB)</strong> — Resident (Pemastautin) for the standard schedule; Non-Resident (30%), REP, IRDA, or C-Suite for flat rates.</li>
+<li><strong>PCB Borne by Employer</strong> — the employer pays the staff member's monthly tax instead of deducting it from pay. Optionally set <strong>PCB Borne Until</strong> so the employer pays only for periods ending on or before that date (for example a retention arrangement that switches to employee-paid mid-year).</li>
 <li><strong>PCB Contributing</strong> — on by default. Turn it off to exempt a staff member from monthly tax deduction entirely.</li>
 <li><strong>Tax No</strong> — the LHDN tax reference number.</li>
 <li><strong>Monthly Zakat (RM)</strong> — optional; reduces PCB when the staff member pays zakat through payroll.</li>

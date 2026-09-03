@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\Auditable;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -25,7 +26,7 @@ class StaffProfile extends Model
         'epf_no', 'socso_no', 'tax_no',
         'epf_contributing', 'epf_member_before_aug_1998',
         'epf_voluntary_employee_rate', 'epf_voluntary_employer_rate',
-        'pcb_borne_by_employer', 'pcb_contributing', 'socso_contribution_type', 'socso_contributing',
+        'pcb_borne_by_employer', 'pcb_contributing', 'pcb_borne_until', 'socso_contribution_type', 'socso_contributing',
         'eis_contributing', 'reported_to_lhdn', 'worker_category',
         'spouse_working', 'spouse_disabled', 'zakat_monthly',
         'payroll_policy', 'payroll_cycle',
@@ -41,6 +42,7 @@ class StaffProfile extends Model
         'epf_member_before_aug_1998' => 'boolean',
         'pcb_borne_by_employer' => 'boolean',
         'pcb_contributing' => 'boolean',
+        'pcb_borne_until' => 'date',
         'socso_contributing' => 'boolean',
         'eis_contributing' => 'boolean',
         'reported_to_lhdn' => 'boolean',
@@ -71,6 +73,23 @@ class StaffProfile extends Model
     public function user()
     {
         return $this->belongsTo(User::class, 'email', 'email');
+    }
+
+    /**
+     * Employer-borne PCB applies for payroll periods ending on or before
+     * pcb_borne_until (when set); otherwise it applies indefinitely.
+     */
+    public function pcbBorneEffective(?string $periodEndDate): bool
+    {
+        if (! $this->pcb_borne_by_employer) {
+            return false;
+        }
+
+        if ($this->pcb_borne_until === null || $periodEndDate === null) {
+            return true;
+        }
+
+        return Carbon::parse($periodEndDate)->lte($this->pcb_borne_until);
     }
 
     public function getRoleAttribute()

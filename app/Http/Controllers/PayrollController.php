@@ -515,7 +515,7 @@ class PayrollController extends Controller
         }
 
         $pcbTotal = ($pcb?->amount ?? 0) + $additionalPcb;
-        $pcbMethod['pcb_borne_by_employer'] = (bool) $employee->pcb_borne_by_employer;
+        $pcbMethod['pcb_borne_by_employer'] = $employee->pcbBorneEffective($item->period?->end_date?->toDateString());
 
         $item->update([
             'epf_schedule_code' => $epf->scheduleCode,

@@ -104,7 +104,7 @@ class PayrollProcessor
                 $pcbMethod = ['pcb_contributing' => false];
             }
 
-            $pcbMethod['pcb_borne_by_employer'] = (bool) $employee->pcb_borne_by_employer;
+            $pcbMethod['pcb_borne_by_employer'] = $employee->pcbBorneEffective($period->end_date?->toDateString());
 
             PayrollRunItem::updateOrCreate(
                 ['period_id' => $periodId, 'employee_id' => $employee->id],
