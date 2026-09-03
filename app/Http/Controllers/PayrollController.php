@@ -35,9 +35,26 @@ class PayrollController extends Controller
     public function listPeriods(Request $request): JsonResponse
     {
         $params = $request->query();
-        $query = PayrollPeriod::withCount('items')->orderByDesc('year')->orderByDesc('month');
+        $query = PayrollPeriod::withCount('items');
 
-        return $this->paginate($query, $params);
+        if (! empty($params['search'])) {
+            $query->where('code', 'like', '%'.$params['search'].'%');
+        }
+        if (! empty($params['status']) && in_array($params['status'], ['open', 'closed'], true)) {
+            $query->where('status', $params['status']);
+        }
+        if (! empty($params['year'])) {
+            $query->where('year', (int) $params['year']);
+        }
+
+        $query->orderByDesc('year')->orderByDesc('month');
+
+        $years = PayrollPeriod::query()
+            ->distinct()
+            ->orderByDesc('year')
+            ->pluck('year');
+
+        return $this->paginate($query, $params, ['years' => $years]);
     }
 
     public function closePeriod(Request $request, int $id): JsonResponse
