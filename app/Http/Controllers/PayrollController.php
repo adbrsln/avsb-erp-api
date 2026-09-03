@@ -66,6 +66,18 @@ class PayrollController extends Controller
         if ($period->status === 'closed') {
             return response()->json(['error' => 'Period is already closed'], 422);
         }
+
+        // Closing locks the period: unconfirmed items could never be confirmed
+        // or paid afterwards. Block the close until every payslip is confirmed.
+        $unconfirmed = PayrollRunItem::where('period_id', $period->id)
+            ->where('confirmed', false)
+            ->count();
+        if ($unconfirmed > 0) {
+            return response()->json([
+                'error' => "Cannot close: {$unconfirmed} payslip(s) not confirmed. Confirm or remove them first.",
+            ], 422);
+        }
+
         $period->update(['status' => 'closed']);
 
         return response()->json($period->fresh()->toArray());
