@@ -247,12 +247,18 @@ class PcbCalculator
             $tax += max(0.0, $bandTop - $min) * $bracket['rate'] / 100;
         }
 
-        return $tax;
+        // Round to cents: float accumulation can land a boundary value a
+        // fraction above the true 5-sen point and over-charge (e.g. 5470/mo
+        // → 1790.4000...0001 tax → 149.25 instead of LHDN's 149.20).
+        return round($tax, 2);
     }
 
     private function ceilSen5(float $amount): float
     {
-        return ceil($amount * 20) / 20;
+        // Round to cents first: float division (e.g. 1790.40/12) can land a
+        // boundary value a fraction above the true 5-sen point (149.25 vs
+        // LHDN's 149.20).
+        return ceil(round($amount, 2) * 20) / 20;
     }
 
     /**

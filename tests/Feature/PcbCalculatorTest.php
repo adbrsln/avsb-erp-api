@@ -29,6 +29,23 @@ it('returns zero PCB when annual chargeable income is within the 0% band', funct
     expect($pcb->amount)->toBe(0.0);
 });
 
+it('matches LHDN on a 5-sen boundary (RM5,470 single + EPF → 149.20, live-verified)', function () {
+    $pcb = (new PcbCalculator)->calculateRaw(
+        monthlyGross: 5470,
+        employeeEpf: 601.70,
+        taxYear: 2026,
+        workerCategory: 'pemastautin',
+        maritalStatus: 'single',
+        spouseWorking: null,
+        spouseDisabled: false,
+        childrenTax: null,
+        abilityStatus: 'normal',
+        month: 1,
+    );
+
+    expect($pcb->amount)->toBe(149.20);
+});
+
 it('calculates PCB for a single resident (RM8,000, EPF 11%) — live-verified 514.20', function () {
     $pcb = (new PcbCalculator)->calculateRaw(
         monthlyGross: 8000,
