@@ -319,6 +319,113 @@ class PayrollController extends Controller
         ]);
     }
 
+    public function exportEpf(Request $request, int $id): Response|JsonResponse
+    {
+        $period = PayrollPeriod::find($id);
+        if (! $period) {
+            return response()->json(['error' => 'Payroll period not found'], 404);
+        }
+
+        $items = PayrollRunItem::where('period_id', $period->id)
+            ->where('confirmed', true)
+            ->join('staff_profiles', 'payroll_run_items.employee_id', '=', 'staff_profiles.id')
+            ->select(
+                'payroll_run_items.*',
+                'staff_profiles.epf_no as staff_epf_no',
+                'staff_profiles.identification_no as staff_ic',
+                'staff_profiles.name as employee_name',
+            )
+            ->orderBy('staff_profiles.name')
+            ->get();
+
+        $handle = fopen('php://temp', 'w+');
+        fwrite($handle, "\xEF\xBB\xBF");
+        fputcsv($handle, [
+            'Member EPF No', 'Employee Identification No', 'Employee Name', 'Employee Salary', 'Employer Amount', 'Employee Amount',
+        ]);
+        foreach ($items as $item) {
+            fputcsv($handle, [
+                $item->staff_epf_no ?? '',
+                $item->staff_ic ?? '',
+                $item->employee_name ?? '',
+                number_format((float) $item->salary, 2, '.', ''),
+                number_format((float) $item->epf_employer, 2, '.', ''),
+                number_format((float) $item->epf_employee, 2, '.', ''),
+            ]);
+        }
+        rewind($handle);
+        $csv = stream_get_contents($handle);
+        fclose($handle);
+
+        $base = str_replace([' ', '/', '\\'], '-', $period->code);
+
+        return response($csv, 200, [
+            'Content-Type' => 'text/csv; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="epf-'.$base.'-'.date('Ymd').'.csv"',
+            'Content-Length' => strlen($csv),
+        ]);
+    }
+
+    public function exportSocso(Request $request, int $id): Response|JsonResponse
+    {
+        $period = PayrollPeriod::find($id);
+        if (! $period) {
+            return response()->json(['error' => 'Payroll period not found'], 404);
+        }
+
+        $company = CompanySetting::first();
+
+        $items = PayrollRunItem::where('period_id', $period->id)
+            ->where('confirmed', true)
+            ->join('staff_profiles', 'payroll_run_items.employee_id', '=', 'staff_profiles.id')
+            ->select(
+                'payroll_run_items.*',
+                'staff_profiles.identification_no as staff_ic',
+                'staff_profiles.name as employee_name',
+            )
+            ->orderBy('staff_profiles.name')
+            ->get();
+
+        $month = sprintf('%02d%04d', (int) $period->month, (int) $period->year);
+
+        $lines = [];
+        foreach ($items as $item) {
+            $lines[] = $this->socsoLine($item, $company, $month);
+        }
+
+        $content = implode("\r\n", $lines)."\r\n";
+        $base = str_replace([' ', '/', '\\'], '-', $period->code);
+
+        return response($content, 200, [
+            'Content-Type' => 'text/plain; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="socso-'.$base.'-'.date('Ymd').'.txt"',
+            'Content-Length' => strlen($content),
+        ]);
+    }
+
+    private function socsoLine(PayrollRunItem $item, ?CompanySetting $company, string $month): string
+    {
+        $padRight = fn ($s, int $len) => str_pad((string) ($s ?? ''), $len, ' ', STR_PAD_RIGHT);
+        $padCents = fn ($v, int $len) => str_pad((string) round((float) $v * 100), $len, '0', STR_PAD_LEFT);
+
+        $line = '';
+        $line .= $padRight($company?->socso_no ?? '', 12);      // Employer Code
+        $line .= $padRight($company?->reg_no ?? '', 20);        // MyCoID / SSM
+        $line .= $padRight($item->staff_ic ?? '', 12);          // Identification No (IC)
+        $line .= $padRight($item->employee_name ?? '', 150);    // Employee Name
+        $line .= $month;                                        // Month MMYYYY
+        $line .= $padCents($item->salary, 14);                  // Salary (cents)
+        $line .= $padCents($item->socso_employer, 6);           // SOCSO employer (cents)
+        $line .= $padCents($item->socso_employee, 6);           // SOCSO employee (cents)
+        $line .= $padCents($item->eis_employer, 6);             // EIS employer (cents)
+        $line .= $padCents($item->eis_employee, 6);             // EIS employee (cents)
+        $line .= $padCents($item->socso_24h_employee ?? 0, 6);  // SKBBK employee (cents)
+        $line .= str_pad('', 14, ' ');                          // Filler 1
+        $line .= str_pad('', 20, ' ');                          // Filler 2
+
+        return $line;
+    }
+
     public function calculate(Request $request): JsonResponse
     {
         $body = $request->all();
