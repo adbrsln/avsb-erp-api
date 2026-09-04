@@ -242,7 +242,7 @@ it('applies the flat rate to additional remuneration for non-residents', functio
     expect((new PcbCalculator)->additionalRemunerationPcb($base, 1000, 0))->toBe(300.00);
 });
 
-it('does not charge PCB when the monthly amount is below RM10 (LHDN rule)', function () {
+it('does not charge PCB when the annual tax is below RM10 (myTax rule)', function () {
     $pcb = (new PcbCalculator)->calculateRaw(
         monthlyGross: 2000,
         employeeEpf: 0,
@@ -256,7 +256,26 @@ it('does not charge PCB when the monthly amount is below RM10 (LHDN rule)', func
         month: 1,
     );
 
+    // annual tax 100 − 400 rebate = 0 → below RM10 → no deduction
     expect($pcb->amount)->toBe(0.0);
+});
+
+it('deducts a sub-RM10 monthly PCB when the annual tax exceeds RM10 (myTax-verified 9.95)', function () {
+    $pcb = (new PcbCalculator)->calculateRaw(
+        monthlyGross: 3941.50,
+        employeeEpf: round(3941.50 * 0.11, 2),
+        taxYear: 2026,
+        workerCategory: 'pemastautin',
+        maritalStatus: 'married',
+        spouseWorking: true,
+        spouseDisabled: false,
+        childrenTax: ['a' => ['total' => 1, 'eligible_50' => 0]],
+        abilityStatus: 'normal',
+        month: 1,
+    );
+
+    // annual tax 118.94 (> 10) → monthly 9.95 is charged; no per-month floor
+    expect($pcb->amount)->toBe(9.95);
 });
 
 it('throws when no tax schedule exists for the year', function () {

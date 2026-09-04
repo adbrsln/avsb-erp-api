@@ -64,10 +64,14 @@ class PcbCalculator
         // Flat-rate categories (non-resident 30%, REP/IRDA/C-suite 15%).
         if ($workerCategory !== 'pemastautin') {
             $rate = $this->flatRate($taxYear, $workerCategory);
-            $amount = $this->ceilSen5($monthlyGross * $rate / 100);
+            $monthlyAmount = $this->ceilSen5($monthlyGross * $rate / 100);
+            // RM10 rule applied to the ANNUAL tax (myTax portal does not floor
+            // the monthly amount) — no deduction only if the whole year's tax
+            // is under RM10.
+            $amount = ($monthlyGross * $rate / 100 * 12) < 10.0 ? 0.0 : $monthlyAmount;
 
             return new PcbResult(
-                amount: $this->applyMinimumPcb($amount),
+                amount: $amount,
                 taxYear: $taxYear,
                 workerCategory: $workerCategory,
                 chargeableIncome: 0.0,
@@ -107,8 +111,16 @@ class PcbCalculator
         $annualZakat = $zakat * 12;
         $annualPcb = max(0.0, $annualTax - $annualZakat);
 
-        $amount = max(0.0, ($annualPcb - $ytdPcb) / $remainingMonths);
-        $amount = $this->applyMinimumPcb($this->ceilSen5($amount));
+        // RM10 rule applied to the ANNUAL tax: no deduction only when the
+        // whole year's tax is under RM10. myTax does not floor the monthly
+        // amount (9.95 is deducted even though < 10), so a per-month floor
+        // would under-deduct. calcpcbplus floors per-month — we follow myTax.
+        if ($annualPcb < 10.0) {
+            $amount = 0.0;
+        } else {
+            $amount = max(0.0, ($annualPcb - $ytdPcb) / $remainingMonths);
+            $amount = $this->ceilSen5($amount);
+        }
 
         return new PcbResult(
             amount: $amount,
@@ -259,14 +271,5 @@ class PcbCalculator
         // boundary value a fraction above the true 5-sen point (149.25 vs
         // LHDN's 149.20).
         return ceil(round($amount, 2) * 20) / 20;
-    }
-
-    /**
-     * LHDN rule (per calcpcbplus note): no PCB charged when the monthly
-     * deduction is less than RM10.
-     */
-    private function applyMinimumPcb(float $amount): float
-    {
-        return $amount < 10.0 ? 0.0 : $amount;
     }
 }
