@@ -234,6 +234,91 @@ class PayrollController extends Controller
         return response()->json(['data' => $items]);
     }
 
+    public function exportItems(Request $request, int $id): Response|JsonResponse
+    {
+        $period = PayrollPeriod::find($id);
+        if (! $period) {
+            return response()->json(['error' => 'Payroll period not found'], 404);
+        }
+
+        $format = $request->query('format', 'csv');
+        if (! in_array($format, ['csv', 'json'], true)) {
+            $format = 'csv';
+        }
+
+        $items = PayrollRunItem::where('period_id', $period->id)
+            ->join('staff_profiles', 'payroll_run_items.employee_id', '=', 'staff_profiles.id')
+            ->select(
+                'payroll_run_items.*',
+                'staff_profiles.name as employee_name',
+                'staff_profiles.employee_id as employee_code',
+                'staff_profiles.department as employee_department',
+                'staff_profiles.job_title as employee_job_title',
+            )
+            ->orderBy('staff_profiles.name')
+            ->get();
+
+        $rows = $items->map(fn ($item) => [
+            'employee' => $item->employee_name,
+            'employee_id' => $item->employee_code,
+            'department' => $item->employee_department ?? '',
+            'job_title' => $item->employee_job_title ?? '',
+            'epf_schedule' => $item->epf_schedule_code ?? '',
+            'gross_salary' => round((float) $item->salary, 2),
+            'epf_employer' => round((float) $item->epf_employer, 2),
+            'epf_employee' => round((float) $item->epf_employee, 2),
+            'socso_employer' => round((float) $item->socso_employer, 2),
+            'socso_employee' => round((float) $item->socso_employee, 2),
+            'eis_employer' => round((float) $item->eis_employer, 2),
+            'eis_employee' => round((float) $item->eis_employee, 2),
+            'socso_24h' => round((float) ($item->socso_24h_employee ?? 0), 2),
+            'pcb' => round((float) ($item->pcb_employee ?? 0), 2),
+            'zakat' => round((float) ($item->zakat ?? 0), 2),
+            'net_pay' => round((float) $item->net_pay, 2),
+            'status' => $item->paid ? 'Paid' : ($item->confirmed ? 'Confirmed' : 'Pending'),
+            'tax_year' => $item->pcb_tax_year ?? '',
+        ])->values();
+
+        $base = str_replace([' ', '/', '\\'], '-', $period->code);
+        $filename = 'payroll-'.$base.'-'.date('Ymd');
+
+        if ($format === 'json') {
+            return response()->json([
+                'period' => [
+                    'id' => $period->id,
+                    'code' => $period->code,
+                    'start_date' => $period->start_date?->toDateString(),
+                    'end_date' => $period->end_date?->toDateString(),
+                    'status' => $period->status,
+                ],
+                'items' => $rows,
+            ], 200, [
+                'Content-Disposition' => 'attachment; filename="'.$filename.'.json"',
+            ]);
+        }
+
+        $handle = fopen('php://temp', 'w+');
+        fwrite($handle, "\xEF\xBB\xBF");
+        fputcsv($handle, [
+            'Employee', 'Employee ID', 'Department', 'Job Title', 'EPF Schedule',
+            'Gross Salary', 'EPF Employer', 'EPF Employee', 'SOCSO Employer',
+            'SOCSO Employee', 'EIS Employer', 'EIS Employee', 'SOCSO 24h',
+            'PCB', 'Zakat', 'Net Pay', 'Status', 'Tax Year',
+        ]);
+        foreach ($rows as $row) {
+            fputcsv($handle, array_values($row));
+        }
+        rewind($handle);
+        $csv = stream_get_contents($handle);
+        fclose($handle);
+
+        return response($csv, 200, [
+            'Content-Type' => 'text/csv; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'.csv"',
+            'Content-Length' => strlen($csv),
+        ]);
+    }
+
     public function calculate(Request $request): JsonResponse
     {
         $body = $request->all();
