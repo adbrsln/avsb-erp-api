@@ -351,7 +351,7 @@ class PayrollController extends Controller
         foreach ($items as $item) {
             fputcsv($handle, [
                 $item->staff_epf_no ?? '',
-                $item->staff_ic ?? '',
+                preg_replace('/[^0-9]/', '', (string) ($item->staff_ic ?? '')),
                 $item->employee_name ?? '',
                 number_format((float) $item->salary, 2, '.', ''),
                 number_format((float) $item->epf_employer, 2, '.', ''),
@@ -507,8 +507,8 @@ class PayrollController extends Controller
 
         $line = '';
         $line .= $padRight($company?->socso_no ?? '', 12);      // Employer Code
-        $line .= $padRight($company?->reg_no ?? '', 20);        // MyCoID / SSM
-        $line .= $padRight($item->staff_ic ?? '', 12);          // Identification No (IC)
+        $line .= str_pad('', 20, ' ');                        // MyCoID / SSM (optional — blanked)
+        $line .= $padRight(preg_replace('/[^0-9]/', '', (string) ($item->staff_ic ?? '')), 12);  // Identification No (IC)
         $line .= $padRight($item->employee_name ?? '', 150);    // Employee Name
         $line .= $month;                                        // Month MMYYYY
         $line .= $padCents($item->salary, 14);                  // Salary (cents)
