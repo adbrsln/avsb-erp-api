@@ -790,8 +790,8 @@ class PayrollController extends Controller
         $eis = $employee->eis_contributing
             ? (new EisCalculator)->calculate($adjustedSalary)
             : new EisResult($adjustedSalary, 0.0, 0.0);
-        $socso24 = $employee->socso_contributing
-            ? (new Socso24Calculator)->calculate($adjustedSalary)
+        $socso24 = ($employee->socso_contributing && $employee->socso_24h_enabled)
+            ? (new Socso24Calculator)->calculate($adjustedSalary, $employee->socso_category ?? 'first')
             : ['amount' => 0];
 
         $taxYear = $item->period?->year ?? (int) date('Y');
