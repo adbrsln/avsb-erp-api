@@ -447,11 +447,12 @@ class PayrollController extends Controller
         $mtdRecords = 0;
         foreach ($items as $item) {
             $mtdCents = (int) round((float) $item->pcb_employee * 100);
+            if ($mtdCents <= 0) {
+                continue; // zero-PCB employees are not part of the MTD submission
+            }
             $details[] = $this->pcbDetailLine($item, $mtdCents);
             $totalMtd += $mtdCents;
-            if ($mtdCents > 0) {
-                $mtdRecords++;
-            }
+            $mtdRecords++;
         }
 
         $month = sprintf('%02d', (int) $period->month);
