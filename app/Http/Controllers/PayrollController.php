@@ -349,6 +349,9 @@ class PayrollController extends Controller
             'Member EPF No', 'Employee Identification No', 'Employee Name', 'Employee Salary', 'Employer Amount', 'Employee Amount',
         ]);
         foreach ($items as $item) {
+            if ((float) $item->epf_employer <= 0 && (float) $item->epf_employee <= 0) {
+                continue; // no EPF contribution — not part of the EPF submission
+            }
             fputcsv($handle, [
                 $item->staff_epf_no ?? '',
                 preg_replace('/[^0-9]/', '', (string) ($item->staff_ic ?? '')),
@@ -400,6 +403,14 @@ class PayrollController extends Controller
 
         $lines = [];
         foreach ($items as $item) {
+            $hasSocso = (float) $item->socso_employer > 0
+                || (float) $item->socso_employee > 0
+                || (float) $item->eis_employer > 0
+                || (float) $item->eis_employee > 0
+                || (float) ($item->socso_24h_employee ?? 0) > 0;
+            if (! $hasSocso) {
+                continue; // no SOCSO/EIS/SKBBK contribution — not part of the submission
+            }
             $lines[] = $this->socsoLine($item, $company, $month);
         }
 
