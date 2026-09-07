@@ -35,7 +35,11 @@ class PayrollController extends Controller
     public function listPeriods(Request $request): JsonResponse
     {
         $params = $request->query();
-        $query = PayrollPeriod::withCount('items');
+        $query = PayrollPeriod::withCount([
+            'items as items_count',
+            'items as confirmed_count' => fn ($q) => $q->where('confirmed', true),
+            'items as paid_count' => fn ($q) => $q->where('paid', true),
+        ]);
 
         if (! empty($params['search'])) {
             $query->where('code', 'like', '%'.$params['search'].'%');
