@@ -326,6 +326,11 @@ class PayrollController extends Controller
             return response()->json(['error' => 'Payroll period not found'], 404);
         }
 
+        $confirmedCount = PayrollRunItem::where('period_id', $period->id)->where('confirmed', true)->count();
+        if ($confirmedCount === 0) {
+            return response()->json(['error' => 'No confirmed payslips to export. Confirm the payslips first.'], 422);
+        }
+
         $items = PayrollRunItem::where('period_id', $period->id)
             ->where('confirmed', true)
             ->join('staff_profiles', 'payroll_run_items.employee_id', '=', 'staff_profiles.id')
@@ -373,6 +378,11 @@ class PayrollController extends Controller
             return response()->json(['error' => 'Payroll period not found'], 404);
         }
 
+        $confirmedCount = PayrollRunItem::where('period_id', $period->id)->where('confirmed', true)->count();
+        if ($confirmedCount === 0) {
+            return response()->json(['error' => 'No confirmed payslips to export. Confirm the payslips first.'], 422);
+        }
+
         $company = CompanySetting::first();
 
         $items = PayrollRunItem::where('period_id', $period->id)
@@ -401,6 +411,93 @@ class PayrollController extends Controller
             'Content-Disposition' => 'attachment; filename="socso-'.$base.'-'.date('Ymd').'.txt"',
             'Content-Length' => strlen($content),
         ]);
+    }
+
+    public function exportPcb(Request $request, int $id): Response|JsonResponse
+    {
+        $period = PayrollPeriod::find($id);
+        if (! $period) {
+            return response()->json(['error' => 'Payroll period not found'], 404);
+        }
+
+        $confirmedCount = PayrollRunItem::where('period_id', $period->id)->where('confirmed', true)->count();
+        if ($confirmedCount === 0) {
+            return response()->json(['error' => 'No confirmed payslips to export. Confirm the payslips first.'], 422);
+        }
+
+        $company = CompanySetting::first();
+
+        $items = PayrollRunItem::where('period_id', $period->id)
+            ->where('confirmed', true)
+            ->join('staff_profiles', 'payroll_run_items.employee_id', '=', 'staff_profiles.id')
+            ->select(
+                'payroll_run_items.*',
+                'staff_profiles.tax_no as staff_tax_no',
+                'staff_profiles.identification_no as staff_ic',
+                'staff_profiles.name as employee_name',
+                'staff_profiles.employee_id as employee_code',
+            )
+            ->orderBy('staff_profiles.name')
+            ->get();
+
+        $employerNumber = $this->cleanNumber($company?->tax_id_number ?? '', 10);
+
+        $details = [];
+        $totalMtd = 0;
+        $mtdRecords = 0;
+        foreach ($items as $item) {
+            $mtdCents = (int) round((float) $item->pcb_employee * 100);
+            $details[] = $this->pcbDetailLine($item, $mtdCents);
+            $totalMtd += $mtdCents;
+            if ($mtdCents > 0) {
+                $mtdRecords++;
+            }
+        }
+
+        $month = sprintf('%02d', (int) $period->month);
+        $year = sprintf('%04d', (int) $period->year);
+
+        $header = 'H'
+            .$employerNumber
+            .$employerNumber
+            .$year
+            .$month
+            .str_pad((string) $totalMtd, 10, '0', STR_PAD_LEFT)
+            .str_pad((string) $mtdRecords, 5, '0', STR_PAD_LEFT)
+            .str_pad('0', 10, '0', STR_PAD_LEFT)
+            .str_pad('0', 5, '0', STR_PAD_LEFT);
+
+        $content = $header."\r\n".implode("\r\n", $details)."\r\n";
+        $filename = $employerNumber.$month.'_'.$year.'.txt';
+
+        return response($content, 200, [
+            'Content-Type' => 'text/plain; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+            'Content-Length' => strlen($content),
+        ]);
+    }
+
+    private function pcbDetailLine(PayrollRunItem $item, int $mtdCents): string
+    {
+        $padRight = fn ($s, int $len) => str_pad((string) ($s ?? ''), $len, ' ', STR_PAD_RIGHT);
+
+        return 'D'
+            .$this->cleanNumber($item->staff_tax_no ?? '', 11)     // TIN
+            .$padRight($item->employee_name ?? '', 60)             // Name
+            .str_pad('', 12, ' ')                                  // Old IC
+            .$padRight(str_replace('-', '', (string) ($item->staff_ic ?? '')), 12) // New IC
+            .str_pad('', 12, ' ')                                  // Passport
+            .str_pad('', 2, ' ')                                   // Country Code
+            .str_pad((string) $mtdCents, 8, '0', STR_PAD_LEFT)     // MTD cents
+            .str_pad('0', 8, '0', STR_PAD_LEFT)                    // CP38 cents
+            .$padRight($item->employee_code ?? '', 10);            // Employee No.
+    }
+
+    private function cleanNumber(?string $value, int $length): string
+    {
+        $digits = preg_replace('/[^0-9]/', '', (string) $value);
+
+        return str_pad($digits, $length, '0', STR_PAD_LEFT);
     }
 
     private function socsoLine(PayrollRunItem $item, ?CompanySetting $company, string $month): string

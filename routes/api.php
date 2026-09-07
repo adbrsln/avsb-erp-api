@@ -407,6 +407,7 @@ Route::prefix('v1')->group(function () {
         Route::get('payroll/periods/{id}/export', [PayrollController::class, 'exportItems'])->middleware('role:hr,finance,admin,super_admin');
         Route::get('payroll/periods/{id}/export-epf', [PayrollController::class, 'exportEpf'])->middleware('role:hr,finance,admin,super_admin');
         Route::get('payroll/periods/{id}/export-socso', [PayrollController::class, 'exportSocso'])->middleware('role:hr,finance,admin,super_admin');
+        Route::get('payroll/periods/{id}/export-pcb', [PayrollController::class, 'exportPcb'])->middleware('role:hr,finance,admin,super_admin');
         Route::get('payroll/periods/{id}/items/{itemId}', [PayrollController::class, 'getPeriodItem'])->middleware('role:hr,finance,admin,super_admin');
         Route::post('payroll/periods/{id}/process', [PayrollController::class, 'processPeriod'])->middleware('role:hr,admin,super_admin');
         Route::post('payroll/periods/{id}/process-part-time', [PayrollController::class, 'processPartTime'])->middleware('role:hr,admin,super_admin');
