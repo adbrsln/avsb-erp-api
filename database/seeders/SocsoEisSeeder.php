@@ -4,8 +4,9 @@ namespace Database\Seeders;
 
 use App\Models\EisContributionTier;
 use App\Models\SocsoContributionTier;
+use Illuminate\Database\Seeder;
 
-class SocsoEisSeeder
+class SocsoEisSeeder extends Seeder
 {
     public function run(): void
     {
