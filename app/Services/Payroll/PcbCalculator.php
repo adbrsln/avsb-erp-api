@@ -38,6 +38,7 @@ class PcbCalculator
             ytdPcb: $ctx->ytdPcb,
             ytdEpf: $ctx->ytdEpf,
             additionalRemuneration: $ctx->additionalRemuneration,
+            additionalRemunerationPrior: $ctx->additionalRemunerationPrior,
             month: $ctx->month,
         );
     }
@@ -57,6 +58,7 @@ class PcbCalculator
         float $ytdPcb = 0,
         float $ytdEpf = 0,
         float $additionalRemuneration = 0,
+        float $additionalRemunerationPrior = 0,
         int $month = 1,
     ): PcbResult {
         $this->schedule->assertScheduleExists($taxYear);
@@ -70,6 +72,13 @@ class PcbCalculator
             // is under RM10.
             $amount = ($monthlyGross * $rate / 100 * 12) < 10.0 ? 0.0 : $monthlyAmount;
 
+            // Design A: the period declaring additional remuneration spikes
+            // the flat-rate tax on that additional amount.
+            $bonusTax = $additionalRemuneration > $additionalRemunerationPrior
+                ? $this->ceilSen5(($additionalRemuneration - $additionalRemunerationPrior) * $rate / 100)
+                : 0.0;
+            $amount = $this->ceilSen5($amount + $bonusTax);
+
             return new PcbResult(
                 amount: $amount,
                 taxYear: $taxYear,
@@ -78,7 +87,11 @@ class PcbCalculator
                 annualTax: 0.0,
                 ytdPcb: 0.0,
                 zakat: 0.0,
-                breakdown: ['worker_category' => $workerCategory, 'flat_rate' => $rate],
+                breakdown: [
+                    'worker_category' => $workerCategory,
+                    'flat_rate' => $rate,
+                    'bonus_tax' => $bonusTax,
+                ],
             );
         }
 
@@ -87,12 +100,10 @@ class PcbCalculator
         $month = max(1, min(12, $month));
         $remainingMonths = 13 - $month;
 
-        // Annualise gross directly; EPF relief is the ANNUAL cap (RM4,000),
-        // not the monthly contribution × 12 (verified against calcpcbplus:
-        // RM8,000 + EPF 880 → chargeable 83,000 = 96,000 − 4,000 − 9,000).
-        $annualGross = ($monthlyGross * 12) + $additionalRemuneration;
+        // EPF relief is the ANNUAL cap (RM4,000), independent of how many
+        // months remain — otherwise the annual tax target drifts by month.
         $epfCap = (float) ($reliefs['epf'] ?? 4000.0);
-        $annualEpf = min($ytdEpf + ($employeeEpf * $remainingMonths), $epfCap);
+        $annualEpf = min($employeeEpf * 12, $epfCap);
 
         $reliefTotal = $this->annualReliefs(
             $reliefs,
@@ -103,31 +114,45 @@ class PcbCalculator
             $abilityStatus
         );
 
-        $chargeableIncome = max(0.0, $annualGross - $annualEpf - $reliefTotal);
+        // Design A (bonus spike + spread): every month pays a constant
+        // baseline of the no-bonus annual tax ÷ 12. The period that declares
+        // additional remuneration spikes the incremental tax that the bonus
+        // adds to the annual total. Across the year the total is exactly the
+        // annual tax on (monthly gross × 12 + total additional remuneration).
+        $annualGross = ($monthlyGross * 12);
+        $chargeableBase = max(0.0, $annualGross - $annualEpf - $reliefTotal);
+        $annualTaxBase = $this->annualTaxAfterReliefs($taxYear, $chargeableBase, $reliefs, $maritalStatus, $spouseWorking);
 
-        $annualTax = $this->taxOn($this->schedule->brackets($taxYear, 'pemastautin'), $chargeableIncome);
-        $annualTax = $this->applyRebate($annualTax, $chargeableIncome, $reliefs, $maritalStatus, $spouseWorking);
+        $chargeableWithBonus = max(0.0, $annualGross + $additionalRemuneration - $annualEpf - $reliefTotal);
+        $annualTaxWithBonus = $this->annualTaxAfterReliefs($taxYear, $chargeableWithBonus, $reliefs, $maritalStatus, $spouseWorking);
 
         $annualZakat = $zakat * 12;
-        $annualPcb = max(0.0, $annualTax - $annualZakat);
 
-        // RM10 rule applied to the ANNUAL tax: no deduction only when the
-        // whole year's tax is under RM10. myTax does not floor the monthly
-        // amount (9.95 is deducted even though < 10), so a per-month floor
-        // would under-deduct. calcpcbplus floors per-month — we follow myTax.
-        if ($annualPcb < 10.0) {
+        $baselineMonthly = max(0.0, ($annualTaxBase - $annualZakat) / 12);
+
+        // Incremental tax from the additional remuneration declared in THIS
+        // period (delta between the new cumulative and the prior cumulative).
+        $chargeableWithPrior = max(0.0, $annualGross + $additionalRemunerationPrior - $annualEpf - $reliefTotal);
+        $annualTaxWithPrior = $this->annualTaxAfterReliefs($taxYear, $chargeableWithPrior, $reliefs, $maritalStatus, $spouseWorking);
+        $bonusTax = max(0.0, $annualTaxWithBonus - $annualTaxWithPrior);
+
+        // RM10 rule on the annual tax: no deduction when the whole year's tax
+        // is under RM10 (myTax does not floor the monthly amount).
+        $annualPcb = max(0.0, $annualTaxBase - $annualZakat);
+        if ($annualPcb < 10.0 && $bonusTax == 0.0) {
             $amount = 0.0;
         } else {
-            $amount = max(0.0, ($annualPcb - $ytdPcb) / $remainingMonths);
-            $amount = $this->ceilSen5($amount);
+            // Baseline every month, plus the incremental bonus tax spiked in
+            // the declaring period (Design A).
+            $amount = $this->ceilSen5($baselineMonthly + $bonusTax);
         }
 
         return new PcbResult(
             amount: $amount,
             taxYear: $taxYear,
             workerCategory: $workerCategory,
-            chargeableIncome: $chargeableIncome,
-            annualTax: $annualTax,
+            chargeableIncome: $chargeableWithBonus,
+            annualTax: $annualTaxWithBonus,
             ytdPcb: $ytdPcb,
             zakat: $zakat,
             breakdown: [
@@ -135,13 +160,25 @@ class PcbCalculator
                 'monthly_gross' => $monthlyGross,
                 'epf_employee' => $employeeEpf,
                 'annual_epf_relief' => $annualEpf,
-                'annual_gross' => $annualGross,
-                'annual_chargeable' => $chargeableIncome,
+                'annual_gross' => $annualGross + $additionalRemuneration,
+                'annual_chargeable' => $chargeableWithBonus,
                 'reliefs_total' => $reliefTotal,
                 'annual_zakat' => $annualZakat,
                 'remaining_months' => $remainingMonths,
+                'additional_remuneration' => $additionalRemuneration,
+                'additional_remuneration_prior' => $additionalRemunerationPrior,
+                'bonus_tax' => $bonusTax,
+                'baseline_monthly' => $baselineMonthly,
             ],
         );
+    }
+
+    private function annualTaxAfterReliefs(int $taxYear, float $chargeable, array $reliefs, ?string $maritalStatus, ?bool $spouseWorking): float
+    {
+        $tax = $this->taxOn($this->schedule->brackets($taxYear, 'pemastautin'), $chargeable);
+        $tax = $this->applyRebate($tax, $chargeable, $reliefs, $maritalStatus, $spouseWorking);
+
+        return $tax;
     }
 
     private function applyRebate(
@@ -162,38 +199,6 @@ class PcbCalculator
         }
 
         return max(0.0, $annualTax - $rebate);
-    }
-
-    /**
-     * LHDN additional-remuneration (saraan tambahan) PCB — one-shot in the
-     * month the bonus is paid: PCB(C) = CS − [PCB(B) + Z], where
-     * CS = annual tax on (ordinary chargeable + additional net),
-     * PCB(B) = cumulative PCB incl. this month's ordinary deduction,
-     * Z = accumulated zakat. Subsequent months converge to zero because
-     * the year's tax was front-loaded in this month.
-     */
-    public function additionalRemunerationPcb(PcbResult $base, float $additionalGross, float $additionalEpf = 0): float
-    {
-        if ($base->workerCategory !== 'pemastautin') {
-            $rate = $this->flatRate($base->taxYear, $base->workerCategory);
-
-            return max(0.0, $this->ceilSen5($additionalGross * $rate / 100));
-        }
-
-        $reliefs = $this->schedule->reliefs($base->taxYear);
-        $epfCap = (float) ($reliefs['epf'] ?? 4000.0);
-        $annualEpfBase = (float) ($base->breakdown['annual_epf_relief'] ?? 0);
-        $combinedEpf = min($annualEpfBase + $additionalEpf, $epfCap);
-        $additionalNet = $additionalGross - max(0.0, $combinedEpf - $annualEpfBase);
-
-        $cs = $this->taxOn(
-            $this->schedule->brackets($base->taxYear, 'pemastautin'),
-            $base->chargeableIncome + $additionalNet
-        );
-        $pcbB = $base->ytdPcb + $base->amount;
-        $zAccum = (float) ($base->breakdown['annual_zakat'] ?? 0);
-
-        return max(0.0, $this->ceilSen5($cs - $pcbB - $zAccum));
     }
 
     private function flatRate(int $taxYear, string $workerCategory): float

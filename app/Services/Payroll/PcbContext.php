@@ -12,6 +12,7 @@ class PcbContext
         public float $ytdEpf = 0,
         public float $zakat = 0,
         public float $additionalRemuneration = 0,
+        public float $additionalRemunerationPrior = 0,
         public int $month = 1,
     ) {}
 }

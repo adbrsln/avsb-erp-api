@@ -96,6 +96,11 @@ class PayrollProcessor
 
             $taxYear = $period->year ?? (int) date('Y');
             if ($employee->pcb_contributing) {
+                // Cumulative additional remuneration known so far this year
+                // (prior periods) + this period, for the Design A spike.
+                $additionalPrior = $this->ytdAdditional($employee->id, $period);
+                $additionalCumulative = $additionalPrior + $breakdown->additionalRemuneration;
+
                 $pcb = (new PcbCalculator)->calculate(
                     $employee,
                     $taxYear,
@@ -106,7 +111,8 @@ class PayrollProcessor
                         ytdPcb: $this->ytdSum($employee->id, $period, 'pcb_employee'),
                         ytdEpf: $this->ytdSum($employee->id, $period, 'epf_employee'),
                         zakat: (float) ($employee->zakat_monthly ?? 0),
-                        additionalRemuneration: $breakdown->additionalRemuneration,
+                        additionalRemuneration: $additionalCumulative,
+                        additionalRemunerationPrior: $additionalPrior,
                         month: (int) ($period->month ?? (int) date('n')),
                     )
                 );
@@ -179,6 +185,20 @@ class PayrollProcessor
         return (float) PayrollRunItem::where('employee_id', $employeeId)
             ->whereHas('period', fn ($q) => $q->where('year', $period->year)->where('month', '<', $month))
             ->sum($column);
+    }
+
+    private function ytdAdditional(int $employeeId, PayrollPeriod $period): float
+    {
+        $month = (int) $period->month;
+        if ($month <= 1) {
+            return 0.0;
+        }
+
+        $items = PayrollRunItem::where('employee_id', $employeeId)
+            ->whereHas('period', fn ($q) => $q->where('year', $period->year)->where('month', '<', $month))
+            ->get();
+
+        return (float) $items->sum(fn ($i) => (float) ($i->wage_breakdown['additional_remuneration'] ?? 0));
     }
 
     public function processPartTime(int $periodId): array

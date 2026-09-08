@@ -814,6 +814,12 @@ class PayrollController extends Controller
         $pcb = null;
 
         if ($employee->pcb_contributing) {
+            // Cumulative additional remuneration known so far this year, and
+            // the amount known before THIS period (for the Design A spike:
+            // only the incremental bonus tax is spiked in the declaring period).
+            $additionalPrior = $this->pcbYtdAdditional($item);
+            $additionalCumulative = $additionalPrior + $breakdown->additionalRemuneration;
+
             $pcb = (new PcbCalculator)->calculateRaw(
                 monthlyGross: $breakdown->wagesBase,
                 employeeEpf: $epfOnWages->employeeAmount,
@@ -828,23 +834,17 @@ class PayrollController extends Controller
                 ytdGross: $this->pcbYtdSum($item, 'salary'),
                 ytdPcb: $this->pcbYtdSum($item, 'pcb_employee'),
                 ytdEpf: $this->pcbYtdSum($item, 'epf_employee'),
+                additionalRemuneration: $additionalCumulative,
+                additionalRemunerationPrior: $additionalPrior,
                 month: $month,
             );
 
-            if ($breakdown->additionalRemuneration > 0) {
-                $additionalPcb = (new PcbCalculator)->additionalRemunerationPcb(
-                    $pcb,
-                    $breakdown->additionalRemuneration,
-                    max(0.0, $epf->employeeAmount - $epfOnWages->employeeAmount),
-                );
-            }
-
             $pcbMethod = $pcb->breakdown;
             $pcbMethod['additional_remuneration'] = $breakdown->additionalRemuneration;
-            $pcbMethod['additional_pcb'] = $additionalPcb;
+            $pcbMethod['additional_pcb'] = (float) ($pcb->breakdown['bonus_tax'] ?? 0);
         }
 
-        $pcbTotal = ($pcb?->amount ?? 0) + $additionalPcb;
+        $pcbTotal = $pcb?->amount ?? 0;
         $pcbMethod['pcb_borne_by_employer'] = $employee->pcbBorneEffective($item->period?->end_date?->toDateString());
 
         $item->update([
@@ -874,6 +874,20 @@ class PayrollController extends Controller
         return (float) PayrollRunItem::where('employee_id', $item->employee_id)
             ->whereHas('period', fn ($q) => $q->where('year', $item->period->year)->where('month', '<', $month))
             ->sum($column);
+    }
+
+    private function pcbYtdAdditional(PayrollRunItem $item): float
+    {
+        $month = (int) ($item->period?->month ?? 0);
+        if ($month <= 1) {
+            return 0.0;
+        }
+
+        $items = PayrollRunItem::where('employee_id', $item->employee_id)
+            ->whereHas('period', fn ($q) => $q->where('year', $item->period->year)->where('month', '<', $month))
+            ->get();
+
+        return (float) $items->sum(fn ($i) => (float) ($i->wage_breakdown['additional_remuneration'] ?? 0));
     }
 
     public function getItemAdjustments(Request $request, int $id, int $itemId): JsonResponse

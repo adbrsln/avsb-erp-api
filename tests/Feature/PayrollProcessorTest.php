@@ -408,4 +408,68 @@ describe('PayrollProcessor PCB', function () {
         expect(payrollItemFor($past, $period)->pcb_method['pcb_borne_by_employer'])->toBeFalse();
     });
 
+    it('spikes PCB in the bonus period then returns to baseline, and spikes again for a second bonus', function () {
+        $staff = makePayrollStaff();
+        $year = 2027;
+        $mk = fn (int $m, string $tag) => PayrollPeriod::factory()->open()->create([
+            'code' => "SPIKE-{$tag}-{$m}",
+            'start_date' => "{$year}-".str_pad((string) $m, 2, '0', STR_PAD_LEFT).'-01',
+            'end_date' => "{$year}-".str_pad((string) $m, 2, '0', STR_PAD_LEFT).'-28',
+            'month' => $m,
+            'year' => $year,
+        ]);
+
+        $apr = $mk(4, 'A');
+        $may = $mk(5, 'A');
+        $jun = $mk(6, 'A');
+
+        // Baseline months first (Jan-Mar) so the bonus period has prior months.
+        $jan = $mk(1, 'A');
+        $feb = $mk(2, 'A');
+        $mar = $mk(3, 'A');
+        foreach ([$jan, $feb, $mar] as $p) {
+            (new PayrollProcessor)->process($p->id);
+        }
+        $baseline = payrollItemFor($staff, $mar)->pcb_employee;
+
+        // April: add bonus 5000, reprocess → PCB spikes above baseline.
+        (new PayrollProcessor)->process($apr->id);
+        $itemApr = payrollItemFor($staff, $apr);
+        PayrollAdjustment::create([
+            'payroll_run_item_id' => $itemApr->id,
+            'type' => 'earnings',
+            'statutory_type' => 'additional',
+            'label' => 'Bonus',
+            'amount' => 5000,
+        ]);
+        (new PayrollProcessor)->process($apr->id);
+        $itemApr->refresh();
+
+        expect($itemApr->pcb_employee)->toBeGreaterThan($baseline);
+        expect((float) $itemApr->pcb_method['bonus_tax'])->toBeGreaterThan(0);
+
+        // May: no new bonus → PCB back to baseline (NOT zero).
+        (new PayrollProcessor)->process($may->id);
+        $itemMay = payrollItemFor($staff, $may);
+        expect($itemMay->pcb_employee)->toBe($baseline);
+
+        // June: second bonus 3000 → spikes again above baseline.
+        (new PayrollProcessor)->process($jun->id);
+        $itemJun = payrollItemFor($staff, $jun);
+        PayrollAdjustment::create([
+            'payroll_run_item_id' => $itemJun->id,
+            'type' => 'earnings',
+            'statutory_type' => 'additional',
+            'label' => 'Bonus',
+            'amount' => 3000,
+        ]);
+        (new PayrollProcessor)->process($jun->id);
+        $itemJun->refresh();
+
+        expect($itemJun->pcb_employee)->toBeGreaterThan($baseline);
+        // Second, smaller bonus → smaller incremental spike than April's.
+        expect($itemJun->pcb_employee)->toBeLessThan($itemApr->pcb_employee);
+        expect((float) $itemJun->pcb_method['bonus_tax'])->toBeGreaterThan(0);
+    });
+
 });

@@ -205,8 +205,11 @@ it('applies the RM400 individual rebate for chargeable income within threshold',
     expect($pcb->amount)->toBe(11.70);
 });
 
-it('computes one-shot PCB for additional remuneration (bonus)', function () {
-    $base = (new PcbCalculator)->calculateRaw(
+it('spikes the incremental bonus tax in the declaring period and keeps baseline otherwise', function () {
+    $calc = new PcbCalculator;
+
+    // Baseline (no bonus): 8000/mo → annual 96000, EPF relief 4000, single 9000
+    $base = $calc->calculateRaw(
         monthlyGross: 8000,
         employeeEpf: 880,
         taxYear: 2026,
@@ -216,17 +219,54 @@ it('computes one-shot PCB for additional remuneration (bonus)', function () {
         spouseDisabled: false,
         childrenTax: null,
         abilityStatus: 'normal',
-        month: 1,
+        month: 4,
     );
+    expect($base->amount)->toBe(514.20);
 
-    // CS = tax(83,000 + 10,000) = tax(93,000) = 8,070; PCB(B) = 0 + 514.20
-    $additional = (new PcbCalculator)->additionalRemunerationPcb($base, 10000, 1100);
+    // Bonus 10,000 declared this period (prior 0 → cumulative 10000)
+    $bonus = $calc->calculateRaw(
+        monthlyGross: 8000,
+        employeeEpf: 880,
+        taxYear: 2026,
+        workerCategory: 'pemastautin',
+        maritalStatus: 'single',
+        spouseWorking: null,
+        spouseDisabled: false,
+        childrenTax: null,
+        abilityStatus: 'normal',
+        month: 4,
+        additionalRemuneration: 10000,
+        additionalRemunerationPrior: 0,
+    );
+    // Spike = incremental annual tax from the bonus, on top of baseline.
+    expect($bonus->amount)->toBe(2414.20);
+    expect((float) $bonus->breakdown['bonus_tax'])->toBe(1900.00);
+    // Annual total incl bonus: tax(96,000 + 10,000 − 4,000 − 9,000)
+    expect($bonus->annualTax)->toBe(8070.00);
 
-    expect($additional)->toBe(7555.80);
+    // A later period with no NEW bonus keeps the baseline (no spike, not zero).
+    $later = $calc->calculateRaw(
+        monthlyGross: 8000,
+        employeeEpf: 880,
+        taxYear: 2026,
+        workerCategory: 'pemastautin',
+        maritalStatus: 'single',
+        spouseWorking: null,
+        spouseDisabled: false,
+        childrenTax: null,
+        abilityStatus: 'normal',
+        month: 6,
+        additionalRemuneration: 10000,
+        additionalRemunerationPrior: 10000,
+    );
+    expect((float) $later->breakdown['bonus_tax'])->toBe(0.0);
+    expect($later->amount)->toBe($base->amount);
 });
 
 it('applies the flat rate to additional remuneration for non-residents', function () {
-    $base = (new PcbCalculator)->calculateRaw(
+    $calc = new PcbCalculator;
+
+    $bonus = $calc->calculateRaw(
         monthlyGross: 8000,
         employeeEpf: 0,
         taxYear: 2026,
@@ -236,10 +276,14 @@ it('applies the flat rate to additional remuneration for non-residents', functio
         spouseDisabled: false,
         childrenTax: null,
         abilityStatus: 'normal',
-        month: 1,
+        month: 4,
+        additionalRemuneration: 1000,
+        additionalRemunerationPrior: 0,
     );
 
-    expect((new PcbCalculator)->additionalRemunerationPcb($base, 1000, 0))->toBe(300.00);
+    // Flat 30% on the additional remuneration, spiked on top of the 30% baseline.
+    expect($bonus->amount)->toBe(2700.00);
+    expect((float) $bonus->breakdown['bonus_tax'])->toBe(300.00);
 });
 
 it('does not charge PCB when the annual tax is below RM10 (myTax rule)', function () {
