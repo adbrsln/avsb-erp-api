@@ -3,6 +3,7 @@
 namespace App\Services\Payroll;
 
 use App\Models\Attendance;
+use App\Models\PayrollAdjustment;
 use App\Models\PayrollPeriod;
 use App\Models\PayrollRunItem;
 use App\Models\StaffProfile;
@@ -68,9 +69,29 @@ class PayrollProcessor
 
             $salary = (float) ($employee->basic_salary ?? 0);
 
+            // Bonus/additional earnings count into EPF wages (EPF Act 1991)
+            // but NOT into SOCSO/EIS — their contribution base is wages only.
+            // Honor adjustments already attached to a previous run so that
+            // reprocessing doesn't reset EPF.
+            $existingItem = PayrollRunItem::where('period_id', $periodId)
+                ->where('employee_id', $employee->id)
+                ->first();
+            $earningsTotal = $existingItem
+                ? (float) PayrollAdjustment::where('payroll_run_item_id', $existingItem->id)
+                    ->where('type', 'earnings')
+                    ->sum('amount')
+                : 0.0;
+            $epfSalary = round($salary + $earningsTotal, 2);
+
             $epf = $employee->epf_contributing
-                ? $this->epfCalculator->calculate($employee)
-                : new EPFResult((new ScheduleDeterminer)->determine($employee), $salary, 0.0, 0.0);
+                ? $this->epfCalculator->calculateRaw(
+                    $epfSalary,
+                    str_contains((string) $employee->nationality, 'Malaysian') ? 'citizen' : 'non_citizen',
+                    (bool) $employee->has_pr,
+                    (bool) $employee->epf_member_before_aug_1998,
+                    (string) $employee->date_of_birth,
+                )
+                : new EPFResult((new ScheduleDeterminer)->determine($employee), $epfSalary, 0.0, 0.0);
             $socso = $employee->socso_contributing
                 ? $this->socsoCalculator->calculate($salary)
                 : new SocsoResult($salary, 0.0, 0.0);

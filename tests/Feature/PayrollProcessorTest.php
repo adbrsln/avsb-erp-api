@@ -2,6 +2,7 @@
 
 use App\Models\EisContributionTier;
 use App\Models\EPFSchedule;
+use App\Models\PayrollAdjustment;
 use App\Models\PayrollPeriod;
 use App\Models\PayrollRunItem;
 use App\Models\SocsoContributionTier;
@@ -91,6 +92,52 @@ describe('PayrollProcessor statutory opt-outs', function () {
         // EIS tier 21 / 8
         expect($item->eis_employer)->toBe(21.0);
         expect($item->eis_employee)->toBe(8.0);
+    });
+
+    it('bases EIS/SOCSO on wages only, EPF on wages plus bonus', function () {
+        // Boundary tiers so a bonus crossing into tier 2 is observable.
+        SocsoContributionTier::query()->delete();
+        EisContributionTier::query()->delete();
+        SocsoContributionTier::create([
+            'wage_from' => 0.01, 'wage_to' => 4500.00,
+            'employer_amount' => 84.00, 'employee_amount' => 37.00,
+        ]);
+        SocsoContributionTier::create([
+            'wage_from' => 4500.01, 'wage_to' => 10000.00,
+            'employer_amount' => 120.00, 'employee_amount' => 55.00,
+        ]);
+        EisContributionTier::create([
+            'wage_from' => 0.01, 'wage_to' => 4500.00,
+            'employer_amount' => 21.00, 'employee_amount' => 8.00,
+        ]);
+        EisContributionTier::create([
+            'wage_from' => 4500.01, 'wage_to' => 10000.00,
+            'employer_amount' => 25.00, 'employee_amount' => 12.00,
+        ]);
+
+        $staff = makePayrollStaff(['basic_salary' => 4000]);
+        [$period] = runPayroll();
+
+        $item = payrollItemFor($staff, $period);
+        expect($item->socso_employee)->toBe(37.0);
+        expect($item->eis_employee)->toBe(8.0);
+        expect($item->epf_employee)->toBe(80.0); // FLAT 2% on 4,000
+
+        // Attach a 1,000 bonus adjustment and reprocess (the reprocess flow).
+        PayrollAdjustment::create([
+            'payroll_run_item_id' => $item->id,
+            'type' => 'earnings',
+            'label' => 'Bonus',
+            'amount' => 1000,
+        ]);
+        (new PayrollProcessor)->process($period->id);
+
+        $item->refresh();
+        // SOCSO/EIS stay on the 4,000 wage — bonus excluded.
+        expect($item->socso_employee)->toBe(37.0);
+        expect($item->eis_employee)->toBe(8.0);
+        // EPF includes the bonus: FLAT 2% on 5,000.
+        expect($item->epf_employee)->toBe(100.0);
     });
 
     it('includes non-EPF-contributing staff and zeroes their EPF', function () {

@@ -789,13 +789,13 @@ class PayrollController extends Controller
             )
             : new EPFResult((new ScheduleDeterminer)->determine($employee), $adjustedSalary, 0.0, 0.0);
         $socso = $employee->socso_contributing
-            ? (new SocsoCalculator)->calculate($adjustedSalary)
-            : new SocsoResult($adjustedSalary, 0.0, 0.0);
+            ? (new SocsoCalculator)->calculate($baseSalary)
+            : new SocsoResult($baseSalary, 0.0, 0.0);
         $eis = $employee->eis_contributing
-            ? (new EisCalculator)->calculate($adjustedSalary)
-            : new EisResult($adjustedSalary, 0.0, 0.0);
+            ? (new EisCalculator)->calculate($baseSalary)
+            : new EisResult($baseSalary, 0.0, 0.0);
         $socso24 = ($employee->socso_contributing && $employee->socso_24h_enabled)
-            ? (new Socso24Calculator)->calculate($adjustedSalary, $employee->socso_category ?? 'first')
+            ? (new Socso24Calculator)->calculate($baseSalary, $employee->socso_category ?? 'first')
             : ['amount' => 0];
 
         $taxYear = $item->period?->year ?? (int) date('Y');
