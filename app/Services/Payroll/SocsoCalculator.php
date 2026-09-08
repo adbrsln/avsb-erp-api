@@ -6,7 +6,7 @@ use App\Models\SocsoContributionTier;
 
 class SocsoCalculator
 {
-    private const CEILING_WAGE = 7500.00;
+    private const CEILING_WAGE = 6000.00;
 
     private ?SocsoContributionTier $highestTier = null;
 

@@ -6,7 +6,7 @@ use App\Models\EisContributionTier;
 
 class EisCalculator
 {
-    private const CEILING_WAGE = 7500.00;
+    private const CEILING_WAGE = 6000.00;
 
     private ?EisContributionTier $highestTier = null;
 

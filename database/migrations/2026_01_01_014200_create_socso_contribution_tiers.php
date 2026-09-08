@@ -17,7 +17,7 @@ return new class extends Migration
             $table->unique(['wage_from', 'wage_to']);
         });
 
-        // Format: RM100 brackets from 0.01→1500.00 up to 7500.00
+        // Format: RM100 brackets from 0.01→1500.00 up to 6000.00
         $rows = [];
         $empAmount = 25.35;
         $eeAmount = 7.25;
