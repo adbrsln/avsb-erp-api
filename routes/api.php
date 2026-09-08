@@ -506,6 +506,18 @@ Route::prefix('v1')->group(function () {
         Route::get('accounting/ar-aging', [AccountingController::class, 'arAging']);
         Route::get('accounting/ap-aging', [AccountingController::class, 'apAging']);
 
+        // Frontend-compatible aliases (JournalPage/ReportsPage call these paths).
+        Route::get('journal-entries', [AccountingController::class, 'listJournalEntries']);
+        Route::post('journal-entries', [AccountingController::class, 'storeJournalEntry'])->middleware('role:finance,admin,super_admin');
+        Route::get('journal-entries/{id}', [AccountingController::class, 'getJournalEntry']);
+        Route::post('journal-entries/{id}/post', [AccountingController::class, 'postJournalEntry'])->middleware('role:finance,admin,super_admin');
+        Route::get('reports/profit-loss', [AccountingController::class, 'profitLoss']);
+        Route::get('reports/trial-balance', [AccountingController::class, 'trialBalance']);
+        Route::get('reports/balance-sheet', [AccountingController::class, 'balanceSheet']);
+        Route::get('reports/general-ledger', [AccountingController::class, 'generalLedger']);
+        Route::get('reports/ar-aging', [AccountingController::class, 'arAging']);
+        Route::get('reports/ap-aging', [AccountingController::class, 'apAging']);
+
         // ── Fiscal Periods ──
         Route::get('fiscal-periods', [FiscalPeriodController::class, 'index']);
         Route::post('fiscal-periods', [FiscalPeriodController::class, 'store'])->middleware('role:finance,admin,super_admin');
