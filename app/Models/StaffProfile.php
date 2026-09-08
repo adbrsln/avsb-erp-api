@@ -123,4 +123,9 @@ class StaffProfile extends Model
     {
         return $this->hasMany(StaffLeaveBalance::class, 'staff_id');
     }
+
+    public function allowances()
+    {
+        return $this->hasMany(StaffAllowance::class, 'staff_id');
+    }
 }

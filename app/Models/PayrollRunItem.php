@@ -23,6 +23,7 @@ class PayrollRunItem extends Model
         'eis_employer', 'eis_employee',
         'socso_24h_employee',
         'pcb_employee', 'zakat', 'pcb_tax_year', 'pcb_method',
+        'wage_breakdown',
         'paid', 'paid_at', 'paid_by',
         'confirmed', 'confirmed_at', 'confirmed_by',
     ];
@@ -45,6 +46,7 @@ class PayrollRunItem extends Model
         'zakat' => 'float',
         'pcb_tax_year' => 'integer',
         'pcb_method' => 'array',
+        'wage_breakdown' => 'array',
         'paid' => 'boolean',
         'paid_at' => 'datetime',
         'paid_by' => 'integer',

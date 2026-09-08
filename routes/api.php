@@ -59,6 +59,7 @@ use App\Http\Controllers\SelfBilledInvoiceController;
 use App\Http\Controllers\ServiceCatalogController;
 use App\Http\Controllers\ServiceTypeController;
 use App\Http\Controllers\SocsoController;
+use App\Http\Controllers\StaffAllowanceController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\SubcontractorClaimController;
 use App\Http\Controllers\SubcontractorController;
@@ -106,6 +107,10 @@ Route::prefix('v1')->group(function () {
         Route::get('staff/{id}', [StaffController::class, 'show']);
         Route::put('staff/{id}', [StaffController::class, 'update'])->middleware('role:hr,admin,super_admin');
         Route::delete('staff/{id}', [StaffController::class, 'destroy'])->middleware('role:hr,admin,super_admin');
+        Route::get('staff/{id}/allowances', [StaffAllowanceController::class, 'index']);
+        Route::post('staff/{id}/allowances', [StaffAllowanceController::class, 'store'])->middleware('role:hr,admin,super_admin');
+        Route::put('staff/{id}/allowances/{allowanceId}', [StaffAllowanceController::class, 'update'])->middleware('role:hr,admin,super_admin');
+        Route::delete('staff/{id}/allowances/{allowanceId}', [StaffAllowanceController::class, 'destroy'])->middleware('role:hr,admin,super_admin');
         Route::post('staff/{id}/reset-password', [StaffController::class, 'resetPassword'])->middleware('role:hr,admin,super_admin');
         Route::post('staff/{id}/status', [StaffController::class, 'updateStatus'])->middleware('role:hr,admin,super_admin');
         Route::get('staff/{id}/projects', [StaffController::class, 'myProjects'])->middleware('role:hr,admin,super_admin');

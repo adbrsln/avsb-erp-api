@@ -20,7 +20,7 @@ class StaffController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $query = StaffProfile::with(['leaveGroup', 'user'])
+        $query = StaffProfile::with(['leaveGroup', 'user', 'allowances'])
             ->whereDoesntHave('user.roles', fn ($q) => $q->where('role', 'super_admin'));
 
         if ($search = $request->input('search')) {
@@ -75,7 +75,7 @@ class StaffController extends Controller
 
     public function show(Request $request, int $id): JsonResponse
     {
-        $item = StaffProfile::with('user')->findOrFail($id);
+        $item = StaffProfile::with(['user', 'allowances'])->findOrFail($id);
 
         return response()->json($item);
     }

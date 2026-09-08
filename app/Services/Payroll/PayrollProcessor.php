@@ -3,7 +3,6 @@
 namespace App\Services\Payroll;
 
 use App\Models\Attendance;
-use App\Models\PayrollAdjustment;
 use App\Models\PayrollPeriod;
 use App\Models\PayrollRunItem;
 use App\Models\StaffProfile;
@@ -69,39 +68,30 @@ class PayrollProcessor
 
             $salary = (float) ($employee->basic_salary ?? 0);
 
-            // Bonus/additional earnings count into EPF wages (EPF Act 1991)
-            // but NOT into SOCSO/EIS — their contribution base is wages only.
-            // Honor adjustments already attached to a previous run so that
-            // reprocessing doesn't reset EPF.
             $existingItem = PayrollRunItem::where('period_id', $periodId)
                 ->where('employee_id', $employee->id)
                 ->first();
-            $earningsTotal = $existingItem
-                ? (float) PayrollAdjustment::where('payroll_run_item_id', $existingItem->id)
-                    ->where('type', 'earnings')
-                    ->sum('amount')
-                : 0.0;
-            $epfSalary = round($salary + $earningsTotal, 2);
+            $breakdown = WageBreakdown::resolve($employee, $period, $existingItem);
 
             $epf = $employee->epf_contributing
                 ? $this->epfCalculator->calculateRaw(
-                    $epfSalary,
+                    $breakdown->epfBase,
                     str_contains((string) $employee->nationality, 'Malaysian') ? 'citizen' : 'non_citizen',
                     (bool) $employee->has_pr,
                     (bool) $employee->epf_member_before_aug_1998,
                     (string) $employee->date_of_birth,
                 )
-                : new EPFResult((new ScheduleDeterminer)->determine($employee), $epfSalary, 0.0, 0.0);
+                : new EPFResult((new ScheduleDeterminer)->determine($employee), $breakdown->epfBase, 0.0, 0.0);
             $socso = $employee->socso_contributing
-                ? $this->socsoCalculator->calculate($salary)
-                : new SocsoResult($salary, 0.0, 0.0);
+                ? $this->socsoCalculator->calculate($breakdown->wagesBase)
+                : new SocsoResult($breakdown->wagesBase, 0.0, 0.0);
             $eis = $employee->eis_contributing
-                ? $this->eisCalculator->calculate($salary)
-                : new EisResult($salary, 0.0, 0.0);
+                ? $this->eisCalculator->calculate($breakdown->wagesBase)
+                : new EisResult($breakdown->wagesBase, 0.0, 0.0);
             $socso24Amount = 0;
             if ($employee->socso_contributing && $employee->socso_24h_enabled) {
                 $category = $employee->socso_category ?? 'first';
-                $socso24Amount = $this->socso24Calculator->calculate($salary, $category)['amount'];
+                $socso24Amount = $this->socso24Calculator->calculate($breakdown->wagesBase, $category)['amount'];
             }
 
             $taxYear = $period->year ?? (int) date('Y');
@@ -110,12 +100,13 @@ class PayrollProcessor
                     $employee,
                     $taxYear,
                     new PcbContext(
-                        monthlyGross: $salary,
+                        monthlyGross: $breakdown->wagesBase,
                         employeeEpf: $epf->employeeAmount,
                         ytdGross: $this->ytdSum($employee->id, $period, 'salary'),
                         ytdPcb: $this->ytdSum($employee->id, $period, 'pcb_employee'),
                         ytdEpf: $this->ytdSum($employee->id, $period, 'epf_employee'),
                         zakat: (float) ($employee->zakat_monthly ?? 0),
+                        additionalRemuneration: $breakdown->additionalRemuneration,
                         month: (int) ($period->month ?? (int) date('n')),
                     )
                 );
@@ -143,6 +134,7 @@ class PayrollProcessor
                     'zakat' => $pcb?->zakat ?? 0,
                     'pcb_tax_year' => $pcb ? $taxYear : null,
                     'pcb_method' => $pcbMethod,
+                    'wage_breakdown' => $breakdown->toArray(),
                 ]
             );
 

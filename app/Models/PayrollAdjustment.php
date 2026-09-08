@@ -13,7 +13,7 @@ class PayrollAdjustment extends Model
     protected $table = 'payroll_adjustments';
 
     protected $fillable = [
-        'payroll_run_item_id', 'type', 'label', 'amount', 'created_by',
+        'payroll_run_item_id', 'type', 'statutory_type', 'label', 'amount', 'created_by',
     ];
 
     protected $casts = [
