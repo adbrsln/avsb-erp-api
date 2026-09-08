@@ -418,6 +418,8 @@ Route::prefix('v1')->group(function () {
         Route::post('payroll/periods/{id}/process-part-time', [PayrollController::class, 'processPartTime'])->middleware('role:hr,admin,super_admin');
         Route::put('payroll/periods/{id}/close', [PayrollController::class, 'closePeriod'])->middleware('role:hr,admin,super_admin');
         Route::put('payroll/periods/{id}/reopen', [PayrollController::class, 'reopenPeriod'])->middleware('role:hr,admin,super_admin');
+        Route::post('payroll/periods/{id}/reverse', [PayrollController::class, 'reversePeriod'])->middleware('role:admin,super_admin');
+        Route::post('payroll/periods/{id}/items/{itemId}/reverse', [PayrollController::class, 'reverseItem'])->middleware('role:admin,super_admin');
         Route::post('payroll/periods/{id}/bulk-mark-paid', [PayrollController::class, 'bulkMarkPaid'])->middleware('role:hr,admin,super_admin');
         Route::post('payroll/periods/{id}/items/{itemId}/confirm', [PayrollController::class, 'confirmItem'])->middleware('role:hr,admin,super_admin');
         Route::post('payroll/periods/{id}/items/{itemId}/mark-paid', [PayrollController::class, 'markItemPaid'])->middleware('role:hr,admin,super_admin');

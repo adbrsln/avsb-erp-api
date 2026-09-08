@@ -268,6 +268,12 @@ class NotificationTemplateSeeder
                 'subject_template' => 'Payslip Available — {{period}}',
                 'body_template' => '<p>Your payslip for <strong>{{period}}</strong> is now available.</p><p><strong>Net Pay:</strong> RM{{net_pay}}</p><p><a href="{{url}}">Download in AVSB ERP</a></p>',
             ],
+            [
+                'event_type' => 'payslip.revoked',
+                'category' => 'alert',
+                'subject_template' => 'Payslip Revoked — {{period}}',
+                'body_template' => '<p>Your payslip for <strong>{{period}}</strong> has been revoked and is being reprocessed.</p><p>Please contact HR if you have questions.</p>',
+            ],
 
             // ── Attendance ──
             [

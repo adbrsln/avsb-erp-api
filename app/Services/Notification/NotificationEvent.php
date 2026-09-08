@@ -100,6 +100,8 @@ class NotificationEvent
 
     const PAYSLIP_AVAILABLE = 'payslip.available';
 
+    const PAYSLIP_REVOKED = 'payslip.revoked';
+
     const ATTENDANCE_FLAGGED = 'attendance.flagged';
 
     const ATTENDANCE_AUTO_CLOSED = 'attendance.auto-closed';

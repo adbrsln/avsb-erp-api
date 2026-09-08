@@ -51,6 +51,44 @@ class PayrollJournalService
             ->delete();
     }
 
+    /**
+     * Post a reversing journal entry for a paid payroll item — the original
+     * lines with debits/credits swapped, so the two net to zero and the
+     * original stays as the audit trail.
+     */
+    public function reverse(PayrollRunItem $item): void
+    {
+        DB::transaction(function () use ($item) {
+            JournalEntry::where('reference_type', 'payroll_reversal')
+                ->where('reference_id', $item->id)
+                ->delete();
+
+            $accounts = $this->accounts();
+            $now = now();
+
+            $entry = JournalEntry::create([
+                'entry_number' => 'PAY-'.$item->id.'-REV',
+                'entry_date' => $now->toDateString(),
+                'description' => 'Reversal of payroll item #'.$item->id,
+                'reference_type' => 'payroll_reversal',
+                'reference_id' => $item->id,
+                'status' => 'posted',
+                'created_by' => auth()->id() ?? null,
+                'posted_at' => $now,
+            ]);
+
+            foreach ($this->lines($item, $accounts) as $line) {
+                JournalEntryLine::create([
+                    'journal_entry_id' => $entry->id,
+                    'account_id' => $line['account_id'],
+                    'debit' => $line['credit'] ?? 0,
+                    'credit' => $line['debit'] ?? 0,
+                    'description' => $line['description'] ?? null,
+                ]);
+            }
+        });
+    }
+
     private function lines(PayrollRunItem $item, array $accounts): array
     {
         if ($item->wage_type === 'hourly_timesheet') {
