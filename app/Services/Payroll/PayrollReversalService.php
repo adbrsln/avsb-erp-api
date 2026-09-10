@@ -48,7 +48,9 @@ class PayrollReversalService
             $employeeId = $item->employee_id;
             $period = $item->period;
             $employee = StaffProfile::find($employeeId);
-            if ($employee?->email) {
+            // Only notify when a payslip was actually delivered (paid) — a
+            // confirmed-only reversal never generated one.
+            if ($employee?->email && $item->paid) {
                 NotificationService::queue(
                     NotificationEvent::PAYSLIP_REVOKED,
                     $employee->email,
@@ -65,7 +67,7 @@ class PayrollReversalService
                 'item_id' => $item->id,
                 'reversed_je' => $reversedJe,
                 'pdf_deleted' => $pdfDeleted,
-                'notified' => $employee?->email !== null,
+                'notified' => $employee?->email !== null && $item->paid,
             ];
         });
     }

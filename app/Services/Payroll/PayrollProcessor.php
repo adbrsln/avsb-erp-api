@@ -55,6 +55,17 @@ class PayrollProcessor
                 continue;
             }
 
+            // Skip confirmed items too — reprocessing must only recompute
+            // payslips that are still unconfirmed and unpaid.
+            $isConfirmed = PayrollRunItem::where('period_id', $periodId)
+                ->where('employee_id', $employee->id)
+                ->where('confirmed', true)
+                ->exists();
+
+            if ($isConfirmed) {
+                continue;
+            }
+
             // Skip employees with flagged overtime attendance in this period
             $hasFlagged = Attendance::where('staff_id', $employee->id)
                 ->whereDate('date', '>=', $period->start_date)

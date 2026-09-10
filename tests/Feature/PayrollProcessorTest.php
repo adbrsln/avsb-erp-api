@@ -374,6 +374,19 @@ describe('PayrollProcessor PCB', function () {
         expect($second->pcb_employee)->toBe($first->pcb_employee);
     });
 
+    it('skips confirmed items on reprocess (only recomputes open items)', function () {
+        $staff = makePayrollStaff();
+        [$period] = runPayroll();
+
+        $item = payrollItemFor($staff, $period);
+        $item->update(['confirmed' => true, 'pcb_employee' => 999.99]);
+
+        (new PayrollProcessor)->process($period->id);
+
+        $item->refresh();
+        expect((float) $item->pcb_employee)->toBe(999.99);
+    });
+
     it('zeroes PCB when pcb_contributing is disabled for the staff', function () {
         $staff = makePayrollStaff(['pcb_contributing' => false]);
         [$period] = runPayroll();

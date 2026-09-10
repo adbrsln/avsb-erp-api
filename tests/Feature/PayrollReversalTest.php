@@ -77,12 +77,13 @@ describe('payroll reversal', function () {
         expect($result['reversed_je'])->toBeTrue();
     });
 
-    it('does not post a reversing journal for unpaid items', function () {
+    it('does not post a reversing journal or notify for unpaid items', function () {
         $item = reversalPaidItem($this->period, $this->staff, ['paid' => false, 'confirmed' => true]);
 
         (new PayrollReversalService)->reverseItem($item);
 
         expect(JournalEntry::where('reference_type', 'payroll_reversal')->where('reference_id', $item->id)->count())->toBe(0);
+        expect(NotificationQueue::where('event_type', 'payslip.revoked')->count())->toBe(0);
         expect(PayrollRunItem::find($item->id))->toBeNull();
     });
 
