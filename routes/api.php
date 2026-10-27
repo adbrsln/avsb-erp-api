@@ -121,11 +121,13 @@ Route::prefix('v1')->group(function () {
 
         // ── Users ──
         Route::get('users', [UserController::class, 'index'])->middleware('role:super_admin');
+        Route::get('users/summary', [UserController::class, 'summary'])->middleware('role:super_admin');
         Route::post('users', [UserController::class, 'store'])->middleware('role:super_admin');
         Route::get('users/{id}', [UserController::class, 'show'])->middleware('role:super_admin');
         Route::put('users/{id}', [UserController::class, 'update'])->middleware('role:super_admin');
         Route::delete('users/{id}', [UserController::class, 'destroy'])->middleware('role:super_admin');
         Route::post('users/{id}/roles', [UserController::class, 'updateRoles'])->middleware('role:super_admin');
+        Route::post('users/{id}/unlock', [UserController::class, 'unlock'])->middleware('role:super_admin');
         Route::post('users/{id}/reset-password', [UserController::class, 'resetPassword'])->middleware('role:super_admin');
 
         // ── Clients ──

@@ -27,6 +27,15 @@ class User extends Authenticatable
         'locked_until' => 'datetime',
     ];
 
+    protected $appends = [
+        'is_locked',
+    ];
+
+    public function getIsLockedAttribute(): bool
+    {
+        return $this->locked_until !== null && $this->locked_until->isFuture();
+    }
+
     public function roles()
     {
         return $this->hasMany(UserRole::class, 'user_id');

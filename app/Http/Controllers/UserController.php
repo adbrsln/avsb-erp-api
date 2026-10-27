@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\User;
+use App\Services\ActivityLogger;
 use App\Traits\PaginatedResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,7 +16,13 @@ class UserController extends Controller
     public function index(Request $request): JsonResponse
     {
         $params = $request->query();
-        $query = User::with('roles');
+        $query = User::with('roles')
+            ->addSelect(['last_login_at' => ActivityLog::query()
+                ->selectRaw('MAX(created_at)')
+                ->where('log_name', 'auth')
+                ->where('event', 'login')
+                ->where('causer_type', User::class)
+                ->whereColumn('causer_id', 'users.id')]);
 
         if (! empty($params['search'])) {
             $search = $params['search'];
@@ -24,7 +32,23 @@ class UserController extends Controller
             });
         }
 
+        if (($params['status'] ?? null) === 'locked') {
+            $query->where('locked_until', '>', now());
+        } elseif (($params['status'] ?? null) === 'active') {
+            $query->where(function ($q) {
+                $q->whereNull('locked_until')->orWhere('locked_until', '<=', now());
+            });
+        }
+
         return $this->paginate($query, $params);
+    }
+
+    public function summary(Request $request): JsonResponse
+    {
+        return response()->json([
+            'total' => User::count(),
+            'locked' => User::where('locked_until', '>', now())->count(),
+        ]);
     }
 
     public function store(Request $request): JsonResponse
@@ -71,7 +95,24 @@ class UserController extends Controller
     {
         $user = User::with('roles')->findOrFail($id);
 
-        return response()->json($user);
+        $events = ActivityLog::where('log_name', 'auth')
+            ->where('causer_type', User::class)
+            ->where('causer_id', (string) $user->id)
+            ->orderByDesc('created_at')
+            ->limit(10)
+            ->get(['id', 'event', 'description', 'properties', 'created_at']);
+
+        $lastLogin = ActivityLog::where('log_name', 'auth')
+            ->where('event', 'login')
+            ->where('causer_type', User::class)
+            ->where('causer_id', (string) $user->id)
+            ->max('created_at');
+
+        return response()->json([
+            ...$user->toArray(),
+            'last_login_at' => $lastLogin,
+            'auth_events' => $events,
+        ]);
     }
 
     public function update(Request $request, int $id): JsonResponse
@@ -129,6 +170,22 @@ class UserController extends Controller
         $this->assertCanAssignRoles($request, $roles);
 
         $user->syncRoles($roles);
+        $user->load('roles');
+
+        return response()->json($user);
+    }
+
+    public function unlock(Request $request, int $id): JsonResponse
+    {
+        $user = User::findOrFail($id);
+        $wasLocked = $user->is_locked;
+
+        $user->update(['login_attempts' => 0, 'locked_until' => null]);
+
+        if ($wasLocked) {
+            ActivityLogger::on($user)->inLog('auth')->log("Account unlocked for {$user->email}", 'account_unlocked');
+        }
+
         $user->load('roles');
 
         return response()->json($user);
