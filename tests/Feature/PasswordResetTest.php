@@ -34,6 +34,7 @@ describe('Admin triggered reset link', function () {
 
         expect(str_contains($html, '/mail-logo.png'))->toBeTrue();
         expect(str_contains($html, 'laravel.com'))->toBeFalse();
+        expect(str_contains($html, '#ca2316'))->toBeTrue();
     });
 
     it('sends a reset link instead of a generated password', function () {
