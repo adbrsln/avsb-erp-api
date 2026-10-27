@@ -151,6 +151,26 @@ describe('Bulk payslip ZIP export', function () {
         $zip->close();
     });
 
+    it('excludes payslips with a zero salary', function () {
+        payrollItem($this->period, StaffProfile::factory()->create());
+        $unpaidStaff = StaffProfile::factory()->create();
+        PayrollRunItem::factory()->create([
+            'period_id' => $this->period->id,
+            'employee_id' => $unpaidStaff->id,
+            'salary' => 0,
+            'confirmed' => true,
+            'confirmed_at' => now(),
+            'confirmed_by' => $unpaidStaff->id,
+        ]);
+
+        $response = $this->get('/api/v1/payroll/periods/'.$this->period->id.'/payslips/download', $this->adminHeaders);
+
+        $response->assertOk();
+        [$zip] = openZip($response);
+        expect($zip->numFiles)->toBe(1);
+        $zip->close();
+    });
+
     it('returns 422 when no payslip is confirmed', function () {
         payrollItem($this->period, StaffProfile::factory()->create(), 'draft');
 

@@ -1003,6 +1003,7 @@ class PayrollController extends Controller
 
         $items = PayrollRunItem::where('period_id', $period->id)
             ->where(fn ($q) => $q->where('confirmed', true)->orWhere('paid', true))
+            ->where('payroll_run_items.salary', '>', 0)
             ->join('staff_profiles', 'payroll_run_items.employee_id', '=', 'staff_profiles.id')
             ->select('payroll_run_items.*', 'staff_profiles.name as employee_name', 'staff_profiles.employee_id as employee_code')
             ->orderBy('staff_profiles.name')
