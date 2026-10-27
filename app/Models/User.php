@@ -2,15 +2,17 @@
 
 namespace App\Models;
 
+use App\Notifications\ResetPasswordNotification;
 use App\Services\ActivityLogger;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use Auditable, HasApiTokens, HasFactory;
+    use Auditable, HasApiTokens, HasFactory, Notifiable;
 
     protected $table = 'users';
 
@@ -34,6 +36,11 @@ class User extends Authenticatable
     public function getIsLockedAttribute(): bool
     {
         return $this->locked_until !== null && $this->locked_until->isFuture();
+    }
+
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new ResetPasswordNotification($token));
     }
 
     public function roles()

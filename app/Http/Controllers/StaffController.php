@@ -10,9 +10,11 @@ use App\Models\StaffProfile;
 use App\Models\Task;
 use App\Models\User;
 use App\Services\NumberingService;
+use App\Services\PasswordResetService;
 use App\Traits\PaginatedResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Password;
 
 class StaffController extends Controller
 {
@@ -155,10 +157,20 @@ class StaffController extends Controller
             return response()->json(['error' => 'User account not found'], 404);
         }
 
-        $password = bin2hex(random_bytes(4));
-        $user->update(['password' => password_hash($password, PASSWORD_BCRYPT)]);
+        $status = (new PasswordResetService)->sendLink($user);
 
-        return response()->json(['message' => 'Password reset successful', 'generated_password' => $password]);
+        if ($status === Password::RESET_THROTTLED) {
+            return response()->json(['error' => 'Please wait before requesting another reset link'], 429);
+        }
+
+        if ($status !== Password::RESET_LINK_SENT) {
+            return response()->json(['error' => 'Failed to send password reset link'], 422);
+        }
+
+        return response()->json([
+            'message' => 'Password reset link sent',
+            'email' => $user->email,
+        ]);
     }
 
     public function updateStatus(Request $request, int $id): JsonResponse

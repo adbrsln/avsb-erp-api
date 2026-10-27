@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Services\ActivityLogContext;
 use App\Services\ActivityLogger;
+use App\Services\PasswordResetService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Password;
 
 class AuthController extends Controller
 {
@@ -206,6 +208,34 @@ class AuthController extends Controller
         $user->update(['password' => password_hash($data['new_password'], PASSWORD_BCRYPT)]);
 
         return response()->json(['message' => 'Password changed successfully']);
+    }
+
+    public function resetPassword(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'token' => 'required|string',
+            'email' => 'required|email',
+            'password' => 'required|string',
+            'password_confirmation' => 'required|string|same:password',
+        ]);
+
+        $passwordError = $this->validatePassword($data['password']);
+        if ($passwordError) {
+            return response()->json(['error' => $passwordError], 422);
+        }
+
+        $status = (new PasswordResetService)->reset([
+            'email' => $data['email'],
+            'password' => $data['password'],
+            'password_confirmation' => $data['password_confirmation'],
+            'token' => $data['token'],
+        ]);
+
+        if ($status === Password::PASSWORD_RESET) {
+            return response()->json(['message' => 'Password reset successfully']);
+        }
+
+        return response()->json(['error' => 'This password reset link is invalid or has expired.'], 422);
     }
 
     public function verifyPassword(Request $request): JsonResponse

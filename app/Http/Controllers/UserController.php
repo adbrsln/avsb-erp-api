@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\ActivityLog;
 use App\Models\User;
 use App\Services\ActivityLogger;
+use App\Services\PasswordResetService;
 use App\Traits\PaginatedResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Password;
 
 class UserController extends Controller
 {
@@ -194,12 +196,19 @@ class UserController extends Controller
     public function resetPassword(Request $request, int $id): JsonResponse
     {
         $user = User::findOrFail($id);
-        $password = bin2hex(random_bytes(4));
-        $user->update(['password' => password_hash($password, PASSWORD_BCRYPT)]);
+        $status = (new PasswordResetService)->sendLink($user);
+
+        if ($status === Password::RESET_THROTTLED) {
+            return response()->json(['error' => 'Please wait before requesting another reset link'], 429);
+        }
+
+        if ($status !== Password::RESET_LINK_SENT) {
+            return response()->json(['error' => 'Failed to send password reset link'], 422);
+        }
 
         return response()->json([
-            'message' => 'Password reset successful',
-            'generated_password' => $password,
+            'message' => 'Password reset link sent',
+            'email' => $user->email,
         ]);
     }
 

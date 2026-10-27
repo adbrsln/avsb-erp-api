@@ -84,6 +84,7 @@ Route::prefix('v1')->group(function () {
     Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:60,60');
     Route::post('auth/register', [AuthController::class, 'register'])->middleware('throttle:5,3600');
     Route::post('auth/verify-password', [AuthController::class, 'verifyPassword'])->middleware('throttle:5,60');
+    Route::post('auth/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:10,60');
     Route::post('einvoice/webhook', [EInvoiceController::class, 'webhook'])->middleware('throttle:60,60');
 
     // ── Authenticated Routes ──
