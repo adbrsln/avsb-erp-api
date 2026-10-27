@@ -37,7 +37,7 @@ class PayslipGenerator
 
         $dompdf = new Dompdf;
         $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->setPaper('A4', 'landscape');
         $dompdf->render();
 
         $path = 'payslips/'.$item->period_id.'/'.$item->id.'.pdf';
