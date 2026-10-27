@@ -28,6 +28,14 @@ function resetTokenFor(User $user): string
 
 describe('Admin triggered reset link', function () {
 
+    it('brands the email header with the app logo', function () {
+        $user = resetUser();
+        $html = (new ResetPasswordNotification('token-123'))->toMail($user)->render();
+
+        expect(str_contains($html, '/mail-logo.png'))->toBeTrue();
+        expect(str_contains($html, 'laravel.com'))->toBeFalse();
+    });
+
     it('sends a reset link instead of a generated password', function () {
         Notification::fake();
         $user = resetUser();
