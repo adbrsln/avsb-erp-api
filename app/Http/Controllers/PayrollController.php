@@ -25,6 +25,7 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class PayrollController extends Controller
 {
@@ -941,16 +942,20 @@ class PayrollController extends Controller
             return response()->json(['error' => 'Payslip not found'], 404);
         }
 
-        if (! $item->paid) {
-            return response()->json(['error' => 'Payslip not yet paid'], 403);
-        }
-
         $user = $request->user();
-        $email = $user->email ?? '';
-        $staff = StaffProfile::where('email', $email)->first();
+        $isPayrollRole = (bool) array_intersect($user->getRoleNames(), ['hr', 'finance', 'admin', 'super_admin']);
+        $staff = StaffProfile::where('email', $user->email ?? '')->first();
+        $isOwner = $staff && $staff->id === $item->employee_id;
 
-        if (! $staff || $staff->id !== $item->employee_id) {
-            return response()->json(['error' => 'Forbidden'], 403);
+        if (! $isPayrollRole) {
+            if (! $isOwner) {
+                return response()->json(['error' => 'Forbidden'], 403);
+            }
+            if (! $item->paid) {
+                return response()->json(['error' => 'Payslip not yet paid'], 403);
+            }
+        } elseif (! $item->confirmed && ! $item->paid) {
+            return response()->json(['error' => 'Payslip is not confirmed yet'], 422);
         }
 
         $storagePath = 'payslips/'.$item->period_id.'/'.$item->id.'.pdf';
@@ -968,7 +973,9 @@ class PayrollController extends Controller
             return response()->json(['error' => 'Payslip file not found'], 404);
         }
 
-        $filename = 'Payslip_'.$item->id.'.pdf';
+        $employee = StaffProfile::find($item->employee_id);
+        $suffix = $employee?->employee_id ?: (string) $item->id;
+        $filename = 'Payslip_'.($item->period?->code ?: $item->period_id).'_'.$suffix.'.pdf';
         $url = $storage->getPresignedUrl($storagePath, 5, $filename);
         if ($url) {
             return response()->json(['url' => $url, 'filename' => $filename]);
@@ -981,5 +988,81 @@ class PayrollController extends Controller
             'Content-Disposition' => 'attachment; filename="'.$filename.'"',
             'Content-Length' => strlen($pdfContent),
         ]);
+    }
+
+    public function downloadPeriodPayslips(Request $request, int $id): BinaryFileResponse|JsonResponse
+    {
+        $period = PayrollPeriod::find($id);
+        if (! $period) {
+            return response()->json(['error' => 'Payroll period not found'], 404);
+        }
+
+        if (! class_exists(\ZipArchive::class)) {
+            return response()->json(['error' => 'ZIP archive support is not available on this server'], 500);
+        }
+
+        $items = PayrollRunItem::where('period_id', $period->id)
+            ->where(fn ($q) => $q->where('confirmed', true)->orWhere('paid', true))
+            ->join('staff_profiles', 'payroll_run_items.employee_id', '=', 'staff_profiles.id')
+            ->select('payroll_run_items.*', 'staff_profiles.name as employee_name', 'staff_profiles.employee_id as employee_code')
+            ->orderBy('staff_profiles.name')
+            ->get();
+
+        if ($items->isEmpty()) {
+            return response()->json(['error' => 'No confirmed payslips to export. Confirm the payslips first.'], 422);
+        }
+
+        $storage = new FileStorageService;
+        $generator = new PayslipGenerator;
+
+        $zipPath = tempnam(sys_get_temp_dir(), 'payslips_');
+        $zip = new \ZipArchive;
+        if ($zip->open($zipPath, \ZipArchive::OVERWRITE) !== true) {
+            @unlink($zipPath);
+
+            return response()->json(['error' => 'Failed to create archive'], 500);
+        }
+
+        $periodCode = preg_replace('/[^A-Za-z0-9_-]+/', '_', (string) $period->code);
+        $added = 0;
+        $usedNames = [];
+
+        foreach ($items as $item) {
+            $storagePath = 'payslips/'.$item->period_id.'/'.$item->id.'.pdf';
+            if (! $storage->exists($storagePath)) {
+                try {
+                    $generator->generate($item->id);
+                } catch (\Throwable) {
+                    continue;
+                }
+            }
+            if (! $storage->exists($storagePath)) {
+                continue;
+            }
+
+            $name = preg_replace('/[^A-Za-z0-9_-]+/', '_', (string) ($item->employee_name ?: 'staff'));
+            $code = preg_replace('/[^A-Za-z0-9_-]+/', '_', (string) ($item->employee_code ?: $item->employee_id));
+            $entry = 'Payslip_'.$periodCode.'_'.$code.'_'.$name.'.pdf';
+            if (isset($usedNames[$entry])) {
+                $entry = 'Payslip_'.$periodCode.'_'.$code.'_'.$name.'_'.$item->id.'.pdf';
+            }
+            $usedNames[$entry] = true;
+
+            $zip->addFromString($entry, $storage->get($storagePath));
+            $added++;
+        }
+
+        $zip->close();
+
+        if ($added === 0) {
+            @unlink($zipPath);
+
+            return response()->json(['error' => 'No payslip PDFs could be generated'], 422);
+        }
+
+        $filename = 'Payslips_'.($periodCode ?: $period->id).'.zip';
+
+        return response()->download($zipPath, $filename, ['Content-Type' => 'application/zip'])
+            ->deleteFileAfterSend(true);
     }
 }
